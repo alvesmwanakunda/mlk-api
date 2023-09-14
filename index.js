@@ -12,6 +12,16 @@ const config = require('./config');
 var path = require('path');
 const cors = require('cors');
 
+/*var admin = require("firebase-admin");
+
+var serviceAccount = require("path/to/serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: process.env.BUCKET_URL
+});*/
+
+
 
 if(process.env.NODE_ENV !=="production"){
     require("dotenv").config();
@@ -65,6 +75,7 @@ function initApp(){
     var token =  req.headers.token;
     if(token){
       jwt.verify(token,config.certif, async function(err, decoded){
+        //console.log("decoded", decoded);
         if(err){
           return res.status(401).json({
             successs:false,

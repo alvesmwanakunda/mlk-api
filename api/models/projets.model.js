@@ -88,6 +88,10 @@
          type:Date,
          required: false
      },
+     plan:{
+        type:String,
+        required: false
+    },
     });
     module.exports = {
      projetSchema: projetSchema,
