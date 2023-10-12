@@ -19,6 +19,10 @@
         
         app.put('/projet/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjet)
 
+        app.post('/projet/entreprise/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.addProjetEntreprise)
+        
+        app.put('/projet/entreprise/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjetEntreprise)
+
          app.put('/projet/file/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjetFile)
     }
 

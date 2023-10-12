@@ -47,7 +47,12 @@
             type: String,
             required: false,
             select: false
-        }
+        },
+        entreprise:{
+            type:Schema.ObjectId,
+            ref:"Entreprises",
+            required:false
+        },
     });
 
     module.exports = {

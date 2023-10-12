@@ -87,7 +87,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Agenda.find().then((agenda)=>{
+                        Agenda.find({user:req.decoded.id}).then((agenda)=>{
                             res.json({
                                 success: true,
                                 message:agenda

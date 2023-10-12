@@ -8,6 +8,9 @@
            .get(Ctrl.getAllContact)
            .post(Ctrl.addContact)
 
+         app.route('/contact/entreprise/:id([a-fA-F\\d]{24})')
+           .post(Ctrl.addContactByEntreprise)
+
         app.route('/contact/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getContact)
            .delete(Ctrl.deleteContact)

@@ -35,6 +35,35 @@
                 })
             },
 
+            addContactByEntreprise(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+                      
+                        var contact = new Contact(req.body);
+                        contact.entreprise= req.params.id;
+                        contact.createdDate = new Date();
+
+                            contact.save().then((contact)=>{
+                                res.json({
+                                    success:true,
+                                    message:contact
+                                });
+
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
             addContactToProjet(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
