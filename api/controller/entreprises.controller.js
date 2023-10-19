@@ -79,7 +79,7 @@
                         let entreprise = await Entreprise.findOne({_id:req.params.id});
                         
                         try {
-                            entreprise.nom = req.body.nom;
+                            entreprise.societe = req.body.societe;
                             entreprise.commercial = req.body.commercial;
                             entreprise.siren = req.body.siren;
                             entreprise.siret = req.body.siret;
@@ -94,7 +94,9 @@
                             entreprise.email = req.body.email;
                             entreprise.indicatif = req.body.indicatif;
                             entreprise.telephone = req.body.telephone;
-                            entreprise.representant = req.body.representant;
+                            entreprise.nom = req.body.nom;
+                            entreprise.prenom = req.body.prenom;
+                            entreprise.genre = req.body.genre;
                             entreprise.corps_act = req.body.corps_act;
                             entreprise.corps_etat = req.body.corps_etat;
                             entreprise.fournisseur = req.body.fournisseur;

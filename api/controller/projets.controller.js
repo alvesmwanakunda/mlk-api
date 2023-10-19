@@ -100,11 +100,13 @@
                     if(aclres){
 
                         let projet = await Projet.findOne({_id:req.params.id});
-                        projet.nom=req.body.nom;
+                        projet.projet=req.body.projet;
                         projet.entreprise=req.body.entreprise;
                         projet.service=req.body.service;
                         projet.etat=req.body.etat;
-                        projet.responsable=req.body.responsable;
+                        projet.nom=req.body.nom;
+                        projet.prenom=req.body.prenom;
+                        projet.genre=req.body.genre;
                         projet.pays=req.body.pays;
                         projet.ville=req.body.ville;
                         projet.rue=req.body.rue;
@@ -421,10 +423,12 @@
                     if(aclres){
 
                         let projet = await Projet.findOne({_id:req.params.id});
-                        projet.nom=req.body.nom;
+                        projet.projet=req.body.projet;
                         projet.service=req.body.service;
                         projet.etat=req.body.etat;
-                        projet.responsable=req.body.responsable;
+                        projet.nom=req.body.nom;
+                        projet.prenom=req.body.nom;
+                        projet.genre=req.body.nom;
                         projet.pays=req.body.pays;
                         projet.ville=req.body.ville;
                         projet.rue=req.body.rue;

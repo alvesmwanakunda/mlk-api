@@ -10,6 +10,7 @@
     var mailService = require('../services/mail.service');
     var Codes = require('voucher-code-generator');
     var ObjectId = require('mongoose').Types.ObjectId;
+    var prestashopService = require('../services/prestashop.service');
 
 
     module.exports = function(acl){
@@ -89,7 +90,7 @@
                     var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'1h'});
 
                     Role.findOne({roles:user.role}).then((role)=>{
-
+                        //prestashopService.getClient();
                         res.json({
                             success: true,
                             message:{
@@ -188,14 +189,29 @@
             },
             signupUser:function(req,res){
 
+                let gender='';
+
                 var query = {email:req.body.email}
                 var entreprise = new Entreprise();
-                entreprise.nom = req.body.nomen;
-                entreprise.activite = req.body.activite;
-                entreprise.email = req.body.emailen;
-                entreprise.representant= req.body.representant;
+                entreprise.societe = req.body.societe;
+                entreprise.nom= req.body.nom;
+                entreprise.prenom= req.body.prenom;
+                entreprise.email = req.body.email;
+                entreprise.genre= req.body.genre;
+                entreprise.siret= req.body.siret;
+                entreprise.postal= req.body.postal;
+                entreprise.rue= req.body.rue;
+                entreprise.numero= req.body.numero;
+                entreprise.adresse= req.body.adresse;
                 entreprise.indicatif = req.body.indicatif;
                 entreprise.telephone = req.body.telephone;
+                entreprise.pays = req.body.pays;
+
+                if(req.body.genre=='Mr'){
+                    gender=1;
+                }else{
+                    gender=2
+                }
 
                 var user = new User();
                 user.email = req.body.email;
@@ -203,6 +219,19 @@
                 user.prenom = req.body.prenom;
                 user.role = "user";
                 user.valid = true;
+
+                let payload={
+                    lastname: req.body.nom,
+                    firstname: req.body.prenom,
+                    email : req.body.email,
+                    active:"1",
+                    company:req.body.societe,
+                    siret: req.body.siret,
+                    passwd: req.body.password,
+                    id_gender:gender,
+                    id_default_group:3,
+                    phone:req.body.indicatif+""+req.body.telephone
+                };
 
                 User.findOne(query).then((result)=>{
                     if(result){
@@ -217,6 +246,7 @@
                           user.password = crypto.createHash('md5').update(req.body.password).digest("hex");
                           user.save().then((result)=>{
                                     mailService.signup(result);
+                                    prestashopService.addClient(payload);
                                     res.json({
                                         success:true,
                                         message:result

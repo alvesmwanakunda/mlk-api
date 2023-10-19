@@ -7,7 +7,7 @@
 
    var entrepriseSchema = new Schema({
 
-    nom:{
+    societe:{
         type:String,
         required: false
     },
@@ -55,6 +55,10 @@
         type:String,
         required: false
     },
+    numero:{
+        type:String,
+        required: false
+    },
     site:{
         type:String,
         required: false
@@ -96,10 +100,18 @@
         required: false,
         default:0,
     },
-    representant:{
+    genre:{
         type:String,
         required: false
     },
+    nom:{
+        type:String,
+        required: false
+    },
+    prenom:{
+        type:String,
+        required: false
+    }
 
    });
 

@@ -6,7 +6,7 @@
  
     var projetSchema = new Schema({
  
-     nom:{
+     projet:{
          type:String,
          required: false
      },
@@ -24,10 +24,18 @@
          type:String,
          required: false
      },
-     responsable:{
+     nom:{
          type:String,
          required: false
      },
+     prenom:{
+        type:String,
+        required: false
+    },
+    genre:{
+        type:String,
+        required: false
+    },
      pays:{
          type:String,
          required: false
