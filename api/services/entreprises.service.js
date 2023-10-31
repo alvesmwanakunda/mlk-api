@@ -1,5 +1,6 @@
 
 var Entreprise = require("../models/entreprises.model").EntrepriseModel;
+var Dossiers = require("../models/dossiers.model").DossierModel;
 
 module.exports={
   
@@ -23,5 +24,39 @@ module.exports={
             })
          } 
        })
-    } 
+    }, 
+
+    addDossierProjet:(user,projet)=>{
+        return new Promise (async(resolve, reject)=>{
+
+            let dossier = new Dossiers();
+            dossier.date=new Date();
+            dossier.dateLastUpdate=new Date();
+            dossier.creator=user;
+            dossier.project=projet._id;
+            dossier.profondeur=0;
+            dossier.nom = "PV de réception";
+
+            let dossierEtat = new Dossiers();
+            dossierEtat.date=new Date();
+            dossierEtat.dateLastUpdate=new Date();
+            dossierEtat.creator=user;
+            dossierEtat.project=projet._id;
+            dossierEtat.profondeur=0;
+            dossierEtat.nom = "Etat de lieu";
+
+            dossier.save();
+            dossierEtat.save().then((data)=>{
+                resolve({
+                    status:'success',
+                    body:data
+                });
+            }).catch((error)=>{
+                reject({
+                   status:'error',
+                   body:error.message
+                })
+           })
+        })
+    }
 }

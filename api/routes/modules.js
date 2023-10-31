@@ -1,0 +1,20 @@
+(function(){
+    'use strict';
+    module.exports = function(app,acl){
+        var Ctrl = require('../controller/modules.controller')(acl);
+        var upload = require("../../middlewares/upload")
+
+        app.post('/module',upload.fields([{name:'imageFile'},{name:'planFile'}]),Ctrl.create)
+
+        app.put('/module/:id([a-fA-F\\d]{24})',upload.fields([{name:'imageFile'},{name:'planFile'}]),Ctrl.update)
+
+        app.route('/module/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getModule)
+           .delete(Ctrl.delete)
+
+        app.route('/modules')
+           .get(Ctrl.getAllModule)
+    }
+
+
+})();

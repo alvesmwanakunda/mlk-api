@@ -5,9 +5,9 @@
         var upload = require("../../middlewares/upload")
 
 
-        app.post('/fichier',upload.single("uploadfile"),Ctrl.create)
+        app.post('/fichier',upload.array("uploadfile",5),Ctrl.create)
 
-        app.post('/fichier/projet/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.createProject)
+        app.post('/fichier/projet/:id([a-fA-F\\d]{24})',upload.array("uploadfile",5),Ctrl.createProject)
 
         app.put('/fichier/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.update)
 

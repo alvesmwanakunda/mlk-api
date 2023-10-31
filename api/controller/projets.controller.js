@@ -2,6 +2,7 @@
 
     "use strict";
     var Projet = require('../models/projets.model').ProjetModel;
+    var Dossier = require('../models/dossiers.model').DossierModel;
     var EntrepriseService = require('../services/entreprises.service');
     var fs = require("fs");
     var codes = require('voucher-code-generator');
@@ -42,7 +43,7 @@
                                     console.log("error file", err);
                                 }
                                 projet.photo = data;
-                                projet.save().then((projet)=>{
+                                projet.save().then(async (projet)=>{
 
                                         fs.unlink(path,(err)=>{
                                             if(err){
@@ -50,6 +51,11 @@
                                                 return
                                             }
                                         })
+                                        /*const pvReception = new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"PV de réception"});
+                                        const etatDeLieu =  new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"Etat de lieu"});
+                                        await pvReception.save();
+                                        await etatDeLieu.save();*/
+                                        EntrepriseService.addDossierProjet(req.decoded.id,projet);
                                         EntrepriseService.addNombreProjet(projet);
                                         res.json({
                                             success:true,
@@ -73,6 +79,7 @@
                             projet.save().then((projet)=>{
 
                                 EntrepriseService.addNombreProjet(projet);
+                                EntrepriseService.addDossierProjet(req.decoded.id,projet);
                                 res.json({
                                     success:true,
                                     message:projet
@@ -117,6 +124,8 @@
                         projet.budget=req.body.budget;
                         projet.devise=req.body.devise;
                         projet.date_limite=req.body.date_limite
+                        projet.plan=req.body.plan;
+
 
                         if(req.file){
 
@@ -365,7 +374,7 @@
                                     console.log("error file", err);
                                 }
                                 projet.photo = data;
-                                projet.save().then((projet)=>{
+                                projet.save().then(async(projet)=>{
 
                                         fs.unlink(path,(err)=>{
                                             if(err){
@@ -373,7 +382,12 @@
                                                 return
                                             }
                                         })
+                                        /*const pvReception = new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"PV de réception"});
+                                        const etatDeLieu =  new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"Etat de lieu"});
+                                        await pvReception.save();
+                                        await etatDeLieu.save();*/
                                         EntrepriseService.addNombreProjet(projet);
+                                        EntrepriseService.addDossierProjet(req.decoded.id,projet);
                                         res.json({
                                             success:true,
                                             message:projet
@@ -394,7 +408,7 @@
                            }
                         }else{
                             projet.save().then((projet)=>{
-
+                                EntrepriseService.addDossierProjet(req.decoded.id,projet);
                                 EntrepriseService.addNombreProjet(projet);
                                 res.json({
                                     success:true,
@@ -438,7 +452,8 @@
                         projet.site_offre=req.body.site_offre;
                         projet.budget=req.body.budget;
                         projet.devise=req.body.devise;
-                        projet.date_limite=req.body.date_limite
+                        projet.date_limite=req.body.date_limite;
+                        projet.plan=req.body.plan;
 
                         if(req.file){
 

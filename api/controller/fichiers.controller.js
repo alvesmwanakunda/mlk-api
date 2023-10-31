@@ -17,112 +17,67 @@
 
                     if(aclres){
 
-                        //console.log("File", req.file);
+                        //console.log("File", req.files);
 
                         req.body.creator=req.decoded.id;
                         req.body.date=new Date();
                         req.body.dateLastUpdate=new Date();
                         let profondeur=0;
-
-                        req.body.size=req.file.size;
-                        let on=req.file.originalname.split('.');
-                        let extension=on[on.length -1];
-                        req.body.extension=extension;
-                        req.body.nom=req.file.filename;
+                        let files = req.files;
 
                         try {
 
-                            let path="./public/"+req.file.filename;
-                            if(req.body.dossierParent){
+                            if(!files || files.length===0){
+                                return res.status(400).json({
+                                    success: false,
+                                    message: 'Aucun fichier n\'a été téléchargé.',
+                                });
+                            }
+                            const uploadPromises = files.map(async(file)=>{
 
-                                let notfound={
-                                    success:false,
-                                    code:"404",
-                                    message:"le dossier parent spécifié est introuvable"
-                                };
+                                req.body.size=file.size;
+                                let on=file.originalname.split('.');
+                                let extension=on[on.length -1];
+                                req.body.extension=extension;
+                                req.body.nom=file.filename;
 
-                                Dossier.findOne({_id:req.body.dossierParent}).then((data)=>{
+                                if(req.body.dossierParent){
 
-                                    if(!data){
-                                        res.json(notfound);
-                                    }
-                                    profondeur=data.profondeur+1;
-                                    req.body.profondeur=profondeur;
-                                    let fichier=new Fichier(req.body);
-
-                                    fichier.save().then((data)=>{
-
-                                        /*fs.unlink(path, (err) => {
-                                            if (err) {
-                                              console.error(err);
-                                              return;
-                                            }
-                                        });*/
-                                        uploadService.uploadFileToFirebaseStorage(req.file.filename)
-                                        .then((downloadUrl) => {
-                                          Fichier.findByIdAndUpdate(data._id, { chemin: downloadUrl }, { new: true })
-                                            .then((updatedFile) => {
-                                              res.json({
-                                                success: true,
-                                                message: updatedFile
-                                              });
-                                            })
-                                            .catch((error) => {
-                                              console.error(error);
-                                              return res.status(500).json({
-                                                success: false,
-                                                message: error.message
-                                              });
-                                            });
-                                        });
-                                    }).catch((error)=>{
-                                        return res.status(500).json({
+                                    const dossier = await  Dossier.findOne({_id:req.body.dossierParent});
+                                    if (!dossier) {
+                                        return{
                                             success:false,
-                                            message:error.message
-                                        })
-                                    })
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message:error.message
-                                    })
-                                })
-                            }else{
+                                            code:"404",
+                                            message:"le dossier parent spécifié est introuvable"
+                                        };
+                                    }
+
+                                    profondeur=dossier.profondeur+1;
+                                }
                                 req.body.profondeur=profondeur;
                                 let fichier=new Fichier(req.body);
-
-                                fichier.save().then((data)=>{
-
-                                    /*fs.unlink(path,(err)=>{
-                                        if(err){
-                                            console.error(err)
-                                            return
-                                        }
-                                    });*/
-                                    uploadService.uploadFileToFirebaseStorage(req.file.filename)
-                                        .then((downloadUrl) => {
-                                          Fichier.findByIdAndUpdate(data._id, { chemin: downloadUrl }, { new: true })
-                                            .then((updatedFile) => {
-                                              res.json({
-                                                success: true,
-                                                message: updatedFile
-                                              });
-                                            })
-                                            .catch((error) => {
-                                              console.error(error);
-                                              return res.status(500).json({
-                                                success: false,
-                                                message: error.message
-                                              });
-                                            });
-                                        });
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message:error.message
-                                    })
-                                })
-                            }
+                                const savedFichier = await fichier.save();
+                                const downloadUrl = await uploadService.uploadFileToFirebaseStorage(file.filename);
+                                const updatedFile = await Fichier.findByIdAndUpdate(savedFichier._id,{chemin:downloadUrl},{new:true});
+                                return {
+                                    success:true,
+                                    message:updatedFile
+                                };
+                            });
+                            Promise.all(uploadPromises)
+                            .then((results) => {
+                              return res.json({
+                                success: true,
+                                message: results,
+                              });
+                            })
+                            .catch((error) => {
+                              console.error(error);
+                              return res.status(500).json({
+                                success: false,
+                                message: error.message,
+                              });
+                            });
                         } catch (error) {
                             return res.status(500).json({
                                 success:false,
@@ -142,113 +97,81 @@
 
                     if(aclres){
 
+                        //console.log("File", req.files);
                         req.body.creator=req.decoded.id;
                         req.body.date=new Date();
                         req.body.dateLastUpdate=new Date();
                         req.body.project=req.params.id;
                         let profondeur=0;
-
-                        req.body.size=req.file.size;
-                        let on=req.file.originalname.split('.');
-                        let extension=on[on.length -1];
-                        req.body.extension=extension;
-                        req.body.nom=req.file.filename;
+                        let files = req.files;
 
                         try {
 
-                            let path="./public/"+req.file.filename;
-                            if(req.body.dossierParent){
+                            if(!files || files.length===0){
+                                return res.status(400).json({
+                                    success: false,
+                                    message: 'Aucun fichier n\'a été téléchargé.',
+                                });
+                            }
+                            const uploadPromises = files.map(async(file)=>{
 
-                                let notfound={
-                                    success:false,
-                                    code:"404",
-                                    message:"le dossier parent spécifié est introuvable"
-                                };
+                                req.body.size=file.size;
+                                let on=file.originalname.split('.');
+                                let extension=on[on.length -1];
+                                req.body.extension=extension;
+                                req.body.nom=file.filename;
 
-                                Dossier.findOne({_id:req.body.dossierParent}).then((data)=>{
+                                if(req.body.dossierParent){
 
-                                    if(!data){
-                                        res.json(notfound);
-                                    }
-                                    profondeur=data.profondeur+1;
-                                    req.body.profondeur=profondeur;
-                                    let fichier=new Fichier(req.body);
-
-                                    fichier.save().then((data)=>{
-
-                                        uploadService.uploadFileToFirebaseStorage(req.file.filename)
-                                        .then((downloadUrl) => {
-                                          Fichier.findByIdAndUpdate(data._id, { chemin: downloadUrl }, { new: true })
-                                            .then((updatedFile) => {
-                                              res.json({
-                                                success: true,
-                                                message: updatedFile
-                                              });
-                                            })
-                                            .catch((error) => {
-                                              console.error(error);
-                                              return res.status(500).json({
-                                                success: false,
-                                                message: error.message
-                                              });
-                                            });
-                                        });
-                                    }).catch((error)=>{
-                                        return res.status(500).json({
+                                    const dossier = await  Dossier.findOne({_id:req.body.dossierParent});
+                                    if (!dossier) {
+                                        return{
                                             success:false,
-                                            message:error.message
-                                        })
-                                    })
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message:error.message
-                                    })
-                                })
-                            }else{
+                                            code:"404",
+                                            message:"le dossier parent spécifié est introuvable"
+                                        };
+                                    }
+
+                                    profondeur=dossier.profondeur+1;
+                                }
                                 req.body.profondeur=profondeur;
                                 let fichier=new Fichier(req.body);
-
-                                fichier.save().then((data)=>{
-
-                                    uploadService.uploadFileToFirebaseStorage(req.file.filename)
-                                        .then((downloadUrl) => {
-                                          Fichier.findByIdAndUpdate(data._id, { chemin: downloadUrl }, { new: true })
-                                            .then((updatedFile) => {
-                                              res.json({
-                                                success: true,
-                                                message: updatedFile
-                                              });
-                                            })
-                                            .catch((error) => {
-                                              console.error(error);
-                                              return res.status(500).json({
-                                                success: false,
-                                                message: error.message
-                                              });
-                                            });
-                                        });
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message:error.message
-                                    })
-                                })
-                            }
+                                const savedFichier = await fichier.save();
+                                const downloadUrl = await uploadService.uploadFileToFirebaseStorage(file.filename);
+                                const updatedFile = await Fichier.findByIdAndUpdate(savedFichier._id,{chemin:downloadUrl},{new:true});
+                                return {
+                                    success:true,
+                                    message:updatedFile
+                                };
+                            });
+                            Promise.all(uploadPromises)
+                            .then((results) => {
+                              return res.json({
+                                success: true,
+                                message: results,
+                              });
+                            })
+                            .catch((error) => {
+                              console.error(error);
+                              return res.status(500).json({
+                                success: false,
+                                message: error.message,
+                              });
+                            });
                         } catch (error) {
                             return res.status(500).json({
                                 success:false,
                                 message:error
                             })
                         }
-
-                        
                     }else{
                         return res.status(401).json({
                             success: false,
                             message: "401"
                         }); 
                     }
+
+                   
                 })
             },
             update:function(req,res){
