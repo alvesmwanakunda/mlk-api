@@ -60,6 +60,13 @@
             ref: 'Projets',
             required: false
         },
+
+        entreprise: {
+            type: Schema.ObjectId,
+            ref: 'Entreprises',
+            required: false
+        },
+
         dateLastUpdate: {
             type: Date,
             required: true

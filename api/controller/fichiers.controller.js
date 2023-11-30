@@ -355,21 +355,18 @@
                     if(aclres){
 
                         let fichier = await Fichier.findOne({_id:req.params.id});
-                        uploadService.deleteFirebaseStorage(fichier.nom).then((data)=>{
-                            fichier.deleteOne().then((data)=>{
-                                res.json({
-                                    success: true,
-                                    message:data
-                                });
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
+                        await uploadService.deleteFirebaseStorage(fichier.nom);
+                        fichier.deleteOne().then((data)=>{
+                            res.json({
+                                success: true,
+                                message:data
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
                             })
                         })
-                        
-
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -403,7 +400,6 @@
                     }
                 })
             },
-
             donwload:function(req,res){
 
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
@@ -429,6 +425,37 @@
 
                 })
 
+            },
+            moveFile:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                    if(aclres){
+                        let file = await Fichier.findOne({_id:req.params.id});
+                        let parent = await Dossier.findOne({_id:req.params.parent});
+                        if(parent){
+                         file.dossierParent = parent._id;
+                         file.profondeur = parent.profondeur + 1;
+
+                         Fichier.findOneAndUpdate({_id:req.params.id},file,{new:true}).then((data)=>{
+                             return res.json({
+                                 success : true,
+                                 message:data
+                             })
+                         }).catch((error)=>{
+                             return res.status(500).json({
+                                 success:false,
+                                 message:error.message
+                             })
+                         })
+
+                        }
+                 }else{
+                     return res.status(401).json({
+                         success: false,
+                         message: "401"
+                     });
+                 }
+
+                })
             }
         }
     }

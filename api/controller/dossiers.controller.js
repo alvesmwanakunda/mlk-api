@@ -11,8 +11,8 @@
 
                     if(aclres){
 
-                        let dossiers = await Dossier.find({profondeur:0}).populate('creator');
-                        let fichiers = await Fichier.find({profondeur:0}).populate('creator');
+                        let dossiers = await Dossier.find({profondeur:0, $or: [{ project: { $exists: false } },{ project: null }]}).populate('creator');
+                        let fichiers = await Fichier.find({profondeur:0,  $or: [{ project: { $exists: false } },{ project: null }]}).populate('creator');
 
                         return res.json({
                             success : true,
@@ -335,6 +335,37 @@
                     }
                 })
             },
+            
+            moveFolder(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'update', async function(err,aclres){
+                    if(aclres){
+                           let dossier = await Dossier.findOne({_id:req.params.id});
+                           let parent = await Dossier.findOne({_id:req.params.parent});
+                           if(parent){
+                            dossier.dossierParent = parent._id;
+                            dossier.profondeur = parent.profondeur + 1;
+
+                            Dossier.findOneAndUpdate({_id:req.params.id},dossier,{new:true}).then((data)=>{
+                                return res.json({
+                                    success : true,
+                                    message:data
+                                })
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+
+                           }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+                })
+            }
         }
     }
 

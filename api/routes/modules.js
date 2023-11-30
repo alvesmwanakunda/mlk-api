@@ -14,6 +14,9 @@
 
         app.route('/modules')
            .get(Ctrl.getAllModule)
+
+        app.route('/modules/entreprise/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getAllModuleByEntreprise)
     }
 
 

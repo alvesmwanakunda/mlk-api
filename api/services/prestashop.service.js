@@ -1,7 +1,7 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
 
-async function addClient(payload){
+async function addClient(payload,adresse){
     let data={
         "customers":{
             "customer":payload
@@ -20,6 +20,34 @@ async function addClient(payload){
              }}
         );
         console.log("response", response.data);
+        if(response.data){
+            let adress={
+                   id_customer:response.data.customer.id,
+                    id_country:8,
+                    alias:adresse.alias,
+                    lastname: adresse.lastname,
+                    firstname: adresse.firstname,
+                    address1:adresse.adress1,
+                    postcode:adresse.postcode,
+                    phone:adresse.phone,
+                    city:adresse.city,
+                    company:adresse.company,
+            }
+            let dataAdresse={
+                "addresses":{
+                    "addresse":adress
+                }
+            };
+            const responseAdd=await axios.post(
+                `${prestashopUrl}addresses`,
+                dataAdresse,
+                {params:{
+                    ws_key:prestashopApiKey,
+                    output_format:'JSON'
+                 }}
+            );
+            console.log("responseAdd", responseAdd.data);
+        }
      } catch (error) {
         console.log("Erreur ", error.message);
         throw error;

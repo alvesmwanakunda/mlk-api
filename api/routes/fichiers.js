@@ -17,6 +17,9 @@
 
         app.route('/fichier/download/:id([a-fA-F\\d]{24})')
            .get(Ctrl.donwload)
+
+        app.route('/fichier/move/:id([a-fA-F\\d]{24})/:parent([a-fA-F\\d]{24})')
+           .get(Ctrl.moveFile)
     }
 
 

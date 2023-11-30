@@ -18,5 +18,8 @@
 
       app.route('/dossier/read/:id([a-fA-F\\d]{24})')
            .get(Ctrl.readOnly)
+
+      app.route('/dossier/move/:id([a-fA-F\\d]{24})/:parent([a-fA-F\\d]{24})')
+           .get(Ctrl.moveFolder)
     }
 })();

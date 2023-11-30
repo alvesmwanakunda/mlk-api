@@ -112,5 +112,14 @@ function initApp(){
   var server = app.listen(port,()=>{
     console.log(`Now listening on port ${port}`);
   });
+  // Socket io
+  var io = require('socket.io')(server,{
+    cors:{origin:'*'}
+  });
+  global.io = io;
+  io.on('connection', (socket)=>{
+    global.socket=socket;
+    console.log("Socket run");
+  })
 }
 

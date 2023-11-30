@@ -207,11 +207,7 @@
                 entreprise.telephone = req.body.telephone;
                 entreprise.pays = req.body.pays;
 
-                if(req.body.genre=='Mr'){
-                    gender=1;
-                }else{
-                    gender=2
-                }
+               
 
                 var user = new User();
                 user.email = req.body.email;
@@ -219,6 +215,14 @@
                 user.prenom = req.body.prenom;
                 user.role = "user";
                 user.valid = true;
+
+                if(req.body.genre=='Mr'){
+                    gender=1;
+                    user.genre = "Mr"
+                }else{
+                    gender=2;
+                    user.genre = "Mlle"
+                }
 
                 let payload={
                     lastname: req.body.nom,
@@ -232,6 +236,17 @@
                     id_default_group:3,
                     phone:req.body.indicatif+""+req.body.telephone
                 };
+                let adresse={
+                    id_country:8,
+                    alias:req.body.prenom+""+req.body.nom,
+                    lastname: req.body.nom,
+                    firstname: req.body.prenom,
+                    adress1:req.body.rue+" "+req.body.numero,
+                    postcode:req.body.postal,
+                    phone:req.body.indicatif+""+req.body.telephone,
+                    city:req.body.adresse,
+                    company:req.body.societe,
+                }
 
                 User.findOne(query).then((result)=>{
                     if(result){
@@ -246,7 +261,7 @@
                           user.password = crypto.createHash('md5').update(req.body.password).digest("hex");
                           user.save().then((result)=>{
                                     mailService.signup(result);
-                                    prestashopService.addClient(payload);
+                                    prestashopService.addClient(payload,adresse);
                                     res.json({
                                         success:true,
                                         message:result

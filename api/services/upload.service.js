@@ -24,7 +24,10 @@ async function uploadFileToFirebaseStorage(filename) {
     });
     return url;
   } catch (error) {
-    throw error;
+    //throw error;
+    console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
+    // Vous pouvez choisir d'arrêter l'application ici si vous le souhaitez
+     //process.exit(1);
   }
 }
 async function deleteFirebaseStorage(filename){
@@ -33,7 +36,10 @@ async function deleteFirebaseStorage(filename){
     await bucket.file(`files/${filename}`).delete();
 
   } catch (error) {
-     throw error;
+     //throw error;
+     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
+    // Vous pouvez choisir d'arrêter l'application ici si vous le souhaitez
+     //process.exit(1);
   }
 }
 
