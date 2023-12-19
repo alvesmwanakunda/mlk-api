@@ -1,6 +1,7 @@
 (function(){
     "use strict";
     var Devis = require('../models/devis.model').DevisModel;
+    var DevisProduit = require('../models/devisProduits.model').DevisProduitsModel;
     var uploadService = require('../services/upload.service');
 
     module.exports=function(acl){
@@ -11,49 +12,35 @@
 
                     if(aclres){
 
-                        //console.log("File", req.file)
-
-                        let devis = new Devis();
-
-                        devis.dateLastUpdate=new Date();
-                        devis.nom=req.body.nom;
-                        devis.numero=req.body.numero;
-                        
-                        if(req.body.projet){
-                            devis.projet=req.body.projet;
-                        }
                         try {
-                            if(req.file){
-                                devis.size=req.file.size;
-                                let on=req.file.originalname.split('.');
-                                let extension=on[on.length -1];
-                                devis.extension=extension;
-                                devis.devis=req.file.filename;
-                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
-                                if(chemin){
-                                  devis.chemin = chemin;
-                                }
+
+                            let devis = new Devis();
+                            devis.dateLastUpdate=new Date();
+                            devis.nom=req.body.nom;
+                            devis.numero=req.body.numero; 
+                            devis.entreprise=req.body.entreprise;                        
+                            if(req.body.projet){
+                                devis.projet=req.body.projet;
                             }
-                            devis.save().then((data)=>{
-
-                                res.json({
-                                    success: true,
-                                    message: data
-                                  });
-                              
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error
-                                });
-                            });
-
-                            
+                            const newDevis = await devis.save();
+                            const produitsData = req.body.produits;
+                            const produitsAssocies = produitsData.map(produit=>({
+                                devis:newDevis._id,
+                                ...produit
+                            }));
+                            const produitsEnregistres = await DevisProduit.insertMany(produitsAssocies);
+                            return res.status(200).json({
+                                success: true,
+                                message: "Devis et produits enregistrés avec succès",
+                                devis: newDevis,
+                                produits: produitsEnregistres
+                            }); 
                         } catch (error) {
+                            console.error(error);
                             return res.status(500).json({
-                                success:false,
-                                message:error
-                            })
+                                success: false,
+                                message: "Erreur lors de l'enregistrement du devis et des produits"
+                            }); 
                         }
                     }else{
                         return res.status(401).json({
@@ -69,52 +56,37 @@
 
                     if(aclres){
 
-                        let devis = await Devis.findOne({_id:req.params.id});
-
-                        devis.dateLastUpdate=new Date();
-                        devis.nom=req.body.nom;
-                        devis.numero=req.body.numero;
-                        
-                        if(req.body.projet){
-                            devis.projet=req.body.projet;
-                        }
-
                         try {
 
-                            if(req.file){
-                                devis.size=req.file.size;
-                                let on=req.file.originalname.split('.');
-                                let extension=on[on.length -1];
-                                devis.extension=extension;
-                                devis.devis=req.file.filename;
-                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
-                                uploadService.deleteFirebaseStorage(devis.devis);
-                                if(chemin){
-                                  devis.chemin = chemin;
-                                }
-                            }
-                            Devis.findByIdAndUpdate({_id:req.params.id},devis, { new: true }).then((module) => {
-                                          //console.log("Module", module);
-                                          res.json({
-                                            success: true,
-                                            message: module
-                                          });
-                            }).catch((error) => {
-                                          console.error(error);
-                                          return res.status(500).json({
-                                            success: false,
-                                            message: error
-                                          });
-                            });
-                           
-                        } catch (error) {
-                            return res.status(500).json({
-                                success:false,
-                                message:error
-                            })
-                        }
+                            let devis = await Devis.findOne({_id:req.params.id});
+                            devis.dateLastUpdate=new Date();
+                            devis.nom=req.body.nom;
+                            devis.numero=req.body.numero;
+                            devis.projet=req.body.projet;
+                            devis.entreprise=req.body.entreprise;
 
-                        
+                            const newDevis = await Devis.findByIdAndUpdate({_id:req.params.id},devis, { new: true });
+
+                            if(req.body.produits){
+                                const produitsData = req.body.produits;
+                                const produitsAssocies = produitsData.map(produit=>({
+                                    devis:req.params.id,
+                                    ...produit
+                                }));
+                                const produitsEnregistres = await DevisProduit.insertMany(produitsAssocies);
+                            }
+                            return res.status(200).json({
+                                success: true,
+                                message: "Devis et produits enregistrés avec succès",
+                                devis: newDevis,
+                            }); 
+                        } catch (error) {
+                            console.error(error);
+                            return res.status(500).json({
+                                success: false,
+                                message: "Erreur lors de l'enregistrement du devis et des produits"
+                            }); 
+                        }
 
                     }else{
                         return res.status(401).json({
@@ -131,10 +103,6 @@
                     if(aclres){
 
                         let devis= await Devis.findOne({_id:req.params.id});
-                        if(devis.devis){
-                            await uploadService.deleteFirebaseStorage(devis.devis);
-                        }
-                        
                         devis.deleteOne().then((module)=>{
                             res.json({
                                 success: true,
@@ -184,6 +152,30 @@
 
                     if(aclres){
                         Devis.find().populate("projet").then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+             getAllDevisEntreprise:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Devis.find({entreprise:req.params.id}).populate("projet").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module

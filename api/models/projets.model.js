@@ -3,6 +3,8 @@
  
     var mongoose = require("mongoose");
     var Schema = mongoose.Schema;
+    var Devis = require('../models/devis.model').DevisModel;
+    var Facture = require('../models/facture.mode').FacturesModel;
  
     var projetSchema = new Schema({
  
@@ -100,6 +102,28 @@
         type:String,
         required: false
     },
+    });
+    projetSchema.pre('remove', async function (next) {
+     
+        Devis.find({
+          projet: this._id
+        }, function (err, resp) {
+          if (resp) {
+            resp.forEach(doc => {
+              doc.remove();
+            });
+          }
+        });
+        Facture.find({
+          projet: this._id
+        }, function (err, resp) {
+          if (resp) {
+            resp.forEach(dos => {
+              dos.remove();
+            });
+          }
+        });
+        next();
     });
     module.exports = {
      projetSchema: projetSchema,

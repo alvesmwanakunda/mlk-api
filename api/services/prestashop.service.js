@@ -72,7 +72,27 @@ async function getClient(){
      }
 }
 
+async function getAllProducts(){
+
+    const prestashopUrl=process.env.shopUrl;
+    const prestashopApiKey=process.env.shopApiKey;
+
+     try {
+         const response=await axios.get(`${prestashopUrl}products/?display=[id,price,name,description_short]`,{params:{
+            ws_key:prestashopApiKey,
+            output_format:'JSON'
+         }}
+        );
+        //console.log("Produits", response.data);
+        return response.data;
+     } catch (error) {
+        console.log("Erreur ", error.message);
+        throw error;
+     }
+}
+
 module.exports = {
     addClient,
     getClient,
+    getAllProducts,
   };

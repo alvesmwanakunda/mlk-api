@@ -17,6 +17,15 @@
 
         app.route('/modules/entreprise/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllModuleByEntreprise)
+
+       app.route('/count/modules')
+           .get(Ctrl.getAccountModule)
+
+       app.route('/count/modules/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getAccountModuleEntreprise)
+        
+        
+        
     }
 
 

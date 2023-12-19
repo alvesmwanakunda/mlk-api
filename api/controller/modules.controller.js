@@ -260,6 +260,66 @@
                 })
 
              },
+             getAccountModule:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                         let module = await Modules.find();
+                         let stock = await Modules.find({type:'Stock'});
+                         let preparation = await Modules.find({type:'En préparation'});
+                         let pret = await Modules.find({type:'Prêt à partir'});
+                         let site = await Modules.find({type:'Site'});
+
+                         return res.status(200).json({
+                            success: true,
+                            message:{
+                                module: module.length,
+                                stock: stock.length,
+                                preparation: preparation.length,
+                                pret: pret.length,
+                                site: site.length
+                            }
+                        });
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+                })
+             },
+             getAccountModuleEntreprise:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                         let module = await Modules.find({entreprise:req.params.id});
+                         let stock = await Modules.find({type:'Stock',entreprise:req.params.id});
+                         let preparation = await Modules.find({type:'En préparation',entreprise:req.params.id});
+                         let pret = await Modules.find({type:'Prêt à partir',entreprise:req.params.id});
+                         let site = await Modules.find({type:'Site',entreprise:req.params.id});
+
+                         return res.status(200).json({
+                            success: true,
+                            message:{
+                                module: module.length,
+                                stock: stock.length,
+                                preparation: preparation.length,
+                                pret: pret.length,
+                                site: site.length
+                            }
+                        });
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+                })
+             }
         }
     }
 })();
