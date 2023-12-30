@@ -1,7 +1,7 @@
 (function(){
     "use strict";
     var Facture = require('../models/facture.mode').FacturesModel;
-    var uploadService = require('../services/upload.service');
+    var Devis = require('../models/devis.model').DevisModel;
 
     module.exports=function(acl){
 
@@ -11,48 +11,25 @@
 
                     if(aclres){
 
+                        let devis = await Devis.findOne({_id:req.params.id});
                         let facture = new Facture();
 
                         facture.dateLastUpdate=new Date();
-                        facture.nom=req.body.nom;
-                        facture.numero=req.body.numero;
-                        
-                        if(req.body.projet){
-                            facture.projet=req.body.projet;
-                        }
-                        try {
-                            if(req.file){
-                                facture.size=req.file.size;
-                                let on=req.file.originalname.split('.');
-                                let extension=on[on.length -1];
-                                facture.extension=extension;
-                                facture.facture=req.file.filename;
-                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
-                                if(chemin){
-                                  facture.chemin = chemin;
-                                }
-                            }
-                            devis.save().then((data)=>{
-
-                                res.json({
+                        facture.numero=devis.numero;
+                        facture.devis=devis._id;
+                            
+                        facture.save().then((data)=>{
+                              res.json({
                                     success: true,
                                     message: data
-                                  });
-                              
+                              });
                             }).catch((error)=>{
                                 return res.status(500).json({
                                     success:false,
                                     message:error
                                 });
-                            });
+                        });
 
-                            
-                        } catch (error) {
-                            return res.status(500).json({
-                                success:false,
-                                message:error
-                            })
-                        }
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -62,6 +39,7 @@
                 })
 
              },
+           /*  
              update:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -70,50 +48,20 @@
                         let facture = await Facture.findOne({_id:req.params.id});
 
                         facture.dateLastUpdate=new Date();
-                        facture.nom=req.body.nom;
                         facture.numero=req.body.numero;
+                        facture.devis= req.body.devis;
                         
-                        if(req.body.projet){
-                            facture.projet=req.body.projet;
-                        } 
-
-                        try {
-
-                            if(req.file){
-                                facture.size=req.file.size;
-                                let on=req.file.originalname.split('.');
-                                let extension=on[on.length -1];
-                                facture.extension=extension;
-                                facture.facture=req.file.filename;
-                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
-                                uploadService.deleteFirebaseStorage(facture.facture);
-                                if(chemin){
-                                 facture.chemin = chemin;
-                                }
-                            }
-                            Facture.findByIdAndUpdate({_id:req.params.id},facture, { new: true }).then((module) => {
-                                          //console.log("Module", module);
-                                          res.json({
-                                            success: true,
-                                            message: module
-                                          });
+                        Facture.findByIdAndUpdate({_id:req.params.id},facture, { new: true }).then((module) => {
+                                res.json({
+                                    success: true,
+                                    message: module
+                                });
                             }).catch((error) => {
-                                          console.error(error);
-                                          return res.status(500).json({
-                                            success: false,
-                                            message: error
-                                          });
-                            });
-                           
-                        } catch (error) {
-                            return res.status(500).json({
-                                success:false,
-                                message:error
-                            })
-                        }
-
-                        
-
+                                return res.status(500).json({
+                                    success: false,
+                                    message: error
+                                });
+                        });
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -129,10 +77,6 @@
                     if(aclres){
 
                         let facture= await Facture.findOne({_id:req.params.id});
-                        if(facture.facture){
-                            await uploadService.deleteFirebaseStorage(facture.facture);
-                        }
-                        
                         facture.deleteOne().then((module)=>{
                             res.json({
                                 success: true,
@@ -157,7 +101,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Facture.findOne({_id:req.params.id}).populate("projet").then((module)=>{
+                        Facture.findOne({_id:req.params.id}).populate("devis").populate({path:'devis', populate:{path:'projet'}}).populate({path:'devis', populate:{path:'entreprise'}}).then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -177,11 +121,12 @@
                 })
 
              },
+
              getAllFactures:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Facture.find().populate("projet").then((module)=>{
+                        Facture.find().populate("devis").populate({path:'devis', populate:{path:'projet'}}).populate({path:'devis', populate:{path:'entreprise'}}).then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -201,11 +146,12 @@
                 })
 
              },
+
              getAllFacturesByProjet:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Facture.find({projet:req.params.id}).populate("projet").then((module)=>{
+                        Facture.find({projet:req.params.id}).populate("devis").populate({path:'devis', populate:{path:'projet'}}).populate({path:'devis', populate:{path:'entreprise'}}).then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -225,6 +171,7 @@
                 })
 
              },
+          */
              
         }
     }

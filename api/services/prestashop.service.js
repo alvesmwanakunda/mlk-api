@@ -54,6 +54,40 @@ async function addClient(payload,adresse){
      }
 }
 
+async function updatePasswordClient(email,password){
+
+    const prestashopUrl=process.env.shopUrl;
+    const prestashopApiKey=process.env.shopApiKey;
+
+    try {
+        const idUser=await axios.get(`${prestashopUrl}customers/?filter[email]=[${email}]`,{params:{
+           ws_key:prestashopApiKey,
+           output_format:'JSON'
+        }});
+        //console.log("response", idUser.data);
+        if(idUser.data && idUser.data.customers && idUser.data.customers.length > 0){
+            let idClient = idUser.data?.customers[0]?.id;
+            //const client=await axios.get(`${prestashopUrl}customers/${idClient}`,{params:{ws_key:prestashopApiKey,output_format:'JSON'}});
+            const data={
+                "customers":{
+                    "customer":{
+                      "id":idClient,
+                      "passwd":password
+                    }
+                  }
+            }
+            const updateClient=await axios.patch(`${prestashopUrl}customers/${idClient}`,data,{params:{ws_key:prestashopApiKey,output_format:'JSON'}});
+            //console.log("update client",updateClient.data);
+        }else{
+            console.log("Pas d'utilisateur");
+        }
+       
+    } catch (error) {
+       console.log("Erreur ", error.message);
+       throw error;
+    }
+}
+
 async function getClient(){
 
     const prestashopUrl=process.env.shopUrl;
@@ -95,4 +129,5 @@ module.exports = {
     addClient,
     getClient,
     getAllProducts,
+    updatePasswordClient
   };

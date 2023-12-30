@@ -48,7 +48,7 @@ module.exports={
             
         });
     },
-    signup:(user)=>{
+    signup:(user,password)=>{
         return new Promise(async(resolve, reject)=>{
             try {
 
@@ -77,7 +77,10 @@ module.exports={
                     '<br/><br/>'+ 
                     '<p>Nous sommes ravis de vous accueillir chez MLKA, votre partenaire de confiance pour le suivi, la fourniture et l\'installation de bâtiments préfabriqués. Nous vous remercions de vous être inscrit(e) sur notre plateforme et de nous avoir choisi pour répondre à vos besoins en construction.<p/>'+
                     '<p>Chez MLKA, notre engagement est de vous offrir une expérience exceptionnelle à chaque étape de votre projet.</p>'+
-                    '<p>Pour commencer votre projet avec MLKA, il vous suffit de vous connecter à notre plateforme avec vos identifiants. Si vous avez des projets en cours ou des demandes spécifiques, vous pouvez les ajouter directement depuis votre tableau de bord.</p>'+
+                    '<p>Pour commencer votre projet avec MLKA, il vous suffit de vous connecter à notre plateforme avec vos identifiants :</p>'+
+                    '<p> <b>Adresse mail: '+user.email+'</b> </p>'+
+                    '<p> <b>Mot de passe: '+password+'</b> </p>'+
+                    '<p>Si vous avez des projets en cours ou des demandes spécifiques, vous pouvez les ajouter directement depuis votre tableau de bord.</p>'+
                     '<p>Bienvenue chez MLKA, où la qualité et le professionnalisme sont au cœur de tout ce que nous faisons.</p>',
                 };
                 transporter.sendMail(message, (error, user)=>{

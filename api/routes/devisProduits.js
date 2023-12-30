@@ -9,6 +9,10 @@
 
         app.put('/devis/produits/:id([a-fA-F\\d]{24})',Ctrl.update)
 
+        app.put('/devis/produits/unite/:id([a-fA-F\\d]{24})',Ctrl.updateUnites)
+
+        app.post('/devis/produits/:id([a-fA-F\\d]{24})',Ctrl.create)
+
         app.route('/devis/produits/:id([a-fA-F\\d]{24})')
         .get(Ctrl.getDevis)
         .delete(Ctrl.delete)

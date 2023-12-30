@@ -7,12 +7,12 @@
 
     var devisSchema = new Schema({
 
-        nom: {
+        numero: {
             type: String,
             required: false
         },
-        numero: {
-            type: String,
+        total:{
+            type: Number,
             required: false
         },
         projet: {
@@ -24,11 +24,20 @@
           type: Schema.ObjectId,
           ref: 'Entreprises',
           required: false
-      },
+        },
         dateLastUpdate: {
             type: Date,
             required: true
         },
+        isFacture:{
+          type:Boolean,
+          default:false,
+          required:false
+        },
+        signature:{
+          type:String,
+          required:false
+        }
     });
     devisSchema.pre('remove', async function (next) {
         try {

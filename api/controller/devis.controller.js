@@ -2,7 +2,8 @@
     "use strict";
     var Devis = require('../models/devis.model').DevisModel;
     var DevisProduit = require('../models/devisProduits.model').DevisProduitsModel;
-    var uploadService = require('../services/upload.service');
+    var codes = require('voucher-code-generator');
+
 
     module.exports=function(acl){
 
@@ -14,11 +15,20 @@
 
                         try {
 
+                            const currentYear = new Date().getFullYear();
+                            const generatedCode = `D${currentYear}00`;
+                            var code = codes.generate({
+                                length: 2,
+                                count: 1,
+                                charset: "0123456789"
+                            });
+                            code = code[0];
+
                             let devis = new Devis();
                             devis.dateLastUpdate=new Date();
-                            devis.nom=req.body.nom;
-                            devis.numero=req.body.numero; 
-                            devis.entreprise=req.body.entreprise;                        
+                            devis.numero=generatedCode+""+code; 
+                            devis.entreprise=req.body.entreprise;  
+                            devis.total = req.body.total;                      
                             if(req.body.projet){
                                 devis.projet=req.body.projet;
                             }
@@ -51,6 +61,7 @@
                 })
 
              },
+
              update:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -60,10 +71,7 @@
 
                             let devis = await Devis.findOne({_id:req.params.id});
                             devis.dateLastUpdate=new Date();
-                            devis.nom=req.body.nom;
-                            devis.numero=req.body.numero;
-                            devis.projet=req.body.projet;
-                            devis.entreprise=req.body.entreprise;
+                            devis.total=req.body.total;
 
                             const newDevis = await Devis.findByIdAndUpdate({_id:req.params.id},devis, { new: true });
 
@@ -97,6 +105,61 @@
                 })
 
              },
+
+             updateFacture:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                    if(aclres){
+
+                        let devis = await Devis.findOne({_id:req.params.id});
+                        devis.isFacture=req.body.facture;
+
+                        Devis.findByIdAndUpdate({_id:req.params.id},devis, { new: true }).then((devis)=>{
+                            res.json({
+                                success: true,
+                                message:devis
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+             },
+
+             updateSignature:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                    if(aclres){
+
+                        let devis = await Devis.findOne({_id:req.params.id});
+                        devis.signature=req.body.signature;
+
+                        Devis.findByIdAndUpdate({_id:req.params.id},devis, { new: true }).then((devis)=>{
+                            res.json({
+                                success: true,
+                                message:devis
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+             },
+
              delete:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -123,11 +186,12 @@
                 })
 
              },
+
              getDevis:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Devis.findOne({_id:req.params.id}).populate("projet").then((module)=>{
+                        Devis.findOne({_id:req.params.id}).populate("projet").populate("entreprise").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -147,6 +211,7 @@
                 })
 
              },
+
              getAllDevis:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -171,6 +236,7 @@
                 })
 
              },
+
              getAllDevisEntreprise:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -195,11 +261,89 @@
                 })
 
              },
+
              getAllDevisByProjet:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
                         Devis.find({projet:req.params.id}).populate("projet").then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             // Devis Facture
+
+             getAllFactureDevis:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Devis.find({isFacture:true}).populate("projet").then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             getAllDevisFactureEntreprise:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Devis.find({entreprise:req.params.id,isFacture:true}).populate("projet").then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             getAllDevisFactureByProjet:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Devis.find({projet:req.params.id,isFacture:true}).populate("projet").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module

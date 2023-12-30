@@ -23,6 +23,12 @@
 
        app.route('/count/modules/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAccountModuleEntreprise)
+
+       app.put('/module/image/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateImage)
+
+       app.put('/module/plan/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updatePlan)
+
+
         
         
         

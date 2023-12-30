@@ -80,6 +80,7 @@
                 })
 
              },
+
              update:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -156,6 +157,7 @@
                 })
 
              },
+
              delete:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -188,6 +190,7 @@
                 })
 
              },
+
              getModule:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -212,6 +215,7 @@
                 })
 
              },
+
              getAllModule:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -236,6 +240,7 @@
                 })
 
              },
+
              getAllModuleByEntreprise:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -260,6 +265,7 @@
                 })
 
              },
+
              getAccountModule:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -290,6 +296,7 @@
                     }
                 })
              },
+
              getAccountModuleEntreprise:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -319,7 +326,97 @@
                         });
                     }
                 })
-             }
+             },
+
+             updateImage:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                        let module = await Modules.findOne({_id:req.params.id});
+                        module.nom_photo=req.body.nom_photo;
+                        try {
+
+                            if(req.file){
+                                uploadService.deleteFirebaseStorage(module.nom_photo);
+                                module.photo = await uploadService.uploadFileToFirebaseStorage(req.file.filename);;
+                            }
+                         
+                            Modules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
+                                          //console.log("Module", module);
+                                          res.json({
+                                            success: true,
+                                            message: module
+                                          });
+                            }).catch((error) => {
+                                          console.error(error);
+                                          return res.status(500).json({
+                                            success: false,
+                                            message: error.message
+                                          });
+                            });
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error
+                            })
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             updatePlan:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        let module = await Modules.findOne({_id:req.params.id});
+                        try {
+
+                            if(req.file){
+                                let on=req.file.originalname.split('.');
+                                let extension=on[on.length -1];
+                                module.extension=extension;
+                                module.plan=req.file.filename;
+                                uploadService.deleteFirebaseStorage(module.plan);
+                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
+                                if(chemin){
+                                  module.chemin = chemin;
+                                }
+                            }
+                            Modules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
+                                          //console.log("Module", module);
+                                          res.json({
+                                            success: true,
+                                            message: module
+                                          });
+                            }).catch((error) => {
+                                          console.error(error);
+                                          return res.status(500).json({
+                                            success: false,
+                                            message: error.message
+                                          });
+                            });
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error
+                            })
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
         }
     }
 })();

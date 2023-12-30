@@ -4,19 +4,21 @@
         var Ctrl = require('../controller/facture.controller')(acl);
         var upload = require("../../middlewares/upload")
 
-        app.post('/facture',upload.single('uploadfile'),Ctrl.create)
+        app.route('/new/facture/:id([a-fA-F\\d]{24})')
+        .get(Ctrl.create)
 
-        app.put('/facture/:id([a-fA-F\\d]{24})',upload.single('uploadfile'),Ctrl.update)
+        /*app.post('/factures',upload.single('uploadfile'),Ctrl.create)
 
-        app.route('/facture/:id([a-fA-F\\d]{24})')
+
+        app.route('/factures/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getFacture)
            .delete(Ctrl.delete)
 
         app.route('/factures')
            .get(Ctrl.getAllFactures)
 
-        app.route('/facture/projet/:id([a-fA-F\\d]{24})')
-           .get(Ctrl.getAllFacturesByProjet)
+        app.route('/factures/projet/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getAllFacturesByProjet)*/
     }
 
 
