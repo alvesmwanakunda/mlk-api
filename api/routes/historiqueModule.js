@@ -11,5 +11,7 @@
 
     app.get('/historique/get/:id([a-fA-F\\d]{24})',Ctrl.getHistorique)
 
+    app.delete('/historique/:id([a-fA-F\\d]{24})',Ctrl.delete)
+
    }
 })();

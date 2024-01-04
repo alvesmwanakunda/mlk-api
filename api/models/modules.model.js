@@ -61,9 +61,8 @@
             required: false
         },
 
-        entreprise: {
-            type: Schema.ObjectId,
-            ref: 'Entreprises',
+        batiment: {
+            type: String,
             required: false
         },
 

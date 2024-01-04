@@ -1,6 +1,6 @@
 (function(){
     "use strict";
-    var Historique = require('../models/historiqueModule.model');
+    var Historique = require('../models/historiqueModule.model').HistoriqueModulesModel;
 
     module.exports=function(acl){
         return{
@@ -10,12 +10,12 @@
                     if(aclres){
 
                         try {
-
                             let historique = new Historique();
                             historique.dateLastUpdate=new Date();
                             historique.observation=req.body.observation;
-                            historique.duree=req.body.duree; 
-                            historique.entreprise=req.body.entreprise;
+                            historique.user = req.decoded.id;
+                            //historique.duree=req.body.duree; 
+                            //historique.entreprise=req.body.entreprise;
                             historique.module=req.params.id;  
                             
                             const newHistorique = await historique.save();
@@ -50,15 +50,21 @@
                             let historique = await Historique.findOne({_id:req.params.id});
                             historique.dateLastUpdate=new Date();
                             historique.observation=req.body.observation;
-                            historique.duree=req.body.duree; 
-                            historique.entreprise=req.body.entreprise;
-                             
-                            const newHistorique = await historique.findByIdAndUpdate({_id:req.params.id},historique, { new: true });
+                            //historique.duree=req.body.duree; 
+                            //historique.entreprise=req.body.entreprise;
 
-                            return res.status(200).json({
-                                success: true,
-                                message: newHistorique,
-                            }); 
+                            Historique.findByIdAndUpdate({_id:req.params.id},historique, { new: true }).then((module) => {
+                                res.json({
+                                  success: true,
+                                  message: module
+                                });
+                            }).catch((error) => {
+                                            console.error(error);
+                                            return res.status(500).json({
+                                            success: false,
+                                            message: error.message
+                                            });
+                            });
                         } catch (error) {
                             console.error(error);
                             return res.status(500).json({
@@ -107,7 +113,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Historique.find({module:req.params.id}).then((module)=>{
+                        Historique.find({module:req.params.id}).populate('user').then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -132,7 +138,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Historique.findOne({_id:req.params.id}).populate("module").populate("entreprise").then((module)=>{
+                        Historique.findOne({_id:req.params.id}).populate("module").populate("user").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module

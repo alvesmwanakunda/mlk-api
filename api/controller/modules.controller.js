@@ -24,9 +24,8 @@
                         module.largeur=req.body.largeur;
                         module.longueur=req.body.longueur;
                         module.marque=req.body.marque;
-                        if(req.body.entreprise){
-                           module.entreprise=req.body.entreprise;
-                        }
+                        module.batiment=req.body.batiment;
+                       
                         if(req.body.projet){
                           module.project=req.body.projet;
                         }
@@ -96,9 +95,8 @@
                         module.largeur=req.body.largeur;
                         module.longueur=req.body.longueur;
                         module.marque=req.body.marque;
-                        if(req.body.entreprise){
-                           module.entreprise=req.body.entreprise;
-                        }
+                        module.batiment=req.body.batiment;
+                        
                         if(req.body.projet){
                           module.project=req.body.projet;
                         }
@@ -195,7 +193,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Modules.findOne({_id:req.params.id}).populate("project").populate("entreprise").then((module)=>{
+                        Modules.findOne({_id:req.params.id}).populate("project").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -220,7 +218,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Modules.find().populate("project").populate("entreprise").then((module)=>{
+                        Modules.find().populate("project").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -245,7 +243,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Modules.find({entreprise:req.params.id}).populate("project").populate("entreprise").then((module)=>{
+                        Modules.find({entreprise:req.params.id}).populate("project").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -334,11 +332,11 @@
                     if(aclres){
 
                         let module = await Modules.findOne({_id:req.params.id});
-                        module.nom_photo=req.body.nom_photo;
+                        let nameFile = module.nom_photo;
                         try {
-
                             if(req.file){
-                                uploadService.deleteFirebaseStorage(module.nom_photo);
+                                module.nom_photo = req.file.filename;
+                                uploadService.deleteFirebaseStorage(nameFile);
                                 module.photo = await uploadService.uploadFileToFirebaseStorage(req.file.filename);;
                             }
                          
@@ -376,14 +374,16 @@
 
                     if(aclres){
                         let module = await Modules.findOne({_id:req.params.id});
+                        let nameFile = module.plan;
                         try {
 
                             if(req.file){
+                                
                                 let on=req.file.originalname.split('.');
                                 let extension=on[on.length -1];
                                 module.extension=extension;
                                 module.plan=req.file.filename;
-                                uploadService.deleteFirebaseStorage(module.plan);
+                                uploadService.deleteFirebaseStorage(nameFile);
                                 let chemin = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
                                 if(chemin){
                                   module.chemin = chemin;
