@@ -3,6 +3,7 @@ const odooUrl = process.env.odooHost;
 const odooDb = process.env.odooDb;
 const odooUsername = process.env.odooUsername;
 const odooPassword = process.env.odooPassword;
+const Entreprise = require('../models/entreprises.model').EntrepriseModel;
 
 const odooClient = xmlrpc.createSecureClient({
     url: odooUrl+"xmlrpc/2/common",
@@ -19,8 +20,7 @@ const xmlrpcClientObject = xmlrpc.createSecureClient({
     },
 });
 
-async function addCompany(payload){
-    
+async function addCompany(payload,entreprise){
 
     odooClient.methodCall('authenticate', [odooDb, odooUsername, odooPassword, {}], (error, uid) => {
         console.log("Auth", uid);
@@ -32,6 +32,11 @@ async function addCompany(payload){
                     console.error('Erreur lors de la création de l\'entreprise:', error);
                 } else {
                     console.log('Entreprise créée avec l\'ID:', company_id);
+                    Entreprise.findOneAndUpdate({_id:entreprise._id},{company_id:company_id},{new:true}).then((entreprise)=>{
+                        console.log('Entreprise update',entreprise);
+                    }).catch((error)=>{
+                        console.log('Entreprise erreur',error.message);
+                    })
                 }
             });
         }

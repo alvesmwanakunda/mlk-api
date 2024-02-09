@@ -4,6 +4,7 @@
    var mongoose = require("mongoose");
    var Schema = mongoose.Schema;
    var Projet = require('./projets.model').ProjetModel;
+   var User = require('./users.model').UserModel;
 
    var entrepriseSchema = new Schema({
 
@@ -111,12 +112,17 @@
     prenom:{
         type:String,
         required: false
+    },
+    company_id:{
+        type:String,
+        required: false
     }
 
    });
 
    entrepriseSchema.pre('remove',async function(next){
-    await Projets.deleteMany({entreprise : this._id});
+    await Projet.deleteMany({entreprise : this._id});
+    await User.deleteMany({entreprise: this._id});
     next();
    });
 

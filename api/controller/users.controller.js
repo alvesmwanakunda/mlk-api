@@ -210,13 +210,12 @@
                 entreprise.telephone = req.body.telephone;
                 entreprise.pays = req.body.pays;
 
-                /*var password = codes.generate({
+                var password = codes.generate({
                     length: 9,
                     count: 1,
                     charset: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 });
-                password = password[0];*/
-                let password="mlka@2024";
+                password = password[0];
 
                 var user = new User();
                 user.email = req.body.email;
@@ -253,7 +252,7 @@
                     adress1:req.body.rue+" "+req.body.numero,
                     postcode:req.body.postal,
                     phone:req.body.indicatif+""+req.body.telephone,
-                    city:req.body.adresse,
+                    city:req.body.rue,
                     company:req.body.societe,
                 }
 
@@ -262,7 +261,7 @@
                     'company_type':req.body.company, // Type de l'entreprise
                     'is_company': true, // Indique qu'il s'agit d'une entreprise
                     'street': req.body.rue+" "+req.body.numero,
-                    'city': req.body.adresse,
+                    'city': req.body.rue,
                     'zip': req.body.postal,
                     'country_id': false, // ID du pays (peut être défini si nécessaire)
                     'phone': req.body.indicatif+""+req.body.telephone,
@@ -281,9 +280,9 @@
                           user.entreprise=new ObjectId(entreprise._id);
                           user.password = crypto.createHash('md5').update(password).digest("hex");
                           user.save().then((result)=>{
-                                    //mailService.signup(result, password);
+                                    mailService.signup(result, password);
                                     prestashopService.addClient(payload,adresse);
-                                    odooService.addCompany(payloadOdoo);
+                                    odooService.addCompany(payloadOdoo,entreprise);
                                     res.json({
                                         success:true,
                                         message:result,
