@@ -14,6 +14,9 @@
 
          app.route('/check-societe/:societe')
            .get(Ctrl.entrepriseExist);
+
+         app.route('/api-search/:societe')
+           .get(Ctrl.searchEntreprese);
          
         app.route('/add/entreprise')
            .post(Ctrl.newAddEntreprise)

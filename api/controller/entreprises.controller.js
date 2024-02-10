@@ -7,6 +7,8 @@
     var crypto = require('crypto');
     var ObjectId = require('mongoose').Types.ObjectId;
     var fs = require('fs');
+    const axios = require('axios');
+
 
     module.exports = function(acl){
         return{
@@ -142,6 +144,26 @@
                    }
                 })
 
+            },
+
+        
+            searchEntreprese:async function(req,res){
+
+                try {
+                    const queryParam =req.params.societe;
+                    if (!queryParam) {
+                      return res.status(400).json({ error: 'Missing query parameter "q".' });
+                    }
+                
+                    const response = await axios.get('https://recherche-entreprises.api.gouv.fr/search', {
+                      params: { q: queryParam },
+                    });
+                
+                    res.json(response.data);
+                  } catch (error) {
+                    console.error(error);
+                    res.status(500).json({ error: 'Internal Server Error' });
+                  }
             },
 
             entrepriseExist:function(req,res){
