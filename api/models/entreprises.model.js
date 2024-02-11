@@ -5,6 +5,7 @@
    var Schema = mongoose.Schema;
    var Projet = require('./projets.model').ProjetModel;
    var User = require('./users.model').UserModel;
+   var Contact = require('./contacts.model').ContactModel;
 
    var entrepriseSchema = new Schema({
 
@@ -40,14 +41,14 @@
         type:String,
         required: false
     },
-    adresse:{
+    /*adresse:{
         type:String,
         required: false
     },
     ville:{
         type:String,
         required: false
-    },
+    },*/
     rue:{
         type:String,
         required: false
@@ -123,6 +124,7 @@
    entrepriseSchema.pre('remove',async function(next){
     await Projet.deleteMany({entreprise : this._id});
     await User.deleteMany({entreprise: this._id});
+    await Contact.deleteMany({entreprise: this._id});
     next();
    });
 

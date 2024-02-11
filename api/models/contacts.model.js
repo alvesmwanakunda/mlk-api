@@ -29,16 +29,15 @@
             type:String,
             required: false
         },
-        projet:[{
-            type:Schema.ObjectId,
-            ref:"Projets",
-            required:false
-        }],
-        entreprise:[{
+        contact_id:{
+            type:String,
+            required: false
+        },
+        entreprise:{
             type:Schema.ObjectId,
             ref:"Entreprises",
             required:false
-        }],
+        },
         createdDate:{
             type:Date,
             required: false

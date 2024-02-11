@@ -17,6 +17,9 @@
 
          app.route('/api-search/:societe')
            .get(Ctrl.searchEntreprese);
+
+        /* app.route('/api-search-id/:id')
+           .get(Ctrl.searchEntrepreseId);*/
          
         app.route('/add/entreprise')
            .post(Ctrl.newAddEntreprise)

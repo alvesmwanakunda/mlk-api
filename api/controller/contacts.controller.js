@@ -2,6 +2,13 @@
     "use strict";
     var Contact = require("../models/contacts.model").ContactModel;
     var Projet = require("../models/projets.model").ProjetModel;
+    var User = require('../models/users.model').UserModel;
+    var crypto = require('crypto');
+    var ObjectId = require('mongoose').Types.ObjectId;
+    var prestashopService = require('../services/prestashop.service');
+    var Entreprise = require('../models/entreprises.model').EntrepriseModel;
+    var odooService = require('../services/odoo.service');
+
 
     module.exports = function(acl){
 
@@ -10,89 +17,132 @@
             addContact(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
-                      
-                        var contact = new Contact(req.body);
-                        contact.createdDate = new Date();
 
-                            contact.save().then((contact)=>{
-                                res.json({
-                                    success:true,
-                                    message:contact
+                        let gender='';
+                        let genderOdoo='';
+                        var query = {email:req.body.email};
+                        let entreprise = await Entreprise.findOne({_id:new ObjectId(req.body.entreprise)});
+
+                        if(entreprise){
+
+                            let password="mlka@2024";
+                            var user = new User();
+                            user.email = req.body.email;
+                            user.nom = req.body.nom;
+                            user.prenom = req.body.prenom;
+                            user.role = "user";
+                            user.valid = true;
+                            user.entreprise=new ObjectId(entreprise._id);
+
+                            if(req.body.genre=='Mr'){
+                                gender=1;
+                                genderOdoo=3
+                                user.genre = "Mr"
+                            }else{
+                                gender=2;
+                                genderOdoo=1
+                                user.genre = "Mlle"
+                            }
+                            var contact = new Contact(req.body);
+                            contact.entreprise= new ObjectId(entreprise._id);
+                            contact.createdDate = new Date();
+
+                            let payload={
+                                lastname: req.body.nom,
+                                firstname: req.body.prenom,
+                                email : req.body.email,
+                                active:"1",
+                                company:entreprise.societe,
+                                siret: entreprise.siret,
+                                passwd: password,
+                                id_gender:gender,
+                                id_default_group:3,
+                                phone:req.body.indicatif+""+req.body.phone
+                            };
+                            let adresse={
+                                id_country:8,
+                                alias:req.body.prenom+""+req.body.nom,
+                                lastname: req.body.nom,
+                                firstname: req.body.prenom,
+                                adress1:entreprise.rue+" "+entreprise.numero,
+                                postcode:req.body.postal,
+                                phone:req.body.indicatif+""+req.body.phone,
+                                city:entreprise.rue,
+                                company:entreprise.societe,
+                            }
+
+                            let payloadContact={
+                                'name':req.body.prenom+" "+req.body.nom,
+                                'parent_id':entreprise.company_id,
+                                'type':"contact",
+                                'email':req.body.email,
+                                'phone':req.body.indicatif+""+req.body.phone,
+                                'title': genderOdoo,
+                                'function':req.body.poste
+                            }
+
+                            console.log("payload", payload);
+                            console.log("payload 1", adresse);
+                            console.log("payload 2", payloadContact);
+
+
+
+                            User.findOne(query).then((result)=>{
+                                if(result){
+                                    return res.json({
+                                        success:false,
+                                        message: "already exists"
+                                    })
+                                } 
+                                User.deleteOne(query)
+                                .then((result) => {
+                                    user.password = crypto.createHash('md5').update(password).digest("hex");
+                                    user.save().then((result)=>{
+                                        contact.save().then((contact)=>{
+                                            //mailService.signup(result, password);
+                                            odooService.addContact(payloadContact,contact);
+                                            prestashopService.addClient(payload,adresse);
+                                            res.json({
+                                                success:true,
+                                                message:contact,
+                                                user:result
+                                            });
+        
+                                        }).catch((error)=>{
+                                            return res.status(500).json({
+                                                success:false,
+                                                message:error.message
+                                            })
+                                    })
+                                        
+                                    }).catch((error)=>{
+                                        return res.status(500).json({
+                                            success:false,
+                                            message: error.message
+                                        });
+                                    })
+                                })
+                                .catch((error) => {
+                                    return res.status(500).json({
+                                        success:false,
+                                        message: error.message
+                                    });
                                 });
-
+            
                             }).catch((error)=>{
+                                
                                 return res.status(500).json({
                                     success:false,
-                                    message:error.message
-                                })
-                            })
-                    }else{
-                        return res.status(401).json({
-                            success: false,
-                            message: "401"
-                        }); 
-                    }
-                })
-            },
-
-            addContactByEntreprise(req,res){
-                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
-                    if(aclres){
-                      
-                        var contact = new Contact(req.body);
-                        contact.entreprise= req.params.id;
-                        contact.createdDate = new Date();
-
-                            contact.save().then((contact)=>{
-                                res.json({
-                                    success:true,
-                                    message:contact
+                                    message: error.message
                                 });
-
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
                             })
-                    }else{
-                        return res.status(401).json({
-                            success: false,
-                            message: "401"
-                        }); 
-                    }
-                })
-            },
-
-            addContactToProjet(req,res){
-                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
-                    if(aclres){
-                      
-                        var contact = await Contact.findOne({_id:req.params.id});
-                        var projet = await Projet.findOne({_id:req.body.entreprise});
-
-                        if(entreprise && contact){
-
-                            Contact.findByIdAndUpdate({_id:contact._id},{$pull:{projet:projet._id}},{new:true}).then((contact)=>{
-                                res.json({
-                                    success:true,
-                                    message:contact
-                                });
-    
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                            })
-
                         }else{
-                            return res.json({
+                            return res.status(500).json({
                                 success:false,
-                                message:"Entreprise not found"
-                            })
+                                message: error.message
+                            });
                         }
-                       
+
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -105,7 +155,24 @@
             updateContact(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
                     if(aclres){
+
+                        let contact = await Contact.findOne({_id:req.params.id});
+                        let isUpdate=false;
+                        let payload={
+                            'name':req.body.prenom+" "+req.body.nom,
+                            'email': req.body.email,
+                            'phone':req.body.indicatif+""+req.body.phone,
+                            'function':req.body.poste
+                         }
+                        
+                        if(req.body.nom!=contact.nom || req.body.prenom!=contact.prenom || req.body.poste!=contact.poste || req.body.phone!=contact.phone || req.body.indicatif!=contact.indicatif){
+                             isUpdate = true;
+                        }
+
                         Contact.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((contact)=>{
+                            if(isUpdate){
+                                odooService.updateContact(payload,contact)
+                            }
                             res.json({
                                 success:true,
                                 message:contact
@@ -131,18 +198,30 @@
 
                     if(aclres){
 
-                        let contact = await Contact.findOne({_id:req.params.id});
-                        contact.deleteOne().then((contact)=>{
-                            res.json({
-                                success: true,
-                                message:contact
-                            });
-                        }).catch((error)=>{
-                            return res.status(500).json({
-                                success:false,
-                                message:error.message
+                        let cont = await Contact.findOne({_id:req.params.id});
+
+                        if(cont){
+                            let user = await User.findOne({email:cont.email});
+                            cont.deleteOne().then((contact)=>{
+                                user.deleteOne().then((user)=>{
+                                    odooService.deletePartner(cont.contact_id),
+                                    res.json({
+                                        success: true,
+                                        message:contact
+                                    });
+                                }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
                             })
-                        })
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+                        }
 
                     }else{
                         return res.status(401).json({
@@ -158,8 +237,7 @@
 
                     if(aclres){
                         Contact.find()
-                        .populate({ path: "entreprise", select: "_id nom" })
-                        .populate({ path: "projet", select: "_id nom" })
+                        .populate({ path: "entreprise", select: "_id societe" })
                         .then((contacts)=>{
                             res.json({
                                 success: true,
@@ -185,35 +263,7 @@
                 acl.isAllowed(req.decoded.id,'projets', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Contact.findOne({_id:req.params.id}).then((contact)=>{
-                            res.json({
-                                success: true,
-                                message:contact
-                            });
-                        }).catch((error)=>{
-                            return res.status(500).json({
-                                success:false,
-                                message:error.message
-                            })
-                        })
-
-                    }else{
-                        return res.status(401).json({
-                            success: false,
-                            message: "401"
-                        });
-                    }
-                })
-            },
-
-            getAllContactByProjet(req,res){
-                acl.isAllowed(req.decoded.id,'projets', 'retreive', async function(err,aclres){
-
-                    if(aclres){
-                        Contact.find({projet:req.params.id})
-                        .populate({ path: "entreprise", select: "_id nom" })
-                        .populate({ path: "projet", select: "_id nom" })
-                        .then((contact)=>{
+                        Contact.findOne({_id:req.params.id}) .populate({ path: "entreprise", select: "_id societe" }).then((contact)=>{
                             res.json({
                                 success: true,
                                 message:contact
@@ -239,8 +289,7 @@
 
                     if(aclres){
                         Contact.find({entreprise:req.params.id})
-                        .populate({ path: "entreprise", select: "_id nom" })
-                        .populate({ path: "projet", select: "_id nom" })
+                        .populate({ path: "entreprise", select: "_id societe" })
                         .then((contact)=>{
                             res.json({
                                 success: true,
