@@ -1,8 +1,8 @@
 const xmlrpc = require('xmlrpc');
-const odooUrl = process.env.odooHost;
-const odooDb = process.env.odooDb;
-const odooUsername = process.env.odooUsername;
-const odooPassword = process.env.odooPassword;
+const odooUrl = process.env.odooHost || "https://mlka-groupe.odoo.com/";
+const odooDb = process.env.odooDb || "mlka-groupe";
+const odooUsername = process.env.odooUsername || "support@mlka.fr";
+const odooPassword = process.env.odooPassword || "alvesMwanza1504";
 const Entreprise = require('../models/entreprises.model').EntrepriseModel;
 const Contact = require('../models/contacts.model').ContactModel;
 

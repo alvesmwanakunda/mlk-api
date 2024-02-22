@@ -117,8 +117,19 @@
     company_id:{
         type:String,
         required: false
+    },
+    type_entreprise:{
+        type:String,
+        required: false
+    },
+    source:{
+        type:String,
+        required: false
+    },
+    categorie_societe:{
+        type:String,
+        required: false
     }
-
    });
 
    entrepriseSchema.pre('remove',async function(next){

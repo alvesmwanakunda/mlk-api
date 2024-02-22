@@ -25,6 +25,9 @@
                     entreprise.indicatif = req.body.indicatif;
                     entreprise.telephone = req.body.telephone;
                     entreprise.pays = req.body.pays;
+                    entreprise.type_entreprise = req.body.type_entreprise;
+                    entreprise.source = req.body.source;
+                    entreprise.categorie_societe = req.body.categorie_societe;
 
                     let payloadOdoo={
                         'name': req.body.societe,
@@ -36,6 +39,9 @@
                         'country_id': false, // ID du pays (peut être défini si nécessaire)
                         'phone': req.body.indicatif+""+req.body.telephone,
                         'email': req.body.email,
+                        'x_type_entreprise': req.body.type_entreprise,
+                        'x_source': req.body.source,
+                        'x_categorie_societe': req.body.categorie_societe
                     }
                     entreprise.save().then((entreprise)=>{
                         odooService.addCompany(payloadOdoo,entreprise);
