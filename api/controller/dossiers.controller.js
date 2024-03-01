@@ -314,7 +314,23 @@
 
                     if(aclres){
 
-                        let dossier = await Dossier.findOne({_id:req.params.id});
+                        try {
+
+                            let dossier = await Dossier.findOne({_id:req.params.id});
+                            await dossier.deleteOne();
+                            res.json({
+                                success: true,
+                                message:"Folder delete"
+                            });
+                            
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+
+                        /*let dossier = await Dossier.findOne({_id:req.params.id});
                         dossier.deleteOne().then((data)=>{
                             res.json({
                                 success: true,
@@ -325,7 +341,7 @@
                                 success:false,
                                 message:error.message
                             })
-                        })
+                        })*/
 
                     }else{
                         return res.status(401).json({

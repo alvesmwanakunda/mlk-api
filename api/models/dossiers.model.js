@@ -35,39 +35,34 @@
       },
       project: {
         type: Schema.ObjectId,
-        ref: 'Projects',
+        ref: 'Projets',
         required: false
       },
     });
-  
-  
-    dossierSchema.pre('remove', async function (next) {
-     
-      Fichier.find({
-        dossierParent: this._id
-      }, function (err, resp) {
-        if (resp) {
-          resp.forEach(doc => {
-            doc.remove();
+
+
+    dossierSchema.pre('deleteOne',{ document: true }, async function (next) {
+      console.log("remove",this._id);
+      try {
+          await Fichier.deleteMany({ dossierParent: this._id });
+
+          mongoose.model('Dossiers', dossierSchema).find({
+            dossierParent: this._id
+          }, function (err, resp) {
+            if (resp) {
+              resp.forEach(dos => {
+                dos.remove();
+              });
+            }
           });
-        }
-      });
-      mongoose.model('Dossiers', dossierSchema).find({
-        dossierParent: this._id
-      }, function (err, resp) {
-        if (resp) {
-          resp.forEach(dos => {
-            dos.remove();
-          });
-        }
-      });
-      console.log('dir to delete ', this._id)
-      let Dossier = mongoose.model('Dossiers', dossierSchema);
-      global.oldDoc = await Dossier.findOne({
-        _id: this._id + ''
-      })
-      next();
+  
+          next();
+      } catch (error) {
+          console.log(error);
+          next(error);
+      }
     });
+  
   
     dossierSchema.pre('update', function (next) {
       let Dossier = mongoose.model('Dossiers', dossierSchema);
@@ -78,6 +73,7 @@
       })
       next()
     })
+    
     module.exports = {
       DossierSchema: dossierSchema,
       DossierModel: mongoose.model('Dossiers', dossierSchema)

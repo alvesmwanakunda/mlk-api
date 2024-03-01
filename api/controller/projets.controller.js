@@ -246,8 +246,25 @@
 
                     if(aclres){
 
-                        let projet = await Projet.findOne({_id:req.params.id});
-                        projet.deleteOne().then((entreprise)=>{
+                        try {
+
+                            let projet = await Projet.findOne({_id:req.params.id});
+                            await projet.deleteOne();
+
+                            res.json({
+                                success: true,
+                                message:"Le projet a été supprimé avec succès."
+                            });
+                            
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+
+                        /*let projet = await Projet.findOne({_id:req.params.id});
+                        Projet.deleteOne().then((entreprise)=>{
                             res.json({
                                 success: true,
                                 message:entreprise
@@ -257,7 +274,7 @@
                                 success:false,
                                 message:error.message
                             })
-                        })
+                        })*/
 
                     }else{
                         return res.status(401).json({

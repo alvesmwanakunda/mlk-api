@@ -4,7 +4,8 @@
     var mongoose = require("mongoose");
     var Schema = mongoose.Schema;
     var Devis = require('../models/devis.model').DevisModel;
-    var Facture = require('../models/facture.mode').FacturesModel;
+    var Fichier = require('../models/fichiers.model').FichierModel;
+    var Dossier = require('../models/dossiers.model').DossierModel;
  
     var projetSchema = new Schema({
  
@@ -103,30 +104,30 @@
         required: false
     },
     });
-    projetSchema.pre('remove', async function (next) {
-     
-        Devis.find({
-          projet: this._id
-        }, function (err, resp) {
-          if (resp) {
-            resp.forEach(doc => {
-              doc.remove();
-            });
-          }
-        });
-        Facture.find({
-          projet: this._id
-        }, function (err, resp) {
-          if (resp) {
-            resp.forEach(dos => {
-              dos.remove();
-            });
-          }
-        });
-        next();
+
+    projetSchema.pre('deleteOne',{ document: true }, async function (next) {
+        console.log("remove",this._id);
+        try {
+            // Supprimer les devis associés
+            await Devis.deleteMany({ projet: this._id });
+    
+            // Supprimer les fichiers associés
+            await Fichier.deleteMany({ project: this._id });
+    
+            // Supprimer les dossiers associés
+            await Dossier.deleteMany({ project: this._id });
+    
+            next();
+        } catch (error) {
+            console.log(error);
+            next(error);
+        }
     });
+    
     module.exports = {
-     projetSchema: projetSchema,
+     ProjetSchema: projetSchema,
      ProjetModel: mongoose.model('Projets',projetSchema)
- }
+    }
+
+    
  })();

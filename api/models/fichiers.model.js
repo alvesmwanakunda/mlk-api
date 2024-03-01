@@ -54,7 +54,7 @@
       },
       project: {
         type: Schema.ObjectId,
-        ref: 'Projects',
+        ref: 'Projets',
         required: false
       },
   

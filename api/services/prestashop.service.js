@@ -19,7 +19,7 @@ async function addClient(payload,adresse){
                 output_format:'JSON'
              }}
         );
-        console.log("response", response.data);
+        //console.log("response", response.data);
         if(response.data){
             let adress={
                    id_customer:response.data.customer.id,
@@ -46,7 +46,7 @@ async function addClient(payload,adresse){
                     output_format:'JSON'
                  }}
             );
-            console.log("responseAdd", responseAdd.data);
+            //console.log("responseAdd", responseAdd.data);
         }
      } catch (error) {
         console.log("Erreur ", error.message);
@@ -78,6 +78,68 @@ async function updatePasswordClient(email,password){
             }
             const updateClient=await axios.patch(`${prestashopUrl}customers/${idClient}`,data,{params:{ws_key:prestashopApiKey,output_format:'JSON'}});
             //console.log("update client",updateClient.data);
+        }else{
+            console.log("Pas d'utilisateur");
+        }
+       
+    } catch (error) {
+       console.log("Erreur ", error.message);
+       throw error;
+    }
+}
+
+async function updateClient(oldEmail,lastname,firstname,email){
+
+    const prestashopUrl=process.env.shopUrl;
+    const prestashopApiKey=process.env.shopApiKey;
+
+    try {
+        const idUser=await axios.get(`${prestashopUrl}customers/?filter[email]=[${oldEmail}]`,{params:{
+           ws_key:prestashopApiKey,
+           output_format:'JSON'
+        }});
+        //console.log("response", idUser.data);
+        if(idUser.data && idUser.data.customers && idUser.data.customers.length > 0){
+            let idClient = idUser.data?.customers[0]?.id;
+            //const client=await axios.get(`${prestashopUrl}customers/${idClient}`,{params:{ws_key:prestashopApiKey,output_format:'JSON'}});
+            const data={
+                "customers":{
+                    "customer":{
+                      "id":idClient,
+                      "email":email,
+                      "lastname":lastname,
+                      "firstname":firstname
+                    }
+                  }
+            }
+            const updateClient=await axios.patch(`${prestashopUrl}customers/${idClient}`,data,{params:{ws_key:prestashopApiKey,output_format:'JSON'}});
+            //console.log("update client",updateClient.data);
+        }else{
+            console.log("Pas d'utilisateur");
+        }
+       
+    } catch (error) {
+       console.log("Erreur ", error.message);
+       throw error;
+    }
+}
+
+async function deleteClient(email){
+
+    const prestashopUrl=process.env.shopUrl;
+    const prestashopApiKey=process.env.shopApiKey;
+
+    try {
+        const idUser=await axios.get(`${prestashopUrl}customers/?filter[email]=[${email}]`,{params:{
+           ws_key:prestashopApiKey,
+           output_format:'JSON'
+        }});
+        //console.log("response", idUser.data);
+        if(idUser.data && idUser.data.customers && idUser.data.customers.length > 0){
+            let idClient = idUser.data?.customers[0]?.id;
+            //const client=await axios.get(`${prestashopUrl}customers/${idClient}`,{params:{ws_key:prestashopApiKey,output_format:'JSON'}});
+            const deleteClient=await axios.delete(`${prestashopUrl}customers/${idClient}`,{params:{ws_key:prestashopApiKey,output_format:'JSON'}});
+            console.log("update client",deleteClient.data);
         }else{
             console.log("Pas d'utilisateur");
         }
@@ -129,5 +191,7 @@ module.exports = {
     addClient,
     getClient,
     getAllProducts,
-    updatePasswordClient
+    updatePasswordClient,
+    deleteClient,
+    updateClient
   };

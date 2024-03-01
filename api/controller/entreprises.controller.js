@@ -33,8 +33,8 @@
                         'name': req.body.societe,
                         'company_type':req.body.company, // Type de l'entreprise
                         'is_company': true, // Indique qu'il s'agit d'une entreprise
-                        'street': req.body.rue+" "+req.body.numero,
-                        'city': req.body.rue,
+                        'street': req.body.rue,
+                        'city': req.body.numero,
                         'zip': req.body.postal,
                         'country_id': false, // ID du pays (peut être défini si nécessaire)
                         'phone': req.body.indicatif+""+req.body.telephone,
@@ -187,6 +187,25 @@
                     if(aclres){
 
                         let entreprise = await Entreprise.findOne({_id:req.params.id});
+                        let isUpdate=false;
+                        let payloadOdoo={
+                            'name': req.body.societe,
+                            'company_type':req.body.company, // Type de l'entreprise
+                            'is_company': true, // Indique qu'il s'agit d'une entreprise
+                            'street': req.body.rue,
+                            'city': req.body.numero,
+                            'zip': req.body.postal,
+                            'country_id': false, // ID du pays (peut être défini si nécessaire)
+                            'phone': req.body.indicatif+""+req.body.telephone,
+                            'email': req.body.email,
+                            'x_type_entreprise': req.body.type_entreprise,
+                            'x_source': req.body.source,
+                            'x_categorie_societe': req.body.categorie_societe
+                        }
+
+                        if(req.body.societe!=entreprise.societe || req.body.company!=entreprise.company || req.body.rue!=entreprise.rue || req.body.numero!=entreprise.numero || req.body.postal!=entreprise.postal || req.body.email!=entreprise.email || req.body.indicatif!=entreprise.indicatif || req.body.telephone!=entreprise.telephone || req.body.type_entreprise!=entreprise.type_entreprise || req.body.source!=entreprise.source || req.body.categorie_societe!=entreprise.categorie_societe){
+                            isUpdate = true;
+                       }
                         
                         try {
                             entreprise.societe = req.body.societe;
@@ -210,6 +229,9 @@
                             entreprise.corps_act = req.body.corps_act;
                             entreprise.corps_etat = req.body.corps_etat;
                             entreprise.fournisseur = req.body.fournisseur;
+                            entreprise.type_entreprise =req.body.type_entreprise;
+                            entreprise.source= req.body.source;
+                            entreprise.categorie_societe= req.body.categorie_societe;
 
 
                             if(req.file){
@@ -227,7 +249,10 @@
                                                 console.error(err)
                                                 return
                                             }
-                                        })      
+                                        }) 
+                                        if(isUpdate){
+                                            odooService.updateEntreprise(payloadOdoo,entreprise);
+                                        }     
                                         res.json({
                                             success:true,
                                             message:entreprise
@@ -244,6 +269,9 @@
                             else{
 
                                 Entreprise.findOneAndUpdate({_id:req.params.id},entreprise,{new:true}).then((entreprise)=>{
+                                    if(isUpdate){
+                                        odooService.updateEntreprise(payloadOdoo,entreprise);
+                                    } 
                                     res.json({
                                         success:true,
                                         message:entreprise
@@ -328,7 +356,25 @@
 
                     if(aclres){
 
-                        let entre = await Entreprise.findOne({_id:req.params.id});
+                        try {
+
+                            let entre = await Entreprise.findOne({_id:req.params.id});
+                            await entre.deleteOne();
+                            odooService.deletePartner(entre.company_id);
+
+                            res.json({
+                                success: true,
+                                message:"L'entreprise a été supprimée"
+                            });
+                            
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+
+                        /*let entre = await Entreprise.findOne({_id:req.params.id});
                         entre.deleteOne().then((entreprise)=>{
                             odooService.deletePartner(entre.company_id),
                             res.json({
@@ -340,7 +386,7 @@
                                 success:false,
                                 message:error.message
                             })
-                        })
+                        })*/
 
                     }else{
                         return res.status(401).json({

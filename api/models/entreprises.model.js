@@ -132,15 +132,24 @@
     }
    });
 
-   entrepriseSchema.pre('remove',async function(next){
-    await Projet.deleteMany({entreprise : this._id});
-    await User.deleteMany({entreprise: this._id});
-    await Contact.deleteMany({entreprise: this._id});
-    next();
+   entrepriseSchema.pre('deleteOne',{ document: true }, async function (next) {
+    try {
+        // Supprimer les projets associés à l'entreprise
+        await Projet.deleteMany({ entreprise: this._id });
+        // Supprimer les utilisateurs associés à l'entreprise
+        await User.deleteMany({ entreprise: this._id });
+        // Supprimer les contacts associés à l'entreprise
+        await Contact.deleteMany({ entreprise: this._id });
+        next(); // Appeler next seulement après la fin de toutes les opérations
+    } catch (error) {
+        // Gérer les erreurs ici
+        console.error("Erreur lors de la suppression d'entreprise et ses entités associées :", error);
+        next(error); // Passer l'erreur à la suite du middleware
+    }
    });
 
    module.exports = {
-    entrepriseSchema: entrepriseSchema,
+    EntrepriseSchema: entrepriseSchema,
     EntrepriseModel: mongoose.model('Entreprises',entrepriseSchema)
 }
 })();

@@ -1,3 +1,5 @@
+const adresseLivraisonModel = require("../models/adresseLivraison.model");
+
 (function(){
     "use strict";
     var Contact = require("../models/contacts.model").ContactModel;
@@ -8,6 +10,8 @@
     var prestashopService = require('../services/prestashop.service');
     var Entreprise = require('../models/entreprises.model').EntrepriseModel;
     var odooService = require('../services/odoo.service');
+    var userService = require('../services/user.service');
+    var AdresseLivraison = require('../models/adresseLivraison.model').AdresseLivraisonModel;
 
 
     module.exports = function(acl){
@@ -46,6 +50,9 @@
                             var contact = new Contact(req.body);
                             contact.entreprise= new ObjectId(entreprise._id);
                             contact.createdDate = new Date();
+                            contact.rue= entreprise.rue;
+                            contact.numero= entreprise.numero;
+                            contact.postal=entreprise.postal;
 
                             let payload={
                                 lastname: req.body.nom,
@@ -78,7 +85,10 @@
                                 'email':req.body.email,
                                 'phone':req.body.indicatif+""+req.body.phone,
                                 'title': genderOdoo,
-                                'function':req.body.poste
+                                'function':req.body.poste,
+                                'street': entreprise.rue,
+                                'city': entreprise.numero,
+                                'zip': entreprise.postal,
                             }
 
                             console.log("payload", payload);
@@ -158,6 +168,8 @@
 
                         let contact = await Contact.findOne({_id:req.params.id});
                         let isUpdate=false;
+                        let isEmail=false;
+                        let oldEmail=contact.email;
                         let payload={
                             'name':req.body.prenom+" "+req.body.nom,
                             'email': req.body.email,
@@ -165,13 +177,20 @@
                             'function':req.body.poste
                          }
                         
-                        if(req.body.nom!=contact.nom || req.body.prenom!=contact.prenom || req.body.poste!=contact.poste || req.body.phone!=contact.phone || req.body.indicatif!=contact.indicatif){
+                        if(req.body.nom!=contact.nom || req.body.prenom!=contact.prenom || req.body.poste!=contact.poste || req.body.phone!=contact.phone || req.body.indicatif!=contact.indicatif || req.body.email!=contact.email){
                              isUpdate = true;
+                        }
+                        if(req.body.email!=contact.email){
+                            isEmail=true;
+
                         }
 
                         Contact.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((contact)=>{
                             if(isUpdate){
-                                odooService.updateContact(payload,contact)
+                                odooService.updateContact(payload,contact);
+                                prestashopService.updateClient(oldEmail,contact.nom, contact.prenom, contact.email);
+                            }if(isEmail){
+                                userService.updateEmailUser(oldEmail,contact.email);
                             }
                             res.json({
                                 success:true,
@@ -190,7 +209,39 @@
                         }); 
                     }
                 })
+            },
 
+            updateContactAdresse(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
+                    if(aclres){
+
+                        let contact = await Contact.findOne({_id:req.params.id});
+                        let payload={
+                            'street': req.body.rue,
+                            'city': req.body.numero,
+                            'zip': req.body.postal,
+                            'type':'invoice'
+                        }
+                        
+                        Contact.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((contact)=>{
+                            odooService.updateContact(payload,contact);
+                            res.json({
+                                success:true,
+                                message:contact
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
             },
 
             deleteContact(req,res){
@@ -202,9 +253,12 @@
 
                         if(cont){
                             let user = await User.findOne({email:cont.email});
+
                             cont.deleteOne().then((contact)=>{
-                                user.deleteOne().then((user)=>{
+                                user.deleteOne().then(async (user)=>{
                                     odooService.deletePartner(cont.contact_id),
+                                    prestashopService.deleteClient(cont.email),
+                                    await AdresseLivraison.deleteOne({contact:req.params.id});
                                     res.json({
                                         success: true,
                                         message:contact
@@ -310,6 +364,125 @@
                     }
                 })
             },
+
+            // adresse livraison pour un contact
+
+            addAdresseLivraison(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+
+                        let contact = await Contact.findOne({_id:new ObjectId(req.params.id)});
+
+                        if(contact){
+                            var adresse = new  AdresseLivraison(req.body);
+                            adresse.contact= new ObjectId(contact._id);
+                            adresse.createdDate = new Date();
+                            adresse.contact_id= contact.contact_id;
+                            
+                            let payloadContact={
+                                'type': 'delivery',
+                                'street': req.body.rue,
+                                'city': req.body.numero,
+                                'zip': req.body.postal,
+                            }
+                            adresse.save().then((adresse)=>{
+                                odooService.updateContact(payloadContact,contact);
+                                res.json({
+                                    success:true,
+                                    message:adresse,
+                                });
+
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                        })
+  
+                        }else{
+                            return res.status(500).json({
+                                success:false,
+                                message: error.message
+                            });
+                        }
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
+            updateAdresseLivraison(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+
+                        let adresse = await AdresseLivraison.findOne({_id:new ObjectId(req.params.id)});
+
+                        if(adresse){ 
+                            let payloadContact={
+                                'type': 'delivery',
+                                'street': req.body.rue,
+                                'city': req.body.numero,
+                                'zip': req.body.postal,
+                            }
+                            AdresseLivraison.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((contact)=>{
+                                odooService.updateContact(payloadContact,contact);
+                                res.json({
+                                    success:true,
+                                    message:contact
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+                            
+  
+                        }else{
+                            return res.status(500).json({
+                                success:false,
+                                message: error.message
+                            });
+                        }
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
+            getAdresseLivraison(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+
+                        let adresse = await AdresseLivraison.findOne({contact:new ObjectId(req.params.id)});
+                        if(adresse){ 
+                            res.json({
+                                success:true,
+                                message:adresse
+                            });
+                        }else{
+                            return res.status(200).json({
+                                success:false,
+                            });
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
+
 
             
 

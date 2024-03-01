@@ -42,6 +42,18 @@
             type:Date,
             required: false
         },
+        rue:{
+            type:String,
+            required: false
+        },
+        postal:{
+            type:String,
+            required: false
+        },
+        numero:{
+            type:String,
+            required: false
+        },
     });
     module.exports = {
         contactSchema: contactSchema,
