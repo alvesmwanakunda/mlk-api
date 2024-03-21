@@ -29,6 +29,11 @@
 
        app.route('/update/profil/password')
            .put(Ctrl.updatePassword);
+
+      // 
+
+      app.route('/users')
+           .get(Ctrl.allUser);
         
 
   

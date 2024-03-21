@@ -12,6 +12,8 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
     var odooService = require('../services/odoo.service');
     var userService = require('../services/user.service');
     var AdresseLivraison = require('../models/adresseLivraison.model').AdresseLivraisonModel;
+    var codes = require('voucher-code-generator');
+
 
 
     module.exports = function(acl){
@@ -26,6 +28,13 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                         let genderOdoo='';
                         var query = {email:req.body.email};
                         let entreprise = await Entreprise.findOne({_id:new ObjectId(req.body.entreprise)});
+
+                        /*var password = codes.generate({
+                            length: 9,
+                            count: 1,
+                            charset: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        });
+                        password = password[0];*/
 
                         if(entreprise){
 
@@ -80,7 +89,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
 
                             let payloadContact={
                                 'name':req.body.prenom+" "+req.body.nom,
-                                'parent_id':entreprise.company_id,
+                                'parent_id':parseInt(entreprise.company_id),
                                 'type':"contact",
                                 'email':req.body.email,
                                 'phone':req.body.indicatif+""+req.body.phone,
@@ -90,9 +99,9 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                                 'city': entreprise.numero,
                                 'zip': entreprise.postal,
                             }
-
-                            console.log("payload", payload);
-                            console.log("payload 1", adresse);
+                        
+                            //console.log("payload", payload);
+                            //console.log("payload 1", adresse);
                             console.log("payload 2", payloadContact);
 
 
@@ -110,7 +119,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                                     user.save().then((result)=>{
                                         contact.save().then((contact)=>{
                                             //mailService.signup(result, password);
-                                            odooService.addContact(payloadContact,contact);
+                                            odooService.addContact(payloadContact,password,contact);
                                             prestashopService.addClient(payload,adresse);
                                             res.json({
                                                 success:true,
@@ -187,7 +196,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
 
                         Contact.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((contact)=>{
                             if(isUpdate){
-                                odooService.updateContact(payload,contact);
+                                odooService.updateContact(payload,contact,oldEmail);
                                 prestashopService.updateClient(oldEmail,contact.nom, contact.prenom, contact.email);
                             }if(isEmail){
                                 userService.updateEmailUser(oldEmail,contact.email);
@@ -256,7 +265,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
 
                             cont.deleteOne().then((contact)=>{
                                 user.deleteOne().then(async (user)=>{
-                                    odooService.deletePartner(cont.contact_id),
+                                    odooService.deletePartner(cont.contact_id,cont.client_id),
                                     prestashopService.deleteClient(cont.email),
                                     await AdresseLivraison.deleteOne({contact:req.params.id});
                                     res.json({

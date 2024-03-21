@@ -170,6 +170,10 @@
                        user.code="",
                        user.password = crypto.createHash('md5').update(req.body.password).digest("hex");
                        user.save().then((user)=>{
+                        if(user.role=="user"){
+                            prestashopService.updatePasswordClient(user.email,req.body.password);
+                            odooService.updateUserPassword(req.body.password,user.email);
+                        }
                         res.json({
                             success:true,
                             message:user
@@ -362,7 +366,12 @@
                         user.password = crypto.createHash('md5').update(req.body.password).digest("hex");
                     
                         User.findOneAndUpdate({_id:req.decoded.id},user,{new:true}).then((user)=>{
-                            prestashopService.updatePasswordClient(user.email,req.body.password);
+
+                            if(user.role=="user"){
+                                prestashopService.updatePasswordClient(user.email,req.body.password);
+                                odooService.updateUserPassword(req.body.password,user.email);
+                            }
+                           
                             res.json({
                                 success:true,
                                 message:user
@@ -395,6 +404,15 @@
                 res.json({
                     success:true,
                     message:payload
+                });
+            },
+
+            allUser:async function(req,res){
+
+                let user = await odooService.getAllUser();
+                res.json({
+                    success:true,
+                    message:user
                 });
             }
 

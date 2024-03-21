@@ -33,6 +33,10 @@
             type:String,
             required: false
         },
+        client_id:{
+            type:String,
+            required: false
+        },
         entreprise:{
             type:Schema.ObjectId,
             ref:"Entreprises",
