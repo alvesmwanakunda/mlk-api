@@ -70,6 +70,14 @@
             type: Date,
             required: true
         },
+        qrcode:{
+            type:String,
+            required:false
+        },
+        numero_serie:{
+            type : Number,
+            required:false
+        }
     });
     module.exports = {
       ModulesSchema: modulesSchema,

@@ -2,7 +2,9 @@
     'use strict';
     var Modules = require("../models/modules.model").ModulesModel;
     var uploadService = require('../services/upload.service');
+    var qrcodeService = require('../services/qrCode.service');
     const bucket = require("../../firebase-config");
+    var codes = require('voucher-code-generator');
     var fs = require("fs");
 
 
@@ -14,6 +16,23 @@
 
                     if(aclres){
 
+                        console.log("Ici")
+
+                        var code = codes.generate({
+                            length: 12,
+                            count: 1,
+                            charset: "0123456789"
+                        });
+                        code = code[0];
+                        let numero=0;
+
+                        const lastRecord = await Modules.findOne({sort:{'dateLastUpdate': -1}});
+                        if(lastRecord){
+                           numero=parseInt(lastRecord.numero) + 1;
+                        }else{
+                           numero=1;
+                        }
+                      
                         let module = new Modules();
 
                         module.dateLastUpdate=new Date();
@@ -25,15 +44,15 @@
                         module.longueur=req.body.longueur;
                         module.marque=req.body.marque;
                         module.batiment=req.body.batiment;
+                        module.qrcode=code;
+                        module.numero_serie = numero;
                        
                         if(req.body.projet){
                           module.project=req.body.projet;
                         }
-                        if(req.body.nom_photo){
-                            module.nom_photo=req.body.nom_photo;
-                        }
                         try {
                             if(req.files.imageFile){
+                                module.nom_photo=req.files.imageFile[0].filename;
                                 module.photo = await uploadService.uploadFileToFirebaseStorage(req.files.imageFile[0].filename);;
                             }
                             if(req.files.planFile){
@@ -417,6 +436,38 @@
                 })
 
              },
+
+             // Get QRCODE
+
+             getQrcodeModule:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                        let module = await Modules.findOne({_id:req.params.id});
+                        if(module){
+                            let qrcode = await qrcodeService.module_qrcode(module.qrcode,100,50);
+                            res.json({
+                                success: true,
+                                message:qrcode
+                            });
+
+                        }else{
+                            res.json({
+                                success: true,
+                                message:"Error QrCode"
+                            });
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
         }
     }
 })();

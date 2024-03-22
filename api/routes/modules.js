@@ -12,6 +12,9 @@
            .get(Ctrl.getModule)
            .delete(Ctrl.delete)
 
+        app.route('/module/qrcode/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getQrcodeModule)
+
         app.route('/modules')
            .get(Ctrl.getAllModule)
 
