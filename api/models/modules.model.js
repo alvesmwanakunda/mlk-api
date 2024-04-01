@@ -54,12 +54,11 @@
             type: String,
             required: false
         },
-
-        project: {
-            type: Schema.ObjectId,
-            ref: 'Projets',
-            required: false
-        },
+        entreprise:{
+            type:Schema.ObjectId,
+            ref:"Entreprises",
+            required:false
+         },
 
         batiment: {
             type: String,
@@ -75,8 +74,12 @@
             required:false
         },
         numero_serie:{
-            type : Number,
+            type : String,
             required:false
+        },
+        dateFabrication:{
+           type:Date, 
+           required:true  
         }
     });
     module.exports = {

@@ -1,6 +1,7 @@
 (function(){
     'use strict';
     var Modules = require("../models/modules.model").ModulesModel;
+    var ProjetModules = require("../models/projetModule.model").ProjetModulesModel;
     var uploadService = require('../services/upload.service');
     var qrcodeService = require('../services/qrCode.service');
     const bucket = require("../../firebase-config");
@@ -26,9 +27,11 @@
                         code = code[0];
                         let numero=0;
 
-                        const lastRecord = await Modules.findOne({sort:{'dateLastUpdate': -1}});
-                        if(lastRecord){
-                           numero=parseInt(lastRecord.numero) + 1;
+                        //const lastRecord = await Modules.findOne({sort:{'dateLastUpdate': -1}});
+                        const count = await Modules.countDocuments();
+
+                        if(count){
+                           numero=parseInt(count) + 1;
                         }else{
                            numero=1;
                         }
@@ -43,13 +46,13 @@
                         module.largeur=req.body.largeur;
                         module.longueur=req.body.longueur;
                         module.marque=req.body.marque;
-                        module.batiment=req.body.batiment;
+                        module.dateFabrication=req.body.dateFabrication;
+                        module.entreprise= req.body.entreprise;
                         module.qrcode=code;
-                        module.numero_serie = numero;
+                        module.numero_serie = req.body.marque.substr(0, 2)+"000"+numero;
+                        
                        
-                        if(req.body.projet){
-                          module.project=req.body.projet;
-                        }
+                        
                         try {
                             if(req.files.imageFile){
                                 module.nom_photo=req.files.imageFile[0].filename;
@@ -114,19 +117,14 @@
                         module.largeur=req.body.largeur;
                         module.longueur=req.body.longueur;
                         module.marque=req.body.marque;
-                        module.batiment=req.body.batiment;
-                        
-                        if(req.body.projet){
-                          module.project=req.body.projet;
-                        }
-                        if(req.body.nom_photo){
-                            module.nom_photo=req.body.nom_photo;
-                        }
-
+                        module.entreprise= req.body.entreprise;
+                        module.dateFabrication=req.body.dateFabrication;
+                    
                         try {
 
                             if(req.files.imageFile){
                                 uploadService.deleteFirebaseStorage(module.nom_photo);
+                                module.nom_photo=req.files.imageFile[0].filename;
                                 module.photo = await uploadService.uploadFileToFirebaseStorage(req.files.imageFile[0].filename);;
                             }
                             if(req.files.planFile){
@@ -212,7 +210,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Modules.findOne({_id:req.params.id}).populate("project").then((module)=>{
+                        Modules.findOne({_id:req.params.id}).populate("entreprise").then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -237,7 +235,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Modules.find().populate("project").then((module)=>{
+                        Modules.find().then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -445,8 +443,9 @@
                     if(aclres){
 
                         let module = await Modules.findOne({_id:req.params.id});
+                        //console.log("Module", module);
                         if(module){
-                            let qrcode = await qrcodeService.module_qrcode(module.qrcode,100,50);
+                            let qrcode = await qrcodeService.module_qrcode(module._id,100,50);
                             res.json({
                                 success: true,
                                 message:qrcode
@@ -458,6 +457,111 @@
                                 message:"Error QrCode"
                             });
                         }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             getModuleQrCode:async function(req,res){
+                        let module = await Modules.findOne({_id:req.params.id}).populate('entreprise');
+                        if(module){
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+
+                        }else{
+                            res.json({
+                                success: true,
+                                message:"Error QrCode"
+                            });
+                        }
+             },
+
+             // Affectation du module a un projet
+
+             affectModule:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                      
+                        let module = new ProjetModules();
+                        module.dateLastUpdate=new Date();
+                        module.module=req.params.id;
+                        module.projet=req.body.projet;
+
+                        module.save().then((data)=>{
+
+                            res.json({
+                                success: true,
+                                message: data
+                              });
+                          
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            });
+                        });
+                       
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             getAllModuleProjet:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        ProjetModules.find({module:req.params.id}).populate("projet").then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             deleteModuleProjet:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                        let module = await ProjetModules.findOne({_id:req.params.id});
+                        module.deleteOne().then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
                     }else{
                         return res.status(401).json({
                             success: false,

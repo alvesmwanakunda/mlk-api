@@ -13,9 +13,19 @@
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                 if(aclres){
 
+                    let numero="600001122";
+                    let email="contact@monsite.com"
+
+                    if(req.body.telephone){
+                        numero =  req.body.telephone;
+                    }
+                    if(req.body.email) {
+                        email= req.body.email;
+                    }
+
                     var entreprise = new Entreprise();
                     entreprise.societe = req.body.societe;
-                    entreprise.email = req.body.email;
+                    entreprise.email = email;
                     entreprise.genre= req.body.genre;
                     entreprise.siret= req.body.siret;
                     entreprise.postal= req.body.postal;
@@ -23,7 +33,7 @@
                     entreprise.numero= req.body.numero;
                     entreprise.adresse= req.body.adresse;
                     entreprise.indicatif = req.body.indicatif;
-                    entreprise.telephone = req.body.telephone;
+                    entreprise.telephone = numero;
                     entreprise.pays = req.body.pays;
                     entreprise.type_entreprise = req.body.type_entreprise;
                     entreprise.source = req.body.source;
@@ -37,7 +47,7 @@
                         'city': req.body.numero,
                         'zip': req.body.postal,
                         'country_id': false, // ID du pays (peut être défini si nécessaire)
-                        'phone': req.body.indicatif+""+req.body.telephone,
+                        'phone': req.body.indicatif+""+numero,
                         'email': req.body.email,
                         'x_type_entreprise': req.body.type_entreprise,
                         'x_source': req.body.source,

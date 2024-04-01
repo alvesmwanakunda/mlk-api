@@ -15,6 +15,9 @@
         app.route('/module/qrcode/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getQrcodeModule)
 
+        app.route('/module/qrcode/infos/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getModuleQrCode)
+
         app.route('/modules')
            .get(Ctrl.getAllModule)
 
@@ -30,6 +33,15 @@
        app.put('/module/image/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateImage)
 
        app.put('/module/plan/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updatePlan)
+
+       // Affecter module a un projet
+
+       app.route('/projet/module/:id([a-fA-F\\d]{24})')
+           .post(Ctrl.affectModule)
+           .get(Ctrl.getAllModuleProjet)
+           .delete(Ctrl.deleteModuleProjet)
+
+
 
 
         
