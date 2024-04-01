@@ -49,7 +49,18 @@
                         module.dateFabrication=req.body.dateFabrication;
                         module.entreprise= req.body.entreprise;
                         module.qrcode=code;
-                        module.numero_serie = req.body.marque.substr(0, 2)+"000"+numero;
+                        if(req.body.marque=="ALGECO"){
+                            module.numero_serie = "AL"+"000"+numero;
+                        }if(req.body.marque=="COUGNAUD"){
+                            module.numero_serie = "CG"+"000"+numero;
+                        }if(req.body.marque=="TEPE PREFABRIK"){
+                            module.numero_serie = "TP"+"000"+numero;
+                        }if(req.body.marque=="CONTAINEX"){
+                            module.numero_serie = "CT"+"000"+numero;
+                        }else{
+                            module.numero_serie = req.body.marque.substr(0, 2)+"000"+numero;
+                        }
+                        //module.numero_serie = req.body.marque.substr(0, 2)+"000"+numero;
                         
                        
                         
