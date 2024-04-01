@@ -134,7 +134,9 @@
                         try {
 
                             if(req.files.imageFile){
-                                uploadService.deleteFirebaseStorage(module.nom_photo);
+                                if(module.nom_photo){
+                                  uploadService.deleteFirebaseStorage(module.nom_photo);
+                                }
                                 module.nom_photo=req.files.imageFile[0].filename;
                                 module.photo = await uploadService.uploadFileToFirebaseStorage(req.files.imageFile[0].filename);;
                             }
