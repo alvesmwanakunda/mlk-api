@@ -26,16 +26,16 @@
                         });
                         code = code[0];
                         let numero=0;
+                        let totalDigits = 4;
+                        let leadingZeros;
 
                         //const lastRecord = await Modules.findOne({sort:{'dateLastUpdate': -1}});
                         const count = await Modules.countDocuments();
 
                         if(count){
-                           numero=parseInt(count) + 1;
-                        }else{
-                           numero=1;
+                           numero=Math.floor(Math.log10(count)) + 1;
+                           leadingZeros =  totalDigits - numero;
                         }
-                      
                         let module = new Modules();
 
                         module.dateLastUpdate=new Date();
@@ -49,16 +49,15 @@
                         module.dateFabrication=req.body.dateFabrication;
                         module.entreprise= req.body.entreprise;
                         module.qrcode=code;
+                        console.log("Marque",req.body.marque);
                         if(req.body.marque=="ALGECO"){
-                            module.numero_serie = "AL"+"000"+numero;
+                            module.numero_serie = "AL"+"0".repeat(leadingZeros)+count;
                         }if(req.body.marque=="COUGNAUD"){
-                            module.numero_serie = "CG"+"000"+numero;
+                            module.numero_serie = "CG"+"0".repeat(leadingZeros)+count;
                         }if(req.body.marque=="TEPE PREFABRIK"){
-                            module.numero_serie = "TP"+"000"+numero;
+                            module.numero_serie = "TP"+"0".repeat(leadingZeros)+count;
                         }if(req.body.marque=="CONTAINEX"){
-                            module.numero_serie = "CT"+"000"+numero;
-                        }else{
-                            module.numero_serie = req.body.marque.substr(0, 2)+"000"+numero;
+                            module.numero_serie = "CT"+"0".repeat(leadingZeros)+count;
                         }
                         //module.numero_serie = req.body.marque.substr(0, 2)+"000"+numero;
                         
