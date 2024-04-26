@@ -28,6 +28,7 @@
                     entreprise.email = email;
                     entreprise.genre= req.body.genre;
                     entreprise.siret= req.body.siret;
+                    entreprise.siren= req.body.siren;
                     entreprise.postal= req.body.postal;
                     entreprise.rue= req.body.rue;
                     entreprise.numero= req.body.numero;

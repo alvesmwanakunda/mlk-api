@@ -169,18 +169,244 @@ async function getClient(){
 }
 
 async function getAllProducts(){
+    const prestashopUrl = process.env.shopUrl;
+    const prestashopApiKey = process.env.shopApiKey;
+
+    try {
+        const response = await axios.get(`${prestashopUrl}products/?display=[id,price,name,description_short]`, {
+            params: {
+                ws_key: prestashopApiKey,
+                output_format: 'JSON'
+            }
+        });
+        //console.log("Produits", response.data);
+        return response.data;
+    } catch (error) {
+        if (error.code === 'ETIMEDOUT') {
+            console.log("La requête a expiré en raison d'un délai d'attente.");
+            return null; // ou renvoyer une valeur par défaut
+        } else {
+            console.log("Erreur", error.message);
+            throw error;
+        }
+    }
+}
+
+/*async function getProduct(id){
+    const prestashopUrl = process.env.shopUrl;
+    const prestashopApiKey = process.env.shopApiKey;
+
+    try {
+        const response = await axios.get(`${prestashopUrl}products/${id}`, {
+            params: {
+                ws_key: prestashopApiKey,
+                output_format: 'JSON'
+            }
+        });
+        //console.log("Produits", response.data);
+        let produit = {
+            id:response.data.product?.id,
+            name:response.data.product?.name,
+            price:response.data.product?.price,
+            priceunit:response.data.product?.wholesale_price,
+            resume:response.data.product?.description_short,
+            description:response.data.product?.description,
+            poids:response.data.product?.weight,
+            profondeur: response.data.product?.depth,
+            largeur:response.data.product?.width,
+            hauteur:response.data.product?.height,
+            surface:parseInt(response.data.product?.width) * parseInt(response.data.product?.height),
+            images:response.data.product?.associations?.images
+        }
+        return produit;
+    } catch (error) {
+        if (error.code === 'ETIMEDOUT') {
+            console.log("La requête a expiré en raison d'un délai d'attente.");
+            return null; // ou renvoyer une valeur par défaut
+        } else {
+            console.log("Erreur", error.message);
+            throw error;
+        }
+    }
+}*/
+
+
+// Fonction pour convertir un tableau d'octets en base64
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    let bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+async function getProduct(id) {
+    const prestashopUrl = process.env.shopUrl;
+    const prestashopApiKey = process.env.shopApiKey;
+
+    try {
+        const response = await axios.get(`${prestashopUrl}products/${id}`, {
+            params: {
+                ws_key: prestashopApiKey,
+                output_format: 'JSON',
+            }
+        });
+
+        let product = response.data.product;
+        //console.log("Product". product);
+
+        // Récupérez les informations sur le produit
+        let produit = {
+            id: product?.id,
+            name: product?.name,
+            price: product?.price,
+            priceunit: product?.wholesale_price,
+            resume: product?.description_short,
+            description: product?.description,
+            poids: product?.weight,
+            profondeur: product?.depth,
+            largeur: product?.width,
+            hauteur: product?.height,
+            surface: parseInt(product?.width) * parseInt(product?.height),
+            images: []
+        };
+
+        // Parcourez les images associées au produit
+        /*for (let image of product.associations.images) {
+            // Pour chaque image, récupérez ses informations complètes
+            const imageResponse = await axios.get(`${prestashopUrl}images/products/${id}/${image.id}`, {
+                params: {
+                    ws_key: prestashopApiKey,
+                    output_format: 'JSON'
+                }
+            });
+
+            //console.log("Image", imageResponse.data)
+
+            // Ajoutez l'URL ou les données binaires de l'image à l'objet produit
+            produit.images.push({
+                id: image.id,
+                url: imageResponse.data,
+                //binary: imageResponse.data.image.content
+            });
+        }*/
+        for (let image of product.associations.images) {
+            const imageResponse = await axios.get(`${prestashopUrl}images/products/${id}/${image.id}`, {
+                params: {
+                    ws_key: prestashopApiKey,
+                    output_format: 'JSON'
+                },
+                responseType: 'arraybuffer'
+            });
+        
+            // Convertir les données binaires en base64 en tranches
+            let base64Chunks = [];
+            const chunkSize = 1024 * 1024; // Taille de chaque tranche (1 Mo)
+            for (let i = 0; i < imageResponse.data.byteLength; i += chunkSize) {
+                let chunk = imageResponse.data.slice(i, i + chunkSize);
+                base64Chunks.push(arrayBufferToBase64(chunk));
+            }
+            // Concaténer les tranches de base64
+            let base64String = base64Chunks.join('');
+            produit.images.push({
+                id: image.id,
+                base64: base64String
+            });
+        }
+        
+        
+        return produit;
+    } catch (error) {
+        if (error.code === 'ETIMEDOUT') {
+            console.log("La requête a expiré en raison d'un délai d'attente.");
+            return null; // ou renvoyer une valeur par défaut
+        } else {
+            console.log("Erreur", error.message);
+            throw error;
+        }
+    }
+}
+
+
+async function getImagesProduct(id){
+    const prestashopUrl = process.env.shopUrl;
+    const prestashopApiKey = process.env.shopApiKey;
+
+    try {
+        ///images/products/{id_product}
+        const response = await axios.get(`${prestashopUrl}images/products/${id}/365`, {
+            params: {
+                ws_key: prestashopApiKey,
+                output_format: 'JSON'
+            }
+        });
+
+        //console.log("Produits", response.data);
+        return response.data;
+    } catch (error) {
+        if (error.code === 'ETIMEDOUT') {
+            console.log("La requête a expiré en raison d'un délai d'attente.");
+            return null; // ou renvoyer une valeur par défaut
+        } else {
+            console.log("Erreur", error.message);
+            throw error;
+        }
+    }
+}
+
+
+async function getAllCategories(){
 
     const prestashopUrl=process.env.shopUrl;
     const prestashopApiKey=process.env.shopApiKey;
 
      try {
-         const response=await axios.get(`${prestashopUrl}products/?display=[id,price,name,description_short]`,{params:{
+         const response=await axios.get(`${prestashopUrl}categories/?display=[id,name]`,{params:{
             ws_key:prestashopApiKey,
             output_format:'JSON'
          }}
         );
         //console.log("Produits", response.data);
-        return response.data;
+        return response.data.categories;
+     } catch (error) {
+        console.log("Erreur ", error.message);
+        throw error;
+     }
+}
+
+async function getAllManufactures(){
+
+    const prestashopUrl=process.env.shopUrl;
+    const prestashopApiKey=process.env.shopApiKey;
+
+     try {
+         const response=await axios.get(`${prestashopUrl}manufacturers/?display=[id,name]`,{params:{
+            ws_key:prestashopApiKey,
+            output_format:'JSON'
+         }}
+        );
+        //console.log("Produits", response.data);
+        return response.data.manufacturers;
+     } catch (error) {
+        console.log("Erreur ", error.message);
+        throw error;
+     }
+}
+
+async function getAllSuppliers(){
+
+    const prestashopUrl=process.env.shopUrl;
+    const prestashopApiKey=process.env.shopApiKey;
+
+     try {
+         const response=await axios.get(`${prestashopUrl}suppliers/?display=[id,name]`,{params:{
+            ws_key:prestashopApiKey,
+            output_format:'JSON'
+         }}
+        );
+        //console.log("Produits", response.data);
+        return response.data.suppliers;
      } catch (error) {
         console.log("Erreur ", error.message);
         throw error;
@@ -193,5 +419,10 @@ module.exports = {
     getAllProducts,
     updatePasswordClient,
     deleteClient,
-    updateClient
+    updateClient,
+    getAllCategories,
+    getAllManufactures,
+    getAllSuppliers,
+    getProduct,
+    getImagesProduct
   };

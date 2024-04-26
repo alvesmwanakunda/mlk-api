@@ -38,7 +38,10 @@
      app.route('/facture/projet/:id([a-fA-F\\d]{24})')
         .get(Ctrl.getAllDevisFactureByProjet)
 
+     // Route email
+
+     app.post('/send/devis/:id([a-fA-F\\d]{24})',upload.single("pdf"),Ctrl.sendDevis)
+
+
     }
-
-
 })();
