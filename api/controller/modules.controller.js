@@ -41,6 +41,7 @@
                         module.dateLastUpdate=new Date();
                         module.type=req.body.type;
                         module.nom=req.body.nom;
+                        module.categorie=req.body.categorie;
                         module.position=req.body.position;
                         module.hauteur=req.body.hauteur;
                         module.largeur=req.body.largeur;
@@ -123,6 +124,7 @@
                         module.type=req.body.type;
                         module.nom=req.body.nom;
                         module.position=req.body.position;
+                        module.categorie=req.body.categorie;
                         module.hauteur=req.body.hauteur;
                         module.largeur=req.body.largeur;
                         module.longueur=req.body.longueur;

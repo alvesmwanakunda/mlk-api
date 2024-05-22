@@ -54,6 +54,10 @@
             type: String,
             required: false
         },
+        categorie:{
+           type: String,
+           required:false
+        },
         entreprise:{
             type:Schema.ObjectId,
             ref:"Entreprises",
