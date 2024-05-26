@@ -50,8 +50,12 @@
                         module.dateFabrication=req.body.dateFabrication;
                         module.entreprise= req.body.entreprise;
                         module.qrcode=code;
-                        console.log("Marque",req.body.marque);
-                        if(req.body.marque=="ALGECO"){
+                        if(req.body.marque){
+                            module.numero_serie = req.body.marque.substring(0, 3).toUpperCase()+"0".repeat(leadingZeros)+count;
+                        }else{
+                            module.numero_serie = "FAB"+"0".repeat(leadingZeros)+count
+                        }
+                        /*if(req.body.marque=="ALGECO"){
                             module.numero_serie = "AL"+"0".repeat(leadingZeros)+count;
                         }if(req.body.marque=="COUGNAUD"){
                             module.numero_serie = "CG"+"0".repeat(leadingZeros)+count;
@@ -59,8 +63,7 @@
                             module.numero_serie = "TP"+"0".repeat(leadingZeros)+count;
                         }if(req.body.marque=="CONTAINEX"){
                             module.numero_serie = "CT"+"0".repeat(leadingZeros)+count;
-                        }
-                        //module.numero_serie = req.body.marque.substr(0, 2)+"000"+numero;
+                        }*/
                         
                        
                         
@@ -274,7 +277,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        Modules.find({entreprise:req.params.id}).populate("project").then((module)=>{
+                        Modules.find({entreprise:req.params.id}).then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -308,6 +311,12 @@
 
                          return res.status(200).json({
                             success: true,
+                            data:[
+                                {y:stock.length, name:"Stock"},
+                                {y:preparation.length, name:"En préparation"},
+                                {y:pret.length, name:"Prêt à partir"},
+                                {y:site.length, name:"Site"}
+                            ],
                             message:{
                                 module: module.length,
                                 stock: stock.length,
@@ -339,6 +348,12 @@
 
                          return res.status(200).json({
                             success: true,
+                            data:[
+                                {y:stock.length, name:"Stock"},
+                                {y:preparation.length, name:"En préparation"},
+                                {y:pret.length, name:"Prêt à partir"},
+                                {y:site.length, name:"Site"}
+                            ],
                             message:{
                                 module: module.length,
                                 stock: stock.length,
