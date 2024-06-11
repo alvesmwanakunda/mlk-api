@@ -99,5 +99,52 @@ module.exports={
             
         });
     },
+    mailconge:(user)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+                
+                let message = {
+                    to: "m.minthe@mlka.fr",
+                    subject: 'Demande de congé',
+                    html:'Cher(e) Malick'+'<br/><br/>'+ 
+                    '<p>Vous avez reçu une demande de congé de '+user.nom+' '+user.prenom+'.<p/>'+
+                    '<p>Veuillez vous connecter dans l\'application MLKA pour valider la demande.</p>'+
+                    '<p>Merci.</p>'+
+                    '<p>Cordialement.</p>',
+                };
+                transporter.sendMail(message, (error, user)=>{
+                    if(error){
+                        console.log("erreur", error);
+                    }
+                    resolve(user);
+                    transporter.close();
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+    },
 
 }

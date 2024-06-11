@@ -101,5 +101,57 @@
                 ]
             }
         ]
+    },
+    {
+        "roles":"agent",
+        "menus":[],
+        "allows":[
+            
+            {
+                "resources":"projets",
+                "permissions":[
+                    "create",
+                    "update",
+                    "delete",
+                    "retreive"
+                ]
+            },
+            {
+                "resources":"box",
+                "permissions":[
+                    "create",
+                    "update",
+                    "delete",
+                    "retreive"
+                ]
+            },
+            {
+                "resources":"intervenant",
+                "permissions":[
+                    "create",
+                    "update",
+                    "delete",
+                    "retreive"
+                ]
+            },
+            {
+                "resources":"metre",
+                "permissions":[
+                    "create",
+                    "update",
+                    "delete",
+                    "retreive"
+                ]
+            },
+            {
+                "resources":"agenda",
+                "permissions":[
+                    "create",
+                    "update",
+                    "delete",
+                    "retreive"
+                ]
+            }
+        ]
     }
 ]

@@ -34,6 +34,21 @@
 
       app.route('/users')
            .get(Ctrl.allUser);
+
+      app.route('/employe')
+           .get(Ctrl.allEmploye)
+           .post(Ctrl.addEmploye);
+
+      app.route('/employe/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getEmploye)
+           .put(Ctrl.updateEmploye);
+
+      app.route('/active/employe/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.activeEmploye)
+
+      app.route('/dissable/employe/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.dissableEmploye)
+   
         
 
   
