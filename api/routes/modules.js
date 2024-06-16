@@ -30,6 +30,9 @@
        app.route('/count/modules/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAccountModuleEntreprise)
 
+       app.route('/projet/module/list/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getAllModuleByProjet)
+
        app.put('/module/image/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateImage)
 
        app.put('/module/plan/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updatePlan)
@@ -40,6 +43,8 @@
            .post(Ctrl.affectModule)
            .get(Ctrl.getAllModuleProjet)
            .delete(Ctrl.deleteModuleProjet)
+
+       
 
 
 

@@ -95,6 +95,11 @@
          type:Date,
          required: false
      },
+
+     date_fin_contrat:{
+        type:Date,
+        required: false
+    },
      createdDate:{
          type:Date,
          required: false
@@ -103,6 +108,11 @@
         type:String,
         required: false
     },
+    contact:{
+        type:Schema.ObjectId,
+            ref:"Contacts",
+            required:false
+    }
     });
 
     projetSchema.pre('deleteOne',{ document: true }, async function (next) {

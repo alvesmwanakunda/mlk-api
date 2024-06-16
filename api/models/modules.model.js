@@ -69,6 +69,11 @@
             required: false
         },
 
+        module_type: {
+            type: String,
+            required: false
+        },
+
         dateLastUpdate: {
             type: Date,
             required: true

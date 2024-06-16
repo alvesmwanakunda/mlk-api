@@ -123,8 +123,10 @@
                         projet.site_offre=req.body.site_offre;
                         projet.budget=req.body.budget;
                         projet.devise=req.body.devise;
-                        projet.date_limite=req.body.date_limite
+                        projet.date_limite=req.body.date_limite;
+                        projet.date_fin_contrat=req.body.date_fin_contrat;
                         projet.plan=req.body.plan;
+                        projet.contact=req.body.contact
 
 
                         if(req.file){
@@ -471,6 +473,8 @@
                         projet.devise=req.body.devise;
                         projet.date_limite=req.body.date_limite;
                         projet.plan=req.body.plan;
+                        projet.contact=req.body.contact
+
 
                         if(req.file){
 

@@ -2,6 +2,7 @@
     'use strict';
     var Modules = require("../models/modules.model").ModulesModel;
     var ProjetModules = require("../models/projetModule.model").ProjetModulesModel;
+    var Projet = require("../models/projets.model").ProjetModel;
     var uploadService = require('../services/upload.service');
     var qrcodeService = require('../services/qrCode.service');
     const bucket = require("../../firebase-config");
@@ -49,6 +50,7 @@
                         module.marque=req.body.marque;
                         module.dateFabrication=req.body.dateFabrication;
                         module.entreprise= req.body.entreprise;
+                        module.module_type = req.body.module_type;
                         module.qrcode=code;
                         if(req.body.marque){
                             module.numero_serie = req.body.marque.substring(0, 3).toUpperCase()+"0".repeat(leadingZeros)+count;
@@ -134,6 +136,7 @@
                         module.marque=req.body.marque;
                         module.entreprise= req.body.entreprise;
                         module.dateFabrication=req.body.dateFabrication;
+                        module.module_type = req.body.module_type;
                     
                         try {
 
@@ -227,10 +230,17 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
+                        let projetModule = await ProjetModules.find({module:req.params.id}).sort({_id:-1}).limit(1);
+                        let projet;
+                        if(projetModule.length){
+                            projet = await Projet.findOne({_id:projetModule[0].projet});
+                        }
+                       
                         Modules.findOne({_id:req.params.id}).populate("entreprise").then((module)=>{
                             res.json({
                                 success: true,
-                                message:module
+                                message:module,
+                                projet:projet
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -600,6 +610,32 @@
                 })
 
              },
+
+             getAllModuleByProjet:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        ProjetModules.find({projet:req.params.id}).populate("module").then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
 
         }
     }
