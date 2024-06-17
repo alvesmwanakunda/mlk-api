@@ -243,6 +243,43 @@
                 })
 
             },
+            deletePhoto(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
+                    if(aclres){
+                        try {
+                            let projet = await Projet.findOne({_id:req.params.id});
+                            projet.photo=""; 
+                            Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{  
+                                    res.json({
+                                        success:true,
+                                        message:projet
+                                    });
+                                }).catch((error)=>{
+                                    return res.status(500).json({
+                                        success:false,
+                                        message:error.message
+                                    })
+                                })
+                            
+                            
+
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+
+                       
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+
+            },
             deleteProjet(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'delete', async function(err,aclres){
 

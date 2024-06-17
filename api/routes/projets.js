@@ -12,6 +12,9 @@
            .get(Ctrl.getProjet)
            .delete(Ctrl.deleteProjet)
 
+        app.route('/projet/delete/photo/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.deletePhoto)
+
          app.route('/projet/entreprise/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getProjetByEntreprise)
 
