@@ -2,6 +2,7 @@
     'use strict';
     var User = require('../models/users.model').UserModel;
     var Entreprise = require('../models/entreprises.model').EntrepriseModel;
+    var Contact = require('../models/contacts.model').ContactModel;
     var crypto = require('crypto');
     var jwt = require('jsonwebtoken');
     var Encryption = require('../../utils/Encryption');
@@ -337,18 +338,39 @@
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
 
-                        User.findOneAndUpdate({_id:req.decoded.id},req.body,{new:true}).then((user)=>{
-                            res.json({
-                                success:true,
-                                message:user
-                            });
-                        }).catch((error)=>{
-                            return res.status(500).json({
-                                success:false,
-                                message:error.message
+                        let user = User.findOne({_id:req.decoded.id});
+                        if(user){
+                            let contact = await Contact.findOne({email:user.email});
+                            let payload={
+                                'name':req.body.prenom+" "+req.body.nom,
+                             };
+                             
+                            User.findOneAndUpdate({_id:req.decoded.id},req.body,{new:true}).then(async (user)=>{
+                                if(user.role=='user'){
+                                    if(req.body.nom!=contact.nom || req.body.prenom!=contact.prenom  || req.body.phone!=contact.phone){
+                                        contact.nom=req.body.nom;
+                                        contact.prenom=req.body.prenom;
+                                        if(req.body.phone){
+                                            contact.phone=req.body.phone;
+                                            payload.phone = contact.indicatif + "" + req.body.phone;
+                                        };
+                                        await Contact.findOneAndUpdate({_id:contact._id},contact,{new:true});
+                                        odooService.update(payload,contact);
+                                        prestashopService.update(req.body.nom, req.body.prenom, contact.email);
+                                     }
+                                 }
+                                res.json({
+                                    success:true,
+                                    message:user
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
                             })
-                        })
 
+                        }
                     }else{
                         return res.status(401).json({
                             success: false,

@@ -144,6 +144,25 @@ async function updateContact(payload, contact){
     });
 } 
 
+async function update(payload, contact){
+    let _id = parseInt(contact.contact_id);
+    console.log("Payload", payload);
+    odooClient.methodCall('authenticate', [odooDb, odooUsername, odooPassword, {}], (error, uid) => {
+        console.log("Auth", uid);
+        if (error) {
+            console.error('Erreur d\'authentification:', error);
+        } else {
+            xmlrpcClientObject.methodCall('execute_kw', [odooDb, uid, odooPassword, 'res.partner', 'write', [[_id],payload]], (error, company_id) => {
+                if (error) {
+                    console.error('Erreur lors de la création de l\'entreprise:', error);
+                } else {
+                    console.log('User créée avec l\'ID:', company_id);
+                }
+            });
+        }
+    });
+} 
+
 async function updateUserPassword(password, email){
 
     let contact = await Contact.findOne({email:email});
@@ -237,5 +256,6 @@ module.exports = {
     deletePartner,
     updateEntreprise,
     getAllUser,
-    updateUserPassword
+    updateUserPassword,
+    update
   };

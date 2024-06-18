@@ -46,6 +46,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                             user.role = "user";
                             user.valid = true;
                             user.entreprise=new ObjectId(entreprise._id);
+                            user.phone = req.body.phone;
 
                             if(req.body.genre=='Mr'){
                                 gender=1;
@@ -102,7 +103,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                         
                             //console.log("payload", payload);
                             //console.log("payload 1", adresse);
-                            console.log("payload 2", payloadContact);
+                            //console.log("payload 2", payloadContact);
 
 
 
