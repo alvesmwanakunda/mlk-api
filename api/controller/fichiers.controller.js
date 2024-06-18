@@ -9,7 +9,6 @@
         var uploadService = require('../services/upload.service');
         const bucket = require("../../firebase-config");
 
-
     module.exports=function(acl){
         return{
             create:function(req,res){
@@ -39,7 +38,7 @@
                                 let on=file.originalname.split('.');
                                 let extension=on[on.length -1];
                                 req.body.extension=extension;
-                                req.body.nom=file.filename;
+                                req.body.nom=Buffer.from(file.filename, 'latin1').toString('utf8');;
 
                                 if(req.body.dossierParent){
 
@@ -119,7 +118,10 @@
                                 let on=file.originalname.split('.');
                                 let extension=on[on.length -1];
                                 req.body.extension=extension;
-                                req.body.nom=file.filename;
+                                req.body.nom= Buffer.from(file.filename, 'latin1').toString('utf8');
+                                //console.log("Origin", file.originalname.split('.'));
+                                //console.log("file name",Buffer.from(file.originalname, 'latin1').toString('utf8'));
+                                //console.log("file", Buffer.from(file.filename, 'latin1').toString('utf8'));
 
                                 if(req.body.dossierParent){
 
