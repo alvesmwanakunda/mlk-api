@@ -133,10 +133,16 @@
                         module.hauteur=req.body.hauteur;
                         module.largeur=req.body.largeur;
                         module.longueur=req.body.longueur;
-                        module.marque=req.body.marque;
+                        //module.marque=req.body.marque;
                         module.entreprise= req.body.entreprise;
                         module.dateFabrication=req.body.dateFabrication;
                         module.module_type = req.body.module_type;
+
+                        if(module.marque !=req.body.marque){
+                            module.marque=req.body.marque;
+                            let numero = module.numero_serie.slice(3);
+                            module.numero_serie = req.body.marque.substring(0, 3).toUpperCase()+""+numero;
+                        }
                     
                         try {
 
