@@ -48,21 +48,24 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                             user.entreprise=new ObjectId(entreprise._id);
                             user.phone = req.body.phone;
 
-                            if(req.body.genre=='Mr'){
-                                gender=1;
-                                genderOdoo=3
-                                user.genre = "Mr"
-                            }else{
-                                gender=2;
-                                genderOdoo=1
-                                user.genre = "Mlle"
-                            }
                             var contact = new Contact(req.body);
                             contact.entreprise= new ObjectId(entreprise._id);
                             contact.createdDate = new Date();
                             contact.rue= entreprise.rue;
                             contact.numero= entreprise.numero;
                             contact.postal=entreprise.postal;
+
+                            if(req.body.genre=='Mr'){
+                                gender=1;
+                                genderOdoo=3;
+                                user.genre = "Mr";
+                                contact.genre = "Mr";
+                            }else{
+                                gender=2;
+                                genderOdoo=1;
+                                user.genre = "Mlle";
+                                contact.genre = "Mlle"
+                            }
 
                             let payload={
                                 lastname: req.body.nom,
@@ -179,15 +182,25 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                         let contact = await Contact.findOne({_id:req.params.id});
                         let isUpdate=false;
                         let isEmail=false;
+                        let gender="";
                         let oldEmail=contact.email;
+                        if(req.body.genre=='Mr'){
+                            gender=3;
+                            user.genre = "Mr";
+                        }else{
+                            gender=1;
+                            user.genre = "Mlle";
+                        }
+
                         let payload={
                             'name':req.body.prenom+" "+req.body.nom,
                             'email': req.body.email,
                             'phone':req.body.indicatif+""+req.body.phone,
-                            'function':req.body.poste
+                            'function':req.body.poste,
+                            'title': gender,
                          }
                         
-                        if(req.body.nom!=contact.nom || req.body.prenom!=contact.prenom || req.body.poste!=contact.poste || req.body.phone!=contact.phone || req.body.indicatif!=contact.indicatif || req.body.email!=contact.email){
+                        if(req.body.nom!=contact.nom || req.body.prenom!=contact.prenom || req.body.poste!=contact.poste || req.body.phone!=contact.phone || req.body.indicatif!=contact.indicatif || req.body.email!=contact.email || req.body.genre!=contact.genre){
                              isUpdate = true;
                         }
                         if(req.body.email!=contact.email){

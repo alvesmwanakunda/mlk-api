@@ -13,6 +13,10 @@
             type:String,
             required: false
         },
+        genre:{
+            type:String,
+            required: false
+        },
         phone:{
             type:String,
             required: false
