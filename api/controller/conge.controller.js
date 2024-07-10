@@ -4,6 +4,8 @@
     var Conge = require("../models/conge.model").CongeModel;
     var User = require("../models/users.model").UserModel;
     var EmailService = require("../services/mail.service");
+    var uploadService = require('../services/upload.service');
+
 
     module.exports = function(acl){
         return {
@@ -16,7 +18,10 @@
                         var conge = new Conge(req.body);
                         conge.user = req.decoded.id;
                         conge.date_demande = new Date();
-
+                        if(req.file){
+                            conge.nom_fichier = Buffer.from(req.file.filename, 'latin1').toString('utf8');
+                            conge.fichier = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
+                        }
                         conge.save().then((conge)=>{
                                 EmailService.mailconge(user);
                                 res.json({
@@ -43,17 +48,39 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'update', async function(err,aclres){
                     if(aclres){
 
-                        Conge.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((conge)=>{
-                            res.json({
-                                success:true,
-                                message:conge
-                            });
-                        }).catch((error)=>{
-                            return res.status(500).json({
-                                success:false,
-                                message:error.message
+                        let conge = await Conge.findOne({_id:req.params.id});
+
+                        if(conge){
+
+                            conge.debut = req.body.debut;
+                            conge.fin = req.body.fin;
+                            conge.types = req.body.types;
+                            conge.jours = req.body.jours;
+                            conge.status = req.body.status;
+                            conge.heure_debut = req.body.heure_debut;
+                            conge.heure_fin = req.body.heure_fin;
+                            conge.raison = req.body.raison;
+                            if(req.file){
+                                if(conge.nom_fichier){
+                                    uploadService.deleteFirebaseStorage(conge.nom_fichier);
+                                }
+                                conge.nom_fichier = Buffer.from(req.file.filename, 'latin1').toString('utf8');
+                                conge.fichier = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
+                            }
+                            Conge.findOneAndUpdate({_id:req.params.id},conge,{new:true}).then((conge)=>{
+                                res.json({
+                                    success:true,
+                                    message:conge
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
                             })
-                        })
+
+                        }
+                        
                     }else{
                         return res.status(401).json({
                             success: false,

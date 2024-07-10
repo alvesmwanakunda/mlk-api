@@ -71,6 +71,18 @@
             type:String,
             required: false
         },
+        raison:{
+            type:String,
+            required:false,
+        },
+        fichier:{
+            type:String,
+            required:false
+        },
+        nom_fichier: {
+            type: String,
+            required: true
+        },
 
     });
     module.exports = {

@@ -72,7 +72,7 @@
                         try {
                             if(req.files.imageFile){
                                 module.nom_photo=req.files.imageFile[0].filename;
-                                module.photo = await uploadService.uploadFileToFirebaseStorage(req.files.imageFile[0].filename);;
+                                module.photo = await uploadService.uploadFileToFirebaseStorage(req.files.imageFile[0].filename);
                             }
                             if(req.files.planFile){
                                 let on=req.files.planFile[0].originalname.split('.');
@@ -328,7 +328,7 @@
                          return res.status(200).json({
                             success: true,
                             data:[
-                                {y:stock.length, name:"Stock"},
+                                {y:stock.length, name:"Parc"},
                                 {y:preparation.length, name:"En préparation"},
                                 {y:pret.length, name:"Prêt à partir"},
                                 {y:site.length, name:"Site"}
@@ -365,7 +365,7 @@
                          return res.status(200).json({
                             success: true,
                             data:[
-                                {y:stock.length, name:"Stock"},
+                                {y:stock.length, name:"Parc"},
                                 {y:preparation.length, name:"En préparation"},
                                 {y:pret.length, name:"Prêt à partir"},
                                 {y:site.length, name:"Site"}
