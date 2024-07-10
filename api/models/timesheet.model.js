@@ -20,7 +20,15 @@
     heure:{
         type:Number,
         require:true
-    }
+    },
+    status:{
+        type:String,
+        required: false
+    },
+    projet:{
+        type:String,
+        required: false
+    },
    });
    module.exports = {
     timeSheetSchema: timeSheetSchema,
