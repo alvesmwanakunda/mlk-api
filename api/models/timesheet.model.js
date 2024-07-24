@@ -25,6 +25,10 @@
         type:String,
         required: false
     },
+    deplacement:{
+       type:String,
+       required: false
+    },
     projet:{
         type:String,
         required: false
