@@ -186,10 +186,10 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                         let oldEmail=contact.email;
                         if(req.body.genre=='Mr'){
                             gender=3;
-                            user.genre = "Mr";
+                            contact.genre = "Mr";
                         }else{
                             gender=1;
-                            user.genre = "Mlle";
+                            contact.genre = "Mlle";
                         }
 
                         let payload={

@@ -6,6 +6,8 @@
     var EntrepriseService = require('../services/entreprises.service');
     var fs = require("fs");
     var codes = require('voucher-code-generator');
+    var uploadService = require('../services/upload.service');
+
 
     module.exports = function(acl){
         return{
@@ -33,67 +35,27 @@
                         projet.code_projet = "KAP-"+code;
                         projet.code_client=client;
 
-
                         if(req.file){
-                           try {
-                            let path="./public/"+req.file.filename;
+                         projet.photo = await uploadService.uploadProjetsToFirebaseStorage(req.file.filename);
+                        }
+                        projet.save().then(async (projet)=>{
+                            /*const pvReception = new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"PV de réception"});
+                            const etatDeLieu =  new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"Etat de lieu"});
+                            await pvReception.save();
+                            await etatDeLieu.save();*/
+                            EntrepriseService.addDossierProjet(req.decoded.id,projet);
+                            EntrepriseService.addNombreProjet(projet);
+                            res.json({
+                                success:true,
+                                message:projet
+                            });
 
-                            fs.readFile(path,{encoding:'base64'},async(err,data)=>{
-                                if(err){
-                                    console.log("error file", err);
-                                }
-                                projet.photo = data;
-                                projet.save().then(async (projet)=>{
-
-                                        fs.unlink(path,(err)=>{
-                                            if(err){
-                                                console.error(err)
-                                                return
-                                            }
-                                        })
-                                        /*const pvReception = new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"PV de réception"});
-                                        const etatDeLieu =  new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"Etat de lieu"});
-                                        await pvReception.save();
-                                        await etatDeLieu.save();*/
-                                        EntrepriseService.addDossierProjet(req.decoded.id,projet);
-                                        EntrepriseService.addNombreProjet(projet);
-                                        res.json({
-                                            success:true,
-                                            message:projet
-                                        });
-
-                                    }).catch((error)=>{
-                                        return res.status(500).json({
-                                            success:false,
-                                            message:error.message
-                                        })
-                                    })
-                            })
-                           } catch (error) {
+                        }).catch((error)=>{
                             return res.status(500).json({
                                 success:false,
-                                message:error
+                                message:error.message
                             })
-                           }
-                        }else{
-                            projet.save().then((projet)=>{
-
-                                EntrepriseService.addNombreProjet(projet);
-                                EntrepriseService.addDossierProjet(req.decoded.id,projet);
-                                res.json({
-                                    success:true,
-                                    message:projet
-                                });
-
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                            })
-                        }
-
-
+                        })
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -126,62 +88,26 @@
                         projet.date_limite=req.body.date_limite;
                         projet.date_fin_contrat=req.body.date_fin_contrat;
                         projet.plan=req.body.plan;
-                        projet.contact=req.body.contact
-
+                        projet.contact=req.body.contact;
 
                         if(req.file){
-
-                            try {
- 
-                                let path="./public/"+req.file.filename;
-                                fs.readFile(path,{encoding:'base64'}, async(err,data)=>{
-                                    if(err){
-                                        console.log("Error File", err);
-                                    }
-                                    projet.photo=data; 
-                                    Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
-    
-                                        fs.unlink(path,(err)=>{
-                                            if(err){
-                                                console.error(err)
-                                                return
-                                            }
-                                        })      
-                                        res.json({
-                                            success:true,
-                                            message:projet
-                                        });
-                                    }).catch((error)=>{
-                                        return res.status(500).json({
-                                            success:false,
-                                            message:error.message
-                                        })
-                                    })
-                                    
-                                })
-                                
-                            } catch (error) {
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                            }
-
-                        }else{
-
-                            Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
-                                res.json({
-                                    success:true,
-                                    message:projet
-                                });
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                            })
-
+                            if(projet.photo){
+                                uploadService.deleteProjetsFirebaseStorage(projet.photo);
+                              }
+                              projet.photo = await uploadService.uploadProjetsToFirebaseStorage(req.file.filename);
                         }
+
+                        Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
+                            res.json({
+                                success:true,
+                                message:projet
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -198,32 +124,28 @@
                         try {
 
                             let projet = await Projet.findOne({_id:req.params.id});
-                            
-                            let path="./public/"+req.file.filename;
-                            fs.readFile(path,{encoding:'base64'}, async(err,data)=>{
-                                if(err){
-                                    console.log("Error File", err);
-                                }
-                                projet.photo=data; 
-                                Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
 
-                                    fs.unlink(path,(err)=>{
-                                        if(err){
-                                            console.error(err)
-                                            return
-                                        }
-                                    })      
-                                    res.json({
-                                        success:true,
-                                        message:projet
-                                    });
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message:error.message
-                                    })
+                            if(projet.photo){
+                               uploadService.deleteProjetsFirebaseStorage(projet.photo);
+                            }
+                            projet.photo = await uploadService.uploadProjetsToFirebaseStorage(req.file.filename);
+                            Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
+
+                                fs.unlink(path,(err)=>{
+                                    if(err){
+                                        console.error(err)
+                                        return
+                                    }
+                                })      
+                                res.json({
+                                    success:true,
+                                    message:projet
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
                                 })
-                                
                             })
 
                         } catch (error) {

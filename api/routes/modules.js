@@ -21,8 +21,32 @@
         app.route('/modules')
            .get(Ctrl.getAllModule)
 
+        app.route('/modules/stock')
+           .get(Ctrl.getAllModuleStock)
+
+        app.route('/modules/preparation')
+           .get(Ctrl.getAllModulePr)
+
+        app.route('/modules/partir')
+           .get(Ctrl.getAllModulePp)
+
+        app.route('/modules/site')
+           .get(Ctrl.getAllModuleSite)
+
         app.route('/modules/entreprise/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllModuleByEntreprise)
+
+        app.route('/modules/entreprise/:id([a-fA-F\\d]{24})/stock')
+           .get(Ctrl.getAllModuleByEntrepriseStock)
+
+        app.route('/modules/entreprise/:id([a-fA-F\\d]{24})/preparation')
+           .get(Ctrl.getAllModuleByEntreprisePp)
+
+        app.route('/modules/entreprise/:id([a-fA-F\\d]{24})/partir')
+           .get(Ctrl.getAllModuleByEntreprisePr)
+
+        app.route('/modules/entreprise/:id([a-fA-F\\d]{24})/site')
+           .get(Ctrl.getAllModuleByEntrepriseSite)
 
        app.route('/count/modules')
            .get(Ctrl.getAccountModule)

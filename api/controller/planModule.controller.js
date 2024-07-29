@@ -38,7 +38,7 @@
                                 req.body.nom=file.filename;
                                 let plan=new Plan(req.body);
                                 const savedFichier = await plan.save();
-                                const downloadUrl = await uploadService.uploadFileToFirebaseStorage(file.filename);
+                                const downloadUrl = await uploadService.uploadPlansToFirebaseStorage(file.filename);
                                 const updatedFile = await Plan.findByIdAndUpdate(savedFichier._id,{chemin:downloadUrl},{new:true});
                                 return {
                                     success:true,
@@ -96,8 +96,8 @@
                             req.body.nom=req.file.filename;
 
                             try {
-                                    uploadService.deleteFirebaseStorage(plan.nom);
-                                    uploadService.uploadFileToFirebaseStorage(req.file.filename)
+                                    uploadService.deletePlansFirebaseStorage(plan.nom);
+                                    uploadService.uploadPlansToFirebaseStorage(req.file.filename)
                                     .then((downloadUrl) => {
                                       req.body.chemin=downloadUrl;
                                       Plan.findByIdAndUpdate({_id:plan._id}, req.body, { new: true })
@@ -141,7 +141,7 @@
                     if(aclres){
 
                         let plan = await Plan.findOne({_id:req.params.id});
-                        await uploadService.deleteFirebaseStorage(plan.nom);
+                        await uploadService.deletePlansFirebaseStorage(plan.nom);
                         plan.deleteOne().then((data)=>{
                             res.json({
                                 success: true,

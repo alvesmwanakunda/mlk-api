@@ -20,7 +20,7 @@
                         conge.date_demande = new Date();
                         if(req.file){
                             conge.nom_fichier = Buffer.from(req.file.filename, 'latin1').toString('utf8');
-                            conge.fichier = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
+                            conge.fichier = await uploadService.uploadCongesToFirebaseStorage(req.file.filename);
                         }
                         conge.save().then((conge)=>{
                                 EmailService.mailconge(user);
@@ -62,10 +62,10 @@
                             conge.raison = req.body.raison;
                             if(req.file){
                                 if(conge.nom_fichier){
-                                    uploadService.deleteFirebaseStorage(conge.nom_fichier);
+                                    uploadService.deleteCongesFirebaseStorage(conge.nom_fichier);
                                 }
                                 conge.nom_fichier = Buffer.from(req.file.filename, 'latin1').toString('utf8');
-                                conge.fichier = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
+                                conge.fichier = await uploadService.uploadCongesToFirebaseStorage(req.file.filename);
                             }
                             Conge.findOneAndUpdate({_id:req.params.id},conge,{new:true}).then((conge)=>{
                                 res.json({

@@ -72,14 +72,14 @@
                         try {
                             if(req.files.imageFile){
                                 module.nom_photo=req.files.imageFile[0].filename;
-                                module.photo = await uploadService.uploadFileToFirebaseStorage(req.files.imageFile[0].filename);
+                                module.photo = await uploadService.uploadModuleToFirebaseStorage(req.files.imageFile[0].filename);
                             }
                             if(req.files.planFile){
                                 let on=req.files.planFile[0].originalname.split('.');
                                 let extension=on[on.length -1];
                                 module.extension=extension;
                                 module.plan=req.files.planFile[0].filename;
-                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.files.planFile[0].filename);
+                                let chemin = await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);
                                 if(chemin){
                                   module.chemin = chemin;
                                 }
@@ -148,18 +148,18 @@
 
                             if(req.files.imageFile){
                                 if(module.nom_photo){
-                                  uploadService.deleteFirebaseStorage(module.nom_photo);
+                                  uploadService.deleteModuleFirebaseStorage(module.nom_photo);
                                 }
                                 module.nom_photo=req.files.imageFile[0].filename;
-                                module.photo = await uploadService.uploadFileToFirebaseStorage(req.files.imageFile[0].filename);;
+                                module.photo = await uploadService.uploadModuleToFirebaseStorage(req.files.imageFile[0].filename);
                             }
                             if(req.files.planFile){
                                 let on=req.files.planFile[0].originalname.split('.');
                                 let extension=on[on.length -1];
                                 module.extension=extension;
                                 module.plan=req.files.planFile[0].filename;
-                                uploadService.deleteFirebaseStorage(module.plan);
-                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.files.planFile[0].filename);
+                                uploadService.deletePlansFirebaseStorage(module.plan);
+                                let chemin = await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);
                                 if(chemin){
                                   module.chemin = chemin;
                                 }
@@ -206,10 +206,10 @@
 
                         let module = await Modules.findOne({_id:req.params.id});
                         if(module.photo){
-                            await uploadService.deleteFirebaseStorage(module.nom_photo);
+                            await uploadService.deleteModuleFirebaseStorage(module.nom_photo);
                         }
                         if(module.chemin){
-                            await uploadService.deleteFirebaseStorage(module.plan);
+                            await uploadService.deletePlansFirebaseStorage(module.plan);
                         }
                         module.deleteOne().then((module)=>{
                             res.json({
@@ -319,26 +319,28 @@
 
                     if(aclres){
 
-                         let module = await Modules.find();
-                         let stock = await Modules.find({type:'Stock'});
-                         let preparation = await Modules.find({type:'En préparation'});
-                         let pret = await Modules.find({type:'Prêt à partir'});
-                         let site = await Modules.find({type:'Site'});
+                         let module = await Modules.countDocuments();
+                         let stock = await Modules.countDocuments({type:'Stock'});
+                         let preparation = await Modules.countDocuments({type:'En préparation'});
+                         let pret = await Modules.countDocuments({type:'Prêt à partir'});
+                         let site = await Modules.countDocuments({type:'Site'});
+
+                         //console.log("count", module);
 
                          return res.status(200).json({
                             success: true,
                             data:[
-                                {y:stock.length, name:"Parc"},
-                                {y:preparation.length, name:"En préparation"},
-                                {y:pret.length, name:"Prêt à partir"},
-                                {y:site.length, name:"Site"}
+                                {y:stock, name:"Parc"},
+                                {y:preparation, name:"En préparation"},
+                                {y:pret, name:"Prêt à partir"},
+                                {y:site, name:"Site"}
                             ],
                             message:{
-                                module: module.length,
-                                stock: stock.length,
-                                preparation: preparation.length,
-                                pret: pret.length,
-                                site: site.length
+                                module: module,
+                                stock: stock,
+                                preparation: preparation,
+                                pret: pret,
+                                site: site
                             }
                         });
 
@@ -356,26 +358,26 @@
 
                     if(aclres){
 
-                         let module = await Modules.find({entreprise:req.params.id});
-                         let stock = await Modules.find({type:'Stock',entreprise:req.params.id});
-                         let preparation = await Modules.find({type:'En préparation',entreprise:req.params.id});
-                         let pret = await Modules.find({type:'Prêt à partir',entreprise:req.params.id});
-                         let site = await Modules.find({type:'Site',entreprise:req.params.id});
+                         let module = await Modules.countDocuments({entreprise:req.params.id});
+                         let stock = await Modules.countDocuments({type:'Stock',entreprise:req.params.id});
+                         let preparation = await Modules.countDocuments({type:'En préparation',entreprise:req.params.id});
+                         let pret = await Modules.countDocuments({type:'Prêt à partir',entreprise:req.params.id});
+                         let site = await Modules.countDocuments({type:'Site',entreprise:req.params.id});
 
                          return res.status(200).json({
                             success: true,
                             data:[
-                                {y:stock.length, name:"Parc"},
-                                {y:preparation.length, name:"En préparation"},
-                                {y:pret.length, name:"Prêt à partir"},
-                                {y:site.length, name:"Site"}
+                                {y:stock, name:"Parc"},
+                                {y:preparation, name:"En préparation"},
+                                {y:pret, name:"Prêt à partir"},
+                                {y:site, name:"Site"}
                             ],
                             message:{
-                                module: module.length,
-                                stock: stock.length,
-                                preparation: preparation.length,
-                                pret: pret.length,
-                                site: site.length
+                                module: module,
+                                stock: stock,
+                                preparation: preparation,
+                                pret: pret,
+                                site: site
                             }
                         });
 
@@ -398,8 +400,8 @@
                         try {
                             if(req.file){
                                 module.nom_photo = req.file.filename;
-                                uploadService.deleteFirebaseStorage(nameFile);
-                                module.photo = await uploadService.uploadFileToFirebaseStorage(req.file.filename);;
+                                uploadService.deleteModuleFirebaseStorage(nameFile);
+                                module.photo = await uploadService.uploadModuleToFirebaseStorage(req.file.filename);;
                             }
                          
                             Modules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
@@ -445,8 +447,8 @@
                                 let extension=on[on.length -1];
                                 module.extension=extension;
                                 module.plan=req.file.filename;
-                                uploadService.deleteFirebaseStorage(nameFile);
-                                let chemin = await uploadService.uploadFileToFirebaseStorage(req.file.filename);
+                                uploadService.deletePlansFirebaseStorage(nameFile);
+                                let chemin = await uploadService.uploadPlansToFirebaseStorage(req.file.filename);
                                 if(chemin){
                                   module.chemin = chemin;
                                 }
@@ -641,6 +643,206 @@
                 })
 
              },
+
+             // All module by Type
+
+             getAllModuleStock:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"Stock"}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+             getAllModulePr:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"En préparation"}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+             getAllModulePp:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"Prêt à partir"}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+             getAllModuleSite:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"Site"}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+
+             // All module by Type and by Entreprise
+
+             getAllModuleByEntrepriseStock:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"Stock",entreprise:req.params.id}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+             getAllModuleByEntreprisePr:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"En préparation",entreprise:req.params.id}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+             getAllModuleByEntreprisePp:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"Prêt à partir",entreprise:req.params.id}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+             getAllModuleByEntrepriseSite:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        Modules.find({type:"Site",entreprise:req.params.id}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
 
 
         }
