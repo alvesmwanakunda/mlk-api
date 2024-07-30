@@ -5,9 +5,10 @@
 
         app.route('/timesheet')
            .get(Ctrl.getAllTimeSheet)
-           .post(Ctrl.addTimeSheet)
+           //.post(Ctrl.addTimeSheet)
 
         app.route('/timesheet/:id([a-fA-F\\d]{24})')
+           .post(Ctrl.addTimeSheet)
            .put(Ctrl.updsteTimeSheet)
            .delete(Ctrl.deleteTimeSheet)
            .get(Ctrl.getTimeSheet)

@@ -13,6 +13,7 @@
             acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                 if(aclres){
                     var timeSheet = new TimeSheet(req.body);
+                    timeSheet.user = req.params.id;
                     timeSheet.save().then((time)=>{
                             res.json({
                                 success:true,
