@@ -19,6 +19,9 @@
         app.route('/timesheet/user/:id([a-fA-F\\d]{24})/:month/:year')
            .get(Ctrl.getAllTimeSheetUserByDate)
 
+        app.route('/timesheet/donwload/excel/:month/:year')
+           .get(Ctrl.downloadExecelTimeSheet)
+
 
         app.route('/timesheet/agent')
            .get(Ctrl.getAllTimeSheetByAgent)

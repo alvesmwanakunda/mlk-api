@@ -305,6 +305,93 @@
                     });
                 }
             })
+        },
+        // download excel
+
+        downloadExecelTimeSheet(req,res){
+             
+            acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
+
+                if(aclres){
+                    try {
+                        const year = parseInt(req.params.year);
+                        const month = parseInt(req.params.month);
+
+                        /*const timesheets = await TimeSheet.find({
+                            createdAt: {
+                              $gte: new Date(year, month - 1, 1),
+                              $lt: new Date(year, month, 0)
+                            }
+                          }).populate('user');*/
+
+                          const timesheets = await TimeSheet.aggregate([
+                            // Filtrer par date
+                            {
+                              $match: {
+                                createdAt: {
+                                    $gte: new Date(year, month - 1, 1),
+                                    $lt: new Date(year, month, 0)
+                                }
+                              }
+                            },
+                            // Regrouper par utilisateur
+                            {
+                              $group: {
+                                _id: "$user",
+                                timesheets: {
+                                  $push: {
+                                    _id: "$_id",
+                                    createdAt: "$createdAt",
+                                    tache: "$tache",
+                                    heure: "$heure",
+                                    deplacement: "$deplacement",
+                                    projet: "$projet",
+                                  }
+                                }
+                              }
+                            },
+                            // Rejoindre avec la collection des utilisateurs
+                            {
+                              $lookup: {
+                                from: "users", // Le nom de la collection des utilisateurs
+                                localField: "_id",
+                                foreignField: "_id",
+                                as: "user"
+                              }
+                            },
+                            // Dénormaliser le tableau d'utilisateurs
+                            {
+                              $unwind: "$user"
+                            },
+                            // Formater la réponse
+                            {
+                              $project: {
+                                user: "$user",
+                                timesheets: 1
+                              }
+                            }
+                          ]);
+
+                          
+                       
+                        res.json({
+                            success: true,
+                            message:timesheets
+                        });  
+                    } catch (error) {
+                        return res.status(500).json({
+                            success:false,
+                            message:error.message
+                        })
+                    }
+
+                }else{
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+            })
         }
 
     }
