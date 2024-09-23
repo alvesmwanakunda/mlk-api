@@ -33,6 +33,18 @@
         type:String,
         required: false
     },
+    motifs:{
+        type:String,
+        required: false,
+    },
+    types_deplacement:{
+        type:String,
+        required: false
+    },
+    presence:{
+        type:String,
+        required: false
+    }
    });
    module.exports = {
     timeSheetSchema: timeSheetSchema,

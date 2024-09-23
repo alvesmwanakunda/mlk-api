@@ -336,16 +336,25 @@
                             },
                             // Regrouper par utilisateur
                             {
+                                $addFields: {
+                                    dayOfWeek: { $dayOfWeek: "$createdAt" } // Renvoie un nombre de 1 (dimanche) à 7 (samedi)
+                                }
+                            },
+                            {
                               $group: {
                                 _id: "$user",
                                 timesheets: {
                                   $push: {
                                     _id: "$_id",
                                     createdAt: "$createdAt",
+                                    dayOfWeek: "$dayOfWeek", // Ajouter le jour de la semaine
                                     tache: "$tache",
                                     heure: "$heure",
                                     deplacement: "$deplacement",
                                     projet: "$projet",
+                                    motifs: "$motifs",
+                                    presence:"$presence",
+                                    types_deplacement:"$types_deplacement"
                                   }
                                 }
                               }
@@ -372,7 +381,12 @@
                             }
                           ]);
 
-                          
+                        const daysOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                            timesheets.forEach(userGroup => {
+                            userGroup.timesheets.forEach(ts => {
+                                ts.dayOfWeek = daysOfWeek[ts.dayOfWeek - 1]; // Convertir le numéro du jour en nom du jour
+                            });
+                        });
                        
                         res.json({
                             success: true,

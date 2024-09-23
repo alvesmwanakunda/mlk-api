@@ -81,7 +81,7 @@
         },
         nom_fichier: {
             type: String,
-            required: true
+            required: false
         },
 
     });
