@@ -317,28 +317,24 @@
                         const year = parseInt(req.params.year);
                         const month = parseInt(req.params.month);
 
-                        /*const timesheets = await TimeSheet.find({
-                            createdAt: {
-                              $gte: new Date(year, month - 1, 1),
-                              $lt: new Date(year, month, 0)
-                            }
-                          }).populate('user');*/
-
-                          const timesheets = await TimeSheet.aggregate([
+                       
+                        const timesheets = await TimeSheet.aggregate([
                             // Filtrer par date
                             {
                               $match: {
                                 createdAt: {
-                                    $gte: new Date(year, month - 1, 1),
-                                    $lt: new Date(year, month, 0)
+                                  $gte: new Date(year, month - 1, 1),
+                                  $lt: new Date(year, month, 0)
                                 }
                               }
                             },
-                            // Regrouper par utilisateur
+                            // Ajouter le jour de la semaine
                             {
-                                $addFields: {
-                                    dayOfWeek: { $dayOfWeek: "$createdAt" } // Renvoie un nombre de 1 (dimanche) à 7 (samedi)
+                              $addFields: {
+                                dayOfWeek: { 
+                                  $subtract: [{ $dayOfWeek: "$createdAt" }, 1] // Ajustement: 1 (dimanche) devient 0 et ainsi de suite
                                 }
+                              }
                             },
                             {
                               $group: {
@@ -347,14 +343,14 @@
                                   $push: {
                                     _id: "$_id",
                                     createdAt: "$createdAt",
-                                    dayOfWeek: "$dayOfWeek", // Ajouter le jour de la semaine
+                                    dayOfWeek: "$dayOfWeek", // Ajouter le jour de la semaine ajusté
                                     tache: "$tache",
                                     heure: "$heure",
                                     deplacement: "$deplacement",
                                     projet: "$projet",
                                     motifs: "$motifs",
-                                    presence:"$presence",
-                                    types_deplacement:"$types_deplacement"
+                                    presence: "$presence",
+                                    types_deplacement: "$types_deplacement"
                                   }
                                 }
                               }
@@ -380,13 +376,16 @@
                               }
                             }
                           ]);
-
-                        const daysOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-                            timesheets.forEach(userGroup => {
+                          
+                          // Transformer le jour de la semaine en nom du jour
+                          const daysOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                          
+                          timesheets.forEach(userGroup => {
                             userGroup.timesheets.forEach(ts => {
-                                ts.dayOfWeek = daysOfWeek[ts.dayOfWeek - 1]; // Convertir le numéro du jour en nom du jour
+                              ts.dayOfWeek = daysOfWeek[ts.dayOfWeek]; // On peut maintenant utiliser directement dayOfWeek ajusté
                             });
-                        });
+                          });
+                          
                        
                         res.json({
                             success: true,
