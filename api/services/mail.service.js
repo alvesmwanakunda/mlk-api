@@ -126,7 +126,7 @@ module.exports={
                     subject: 'Demande de congé',
                     html:'Cher(e) Malick'+'<br/><br/>'+ 
                     '<p>Vous avez reçu une demande de congé de '+user.nom+' '+user.prenom+'.<p/>'+
-                    '<p>Veuillez vous connecter dans l\'application MLKA pour valider la demande.</p>'+
+                    '<p>Veuillez vous connecter dans l\'application MLKA pour valider la demande. <span><a href="https://mlka.app/login">Cliquez ici</a></span></p>'+
                     '<p>Merci.</p>'+
                     '<p>Cordialement.</p>',
                 };

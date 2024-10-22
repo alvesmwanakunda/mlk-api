@@ -14,6 +14,7 @@
                 if(aclres){
                     var timeSheet = new TimeSheet(req.body);
                     timeSheet.user = req.params.id;
+                    timeSheet.responsable = req.decoded.id;
                     timeSheet.save().then((time)=>{
                             res.json({
                                 success:true,
@@ -208,7 +209,7 @@
                               $gte: new Date(year, month - 1, 1),
                               $lt: new Date(year, month, 1)
                             }
-                          }).sort({ createdAt: 1 });
+                          }).sort({ createdAt: 1 }).populate('responsable');
                        
                         res.json({
                             success: true,
@@ -324,7 +325,7 @@
                               $match: {
                                 createdAt: {
                                   $gte: new Date(year, month - 1, 1),
-                                  $lt: new Date(year, month, 0)
+                                  $lt: new Date(year, month, 1)
                                 }
                               }
                             },
@@ -372,10 +373,12 @@
                             {
                               $project: {
                                 user: "$user",
-                                timesheets: 1
+                                timesheets:{
+                                    $sortArray:{input:"$timesheets", sortBy:{createdAt:1}}
+                                } 
                               }
                             }
-                          ]);
+                        ]);
                           
                           // Transformer le jour de la semaine en nom du jour
                           const daysOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];

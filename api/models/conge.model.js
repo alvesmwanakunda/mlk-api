@@ -32,6 +32,12 @@
             required:false
         },
 
+        responsable:{
+            type:Schema.ObjectId,
+            ref:"Users",
+            required:false
+        },
+
         types:{
             type:String,
             required: false

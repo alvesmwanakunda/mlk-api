@@ -9,6 +9,11 @@
         ref:"Users",
         required:false
     },
+    responsable:{
+        type:Schema.ObjectId,
+        ref:"Users",
+        required:false
+    },
     createdAt : {
         type: Date,
         require: true,

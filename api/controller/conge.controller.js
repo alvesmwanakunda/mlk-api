@@ -172,7 +172,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Conge.findOne({_id:req.params.id}).populate('user').then((conge)=>{
+                        Conge.findOne({_id:req.params.id}).populate('user').populate('responsable').then((conge)=>{
                             res.json({
                                 success: true,
                                 message:conge
@@ -196,7 +196,7 @@
             valideConge(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'update', async function(err,aclres){
                     if(aclres){
-                        Conge.findOneAndUpdate({_id:req.params.id},{status:"Validé",date_signature:new Date()},{new:true}).then((conge)=>{
+                        Conge.findOneAndUpdate({_id:req.params.id},{status:"Validé",date_signature:new Date(),responsable:req.decoded.id},{new:true}).then((conge)=>{
                             res.json({
                                 success:true,
                                 message:conge
@@ -221,7 +221,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'update', async function(err,aclres){
                     if(aclres){
                     
-                        Conge.findOneAndUpdate({_id:req.params.id},{status:"Refusée",date_signature:new Date()},{new:true}).then((conge)=>{
+                        Conge.findOneAndUpdate({_id:req.params.id},{status:"Refusée",date_signature:new Date(),responsable:req.decoded.id},{new:true}).then((conge)=>{
                             res.json({
                                 success:true,
                                 message:conge
