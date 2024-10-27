@@ -147,7 +147,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Conge.find().populate('user').then((conge)=>{
+                        Conge.find().sort({date_demande: -1}).populate('user').then((conge)=>{
                             res.json({
                                 success: true,
                                 message:conge
