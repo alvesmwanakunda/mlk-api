@@ -20,11 +20,11 @@
     },
     tache : {
         type: String,
-        require: true,
+        require: false,
     },
     heure:{
         type:Number,
-        require:true
+        require:false
     },
     status:{
         type:String,
@@ -49,7 +49,21 @@
     presence:{
         type:String,
         required: false
-    }
+    },
+    heureDebut: {
+        type: String,
+        required: false,
+        match: /^([01]\d|2[0-3]):([0-5]\d)$/  // Validation pour le format HH:mm
+      },
+      heureFin: {
+        type: String,
+        required: false,
+        match: /^([01]\d|2[0-3]):([0-5]\d)$/  // Validation pour le format HH:mm
+      },
+      localisation:{
+        type:String,
+        required: false
+      },
    });
    module.exports = {
     timeSheetSchema: timeSheetSchema,

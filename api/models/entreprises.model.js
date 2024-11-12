@@ -41,6 +41,10 @@
         type:String,
         required: false
     },
+    numero_fournisseur:{
+        type:String,
+        required: false
+    },
     /*adresse:{
         type:String,
         required: false

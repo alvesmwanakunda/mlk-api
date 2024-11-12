@@ -43,6 +43,9 @@
            .get(Ctrl.getEmploye)
            .put(Ctrl.updateEmploye);
 
+      app.route('/update/idphone')
+           .put(Ctrl.updateIdPhone);
+
       app.route('/active/employe/:id([a-fA-F\\d]{24})')
            .get(Ctrl.activeEmploye)
 

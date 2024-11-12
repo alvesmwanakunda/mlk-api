@@ -24,6 +24,9 @@
         app.route('/add/entreprise')
            .post(Ctrl.newAddEntreprise)
 
+       app.route('/add/entreprise/fournisseur')
+           .post(Ctrl.addFournisseurEntreprise)
+
         app.post('/entreprise',upload.single("uploadfile"),Ctrl.addEntreprise)
 
         app.put('/entreprise/file/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateEntrepriseFile)

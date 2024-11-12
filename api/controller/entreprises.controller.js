@@ -78,6 +78,52 @@
 
             },
 
+            addFournisseurEntreprise(req,res,next){
+              
+                    var entreprise = new Entreprise();
+                    entreprise.societe = req.body.name;
+                    entreprise.email = req.body.email;
+                    entreprise.postal= req.body.zip;
+                    entreprise.rue= req.body.street;
+                    entreprise.numero= req.body.city;
+                    entreprise.adresse= req.body.adresse;
+                    entreprise.indicatif = req.body.indicatif;
+                    entreprise.telephone =  req.body.phone;
+                    entreprise.type_entreprise = req.body.x_type_entreprise;
+                    entreprise.source = req.body.x_source;
+                    entreprise.categorie_societe = req.body.x_categorie_societe;
+                    entreprise.company_id = req.body.id;
+                    entreprise.numero_fournisseur = req.body.numero_fournisseur
+
+                    console.log("Body", req.body)
+
+                   /* let payloadOdoo={
+                        'name': req.body.societe,
+                        'company_type':req.body.company, // Type de l'entreprise
+                        'is_company': true, // Indique qu'il s'agit d'une entreprise
+                        'street': req.body.rue,
+                        'city': req.body.numero,
+                        'zip': req.body.postal,
+                        'country_id': false, // ID du pays (peut être défini si nécessaire)
+                        'phone': req.body.indicatif+""+numero,
+                        'email': req.body.email,
+                        'x_type_entreprise': req.body.type_entreprise,
+                        'x_source': req.body.source,
+                        'x_categorie_societe': req.body.categorie_societe
+                    }*/
+                    entreprise.save().then((entreprise)=>{
+                        //odooService.addCompany(payloadOdoo,entreprise);
+                        res.json({
+                            success:true,
+                            entreprise: entreprise
+                        });
+                    }).catch((error)=>{
+                        return res.status(500).json({
+                            success:false,
+                            message: error.message
+                        })
+                    })
+            },
 
             // odoo contact
             /*searchEntrepreseId:async function(req,res){
@@ -86,7 +132,6 @@
                 odooService.getCompany();
             },*/
 
-        
             searchEntreprese:async function(req,res){
 
                 try {

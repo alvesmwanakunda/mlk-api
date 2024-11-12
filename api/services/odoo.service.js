@@ -1,5 +1,5 @@
 const xmlrpc = require('xmlrpc');
-const odooUrl = process.env.odooHost || "https://mlka-groupe.odoo.com/";
+const odooUrl = process.env.odooHost || "https://mlka-hld.odoo.com/";
 const odooDb = process.env.odooDb || "mlka-groupe";
 const odooUsername = process.env.odooUsername || "support@mlka.fr";
 const odooPassword = process.env.odooPassword || "alvesMwanza1504";
@@ -25,6 +25,7 @@ async function addCompany(payload,entreprise){
 
     odooClient.methodCall('authenticate', [odooDb, odooUsername, odooPassword, {}], (error, uid) => {
         console.log("Auth", uid);
+        
         if (error) {
             console.error('Erreur d\'authentification:', error);
         } else {

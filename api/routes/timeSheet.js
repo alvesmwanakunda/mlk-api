@@ -22,6 +22,9 @@
         app.route('/timesheet/donwload/excel/:month/:year')
            .get(Ctrl.downloadExecelTimeSheet)
 
+        app.route('/timesheet/phone/:idPhone')
+           .post(Ctrl.addTimeSheetMobile)
+
 
         app.route('/timesheet/agent')
            .get(Ctrl.getAllTimeSheetByAgent)

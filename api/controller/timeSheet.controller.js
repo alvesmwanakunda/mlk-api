@@ -1,6 +1,7 @@
 (function(){
    "use strict";
    var TimeSheet = require('../models/timesheet.model').TimeSheetModel;
+   var User = require('../models/users.model').UserModel;
    var ObjectId = require('mongoose').Types.ObjectId;
    const monthNames = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -408,8 +409,70 @@
                     });
                 }
             })
-        }
+        },
+        // Add and Update timesheet mobile
 
+        getCurrentDateOnly() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);  // Normaliser l'heure à minuit pour garder uniquement la date
+            return today;
+        },
+
+        getCurrentTimeFormatted() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+          },
+          
+        addTimeSheetMobile(req,res){
+            acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
+                if(aclres){
+
+                    let user = await User.findOne({idPhone:req.params.idPhone});
+                    const today = getCurrentDateOnly();
+                    const heure = getCurrentTimeFormatted();
+
+                    if(user){
+
+                        let existingTime = await TimeSheet.findOne({user:user._id, createdAt:today});
+
+                        if(existingTime){
+
+                            TimeSheet.findOneAndUpdate({_id:existingTime._id},{heureFin:heure},{new:true}).then((conge)=>{
+                                res.json({
+                                    success:true,
+                                    message:conge
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+                        
+                        }else{
+                               let timeSheet = new TimeSheet({
+                                user:user._id,
+                                createdAt:today,
+                                heureDebut:heure,
+                                localisation:req.body.position
+                               });
+                               await timeSheet.save();
+                               res.json({
+                                success:true,
+                                message:timeSheet
+                            });
+                        }
+                    }
+                }else{
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    }); 
+                }
+            })
+        },
     }
    }
 })();
