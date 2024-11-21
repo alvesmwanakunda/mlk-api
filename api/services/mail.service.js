@@ -1,5 +1,6 @@
 var nodemailer = require('nodemailer');
 var ObjectId = require('mongoose').Types.ObjectId;
+var Conge = require('../models/conge.model').CongeModel;
 
 
 module.exports={
@@ -122,13 +123,74 @@ module.exports={
                 });
                 
                 let message = {
-                    to: "m.minthe@mlka.fr",
+                    to: "m.minthe@mlka.fr;s.mbaye@mlka.fr",
                     subject: 'Demande de congé',
                     html:'Cher(e) Malick'+'<br/><br/>'+ 
                     '<p>Vous avez reçu une demande de congé de '+user.nom+' '+user.prenom+'.<p/>'+
                     '<p>Veuillez vous connecter dans l\'application MLKA pour valider la demande. <span><a href="https://mlka.app/login">Cliquez ici</a></span></p>'+
                     '<p>Merci.</p>'+
                     '<p>Cordialement.</p>',
+                };
+                transporter.sendMail(message, (error, user)=>{
+                    if(error){
+                        console.log("erreur", error);
+                    }
+                    resolve(user);
+                    transporter.close();
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+    },
+
+    mailValidationconge:(idConge)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+
+                let msg="";
+                let conge = await Conge.findOne({_id:idConge}).populate('user');
+
+                if(conge?.status=='Refusée'){
+
+                    msg='Cher(e) '+conge?.user?.nom+' '+conge?.user?.prenom+'<br/><br/>'+ 
+                        '<p>Votre demande de congé est refusée suite à un motif :<b>'+conge?.motif+'</b><p/>'+
+                        '<p>Merci.</p>'+
+                        '<p>Cordialement.</p>'
+
+                }else{
+                    msg='Cher(e) '+conge?.user?.nom+' '+conge?.user?.prenom+'<br/><br/>'+ 
+                    '<p>Votre demande de congé est validée. Veuillez vous connecter sur la plateforme pour plus de détails.<p/>'+
+                    '<p>Merci.</p>'+
+                    '<p>Cordialement.</p>'
+                }
+
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+                
+                let message = {
+                    to: conge?.user?.email,
+                    subject: 'Demande de congé',
+                    html:msg,
                 };
                 transporter.sendMail(message, (error, user)=>{
                     if(error){

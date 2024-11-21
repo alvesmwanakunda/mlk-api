@@ -1,3 +1,5 @@
+const mailService = require("../services/mail.service");
+
 (function(){
 
     "use strict";
@@ -197,6 +199,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'update', async function(err,aclres){
                     if(aclres){
                         Conge.findOneAndUpdate({_id:req.params.id},{status:"Validé",date_signature:new Date(),responsable:req.decoded.id},{new:true}).then((conge)=>{
+                            EmailService.mailValidationconge(conge._id);
                             res.json({
                                 success:true,
                                 message:conge
@@ -222,6 +225,7 @@
                     if(aclres){
                     
                         Conge.findOneAndUpdate({_id:req.params.id},{status:"Refusée",date_signature:new Date(),responsable:req.decoded.id},{new:true}).then((conge)=>{
+                            EmailService.mailValidationconge(conge._id);
                             res.json({
                                 success:true,
                                 message:conge

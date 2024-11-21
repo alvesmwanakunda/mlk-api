@@ -55,12 +55,17 @@
         required: false,
         match: /^([01]\d|2[0-3]):([0-5]\d)$/  // Validation pour le format HH:mm
       },
-      heureFin: {
+    heureFin: {
         type: String,
         required: false,
         match: /^([01]\d|2[0-3]):([0-5]\d)$/  // Validation pour le format HH:mm
       },
-      localisation:{
+    pause: {
+        type: String,
+        required: false,
+        match: /^([01]\d|2[0-3]):([0-5]\d)$/  // Validation pour le format HH:mm
+      },
+    localisation:{
         type:String,
         required: false
       },

@@ -41,21 +41,21 @@
     });
 
 
-    dossierSchema.pre('deleteOne',{ document: true }, async function (next) {
+    dossierSchema.pre('deleteOne',{ document: true }, async function (next, res) {
       console.log("remove",this._id);
       try {
           await Fichier.deleteMany({ dossierParent: this._id });
-
-          mongoose.model('Dossiers', dossierSchema).find({
-            dossierParent: this._id
-          }, function (err, resp) {
-            if (resp) {
-              resp.forEach(dos => {
+          mongoose.model('Dossiers', dossierSchema).find({ dossierParent: this._id}).then((data)=>{
+            if(data){
+              data.forEach(dos => {
                 dos.remove();
               });
             }
-          });
-  
+            console.log("data",data);
+            
+          }).catch((error)=>{
+            console.log("Erreur", error.message)
+          })
           next();
       } catch (error) {
           console.log(error);
@@ -64,12 +64,14 @@
     });
   
   
-    dossierSchema.pre('update', function (next) {
+    dossierSchema.pre('update', function (next,res) {
       let Dossier = mongoose.model('Dossiers', dossierSchema);
-      Dossier.findOne({
-        _id: this._conditions._id
-      }, (error, old) => {
-        global.oldDoc = old;
+      Dossier.findOne({ _id: this._conditions._id}).then((data)=>{
+        global.oldDoc = data;
+        console.log("data", data)
+        
+      }).catch((error)=>{
+        console.log("Erreur", error.message)
       })
       next()
     })

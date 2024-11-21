@@ -410,6 +410,8 @@
                 }
             })
         },
+
+       
         // Add and Update timesheet mobile
 
         getCurrentDateOnly() {
@@ -423,40 +425,92 @@
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             return `${hours}:${minutes}`;
-          },
+        },
           
         addTimeSheetMobile(req,res){
             acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                 if(aclres){
-
-                    let user = await User.findOne({idPhone:req.params.idPhone});
-                    const today = getCurrentDateOnly();
-                    const heure = getCurrentTimeFormatted();
+                   
+                    let user = await User.findOne({_id:req.params.id});
+                    let getToday =  new Date();
+                    const today =  getToday.setHours(0, 0, 0, 0);
+                    // Heure
+                    const now = new Date(req.body.secondAt);
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    const heure = `${hours}:${minutes}`;
+                    let hPause = "13:00";
+                    let nbrHeure = 0;
+                    let nbreHeureSP = 0;
 
                     if(user){
 
-                        let existingTime = await TimeSheet.findOne({user:user._id, createdAt:today});
+                        let existingTime = await TimeSheet.findOne({user:user._id, createdAt:req.body.createdAt});
 
                         if(existingTime){
 
-                            TimeSheet.findOneAndUpdate({_id:existingTime._id},{heureFin:heure},{new:true}).then((conge)=>{
-                                res.json({
-                                    success:true,
-                                    message:conge
-                                });
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
+                            // calcul nombre d'heure
+                            const [startHours, startMinutes] = existingTime.heureDebut.split(':').map(Number);
+                            const [endHours, endMinutes] = heure.split(':').map(Number);
+                            // Calculer le total en minutes depuis minuit pour chaque heure
+                            const startTotalMinutes = startHours * 60 + startMinutes;
+                            const endTotalMinutes = endHours * 60 + endMinutes;
+                            // Calculer la différence totale en minutes
+                            let workedMinutes = endTotalMinutes - startTotalMinutes;
+                            // Soustraire 1 heure (60 minutes) pour la pause
+                            if(workedMinutes < 60){
+                                nbreHeureSP=0
+                                //console.log("Sans Pause", nbreHeureSP);
+                            }else{
+                                workedMinutes -= 60;
+                                const hoursWorked = Math.floor(workedMinutes / 60);
+                                nbrHeure = hoursWorked;
+                                //console.log("Pause", nbrHeure);
+                            }
+                            //const minutesWorked = workedMinutes % 60;
+                            if(heure > hPause){
+
+                                //console.log("Sup",heure);
+                                let body={
+                                    heureFin:heure,
+                                    pause:hPause,
+                                    heure:nbrHeure
+                                };
+                                TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
+                                    res.json({
+                                        success:true,
+                                        message:conge
+                                    });
+                                }).catch((error)=>{
+                                    return res.status(500).json({
+                                        success:false,
+                                        message:error.message
+                                    })
                                 })
-                            })
-                        
+                            }else{
+                                let body={
+                                    heureFin:heure,
+                                    heure:nbreHeureSP
+                                };
+                                TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
+                                    res.json({
+                                        success:true,
+                                        message:conge
+                                    });
+                                }).catch((error)=>{
+                                    return res.status(500).json({
+                                        success:false,
+                                        message:error.message
+                                    })
+                                })
+                            }
                         }else{
                                let timeSheet = new TimeSheet({
                                 user:user._id,
-                                createdAt:today,
+                                createdAt:req.body.createdAt,
                                 heureDebut:heure,
-                                localisation:req.body.position
+                                localisation:req.body.position,
+                                responsable:req.decoded.id
                                });
                                await timeSheet.save();
                                res.json({
@@ -473,6 +527,8 @@
                 }
             })
         },
+
+       
     }
    }
 })();
