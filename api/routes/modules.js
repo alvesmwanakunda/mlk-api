@@ -64,9 +64,12 @@
        // Affecter module a un projet
 
        app.route('/projet/module/:id([a-fA-F\\d]{24})')
-           .post(Ctrl.affectModule)
+           //.post(Ctrl.affectModule)
            .get(Ctrl.getAllModuleProjet)
            .delete(Ctrl.deleteModuleProjet)
+       
+       app.post('/projet/module/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.affectModule)
+
 
        
 

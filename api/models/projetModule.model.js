@@ -20,6 +20,18 @@
             type: Date,
             required: true
         },
+        position:{
+            type: String,
+            required:false
+        },
+        plan:{
+            type: String,
+            required:false
+        },
+        extension:{
+            type: String,
+            required:false
+        }
     });
     module.exports = {
       ProjetModulesSchema: projetmodulesSchema,

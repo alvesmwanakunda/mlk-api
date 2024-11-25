@@ -537,12 +537,19 @@
 
                     if(aclres){
 
-                      
                         let module = new ProjetModules();
                         module.dateLastUpdate=new Date();
                         module.module=req.params.id;
                         module.projet=req.body.projet;
+                        module.position=req.body.position;
 
+                        if(req.file){
+                            let on=req.file.originalname.split('.');
+                            let extension=on[on.length -1];
+                            module.extension=extension;
+                            module.plan = await uploadService.uploadProjetsModulesToFirebaseStorage(req.file.filename);
+                        }
+                        
                         module.save().then((data)=>{
 
                             res.json({
@@ -556,7 +563,6 @@
                                 message:error.message
                             });
                         });
-                       
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -598,6 +604,9 @@
                     if(aclres){
 
                         let module = await ProjetModules.findOne({_id:req.params.id});
+                        if(module.plan){
+                          await uploadService.deleteProjetsModulesFirebaseStorage(module.plan);
+                        }
                         module.deleteOne().then((module)=>{
                             res.json({
                                 success: true,
