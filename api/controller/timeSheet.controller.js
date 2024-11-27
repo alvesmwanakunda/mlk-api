@@ -458,18 +458,41 @@
                             // Calculer la différence totale en minutes
                             let workedMinutes = endTotalMinutes - startTotalMinutes;
                             // Soustraire 1 heure (60 minutes) pour la pause
-                            if(workedMinutes < 60){
-                                nbreHeureSP=0
-                                //console.log("Sans Pause", nbreHeureSP);
-                            }else{
+                            if(workedMinutes <0){
+                                console.log("Erreur: dateDebut est supérieure à dateFin");
+                            }
+
+                            if(heure > hPause){
                                 workedMinutes -= 60;
                                 const hoursWorked = Math.floor(workedMinutes / 60);
                                 nbrHeure = hoursWorked;
-                                //console.log("Pause", nbrHeure);
+                                //const minutesWorked = workedMinutes % 60;
+                            }else{
+                                if(workedMinutes < 60){
+                                    nbrHeure=0
+                                }else{
+                                    const hoursWorked = Math.floor(workedMinutes / 60);
+                                    nbrHeure = hoursWorked;
+                                }
                             }
-                            //const minutesWorked = workedMinutes % 60;
-                            if(heure > hPause){
+                            let body={
+                                heureFin:heure,
+                                pause:hPause,
+                                heure:nbrHeure
+                            };
+                            TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
+                                res.json({
+                                    success:true,
+                                    message:conge
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
 
+                            /*if(heure > hPause){
                                 //console.log("Sup",heure);
                                 let body={
                                     heureFin:heure,
@@ -503,7 +526,7 @@
                                         message:error.message
                                     })
                                 })
-                            }
+                            }*/
                         }else{
                                let timeSheet = new TimeSheet({
                                 user:user._id,
