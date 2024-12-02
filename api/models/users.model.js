@@ -57,6 +57,14 @@
             type:String,
             required:false
          },
+         type_contrat:{
+            type:String,
+            required:false
+         },
+         heure:{
+            type:Number,
+            required:false
+         }
     });
 
     module.exports = {

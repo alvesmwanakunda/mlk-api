@@ -474,6 +474,8 @@
                             user.email = req.body.email;
                             user.nom = req.body.nom;
                             user.prenom = req.body.prenom;
+                            user.type_contrat = req.body.type_contrat;
+                            user.heure = req.body.heure;
                             user.role = "agent";
                             user.valid = true;
                             var query = {email:req.body.email};

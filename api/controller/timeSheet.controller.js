@@ -353,8 +353,8 @@
                                     motifs: "$motifs",
                                     presence: "$presence",
                                     types_deplacement: "$types_deplacement"
-                                  }
-                                }
+                                  },
+                                },
                               }
                             },
                             // Rejoindre avec la collection des utilisateurs
