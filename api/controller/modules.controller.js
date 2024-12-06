@@ -9,6 +9,8 @@ const { ModulesDescriptionModel } = require("../models/moduleDescription.model")
     var Projet = require("../models/projets.model").ProjetModel;
     var uploadService = require('../services/upload.service');
     var qrcodeService = require('../services/qrCode.service');
+    var moduleService = require('../services/modules.service');
+
     const bucket = require("../../firebase-config");
     var codes = require('voucher-code-generator');
     var fs = require("fs");
@@ -577,6 +579,47 @@ const { ModulesDescriptionModel } = require("../models/moduleDescription.model")
 
              },
 
+             updatePositionModule:function(req,res){
+
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                     if(aclres){
+                          let projetM=null;
+                          let module = await Modules.findOne({_id:req.params.id});
+                          console.log("module", module);
+
+                          if(module){
+                            let projetModule = await ProjetModules.find({module:module._id}).sort({_id:-1}).limit(1);
+                            projetM = projetModule[0];
+                            console.log("Projet Module", projetM);
+
+                            ProjetModules.findByIdAndUpdate({_id:projetM._id},req.body, { new: true }).then((module) => {
+                                res.json({
+                                  success: true,
+                                  message: module
+                                });
+                            }).catch((error) => {
+                                            console.error(error);
+                                            return res.status(500).json({
+                                            success: false,
+                                            message: error.message
+                                            });
+                            });
+                            
+                          }else{
+                            return res.status(500).json({
+                                success: false,
+                                message: error.message
+                                });
+                          }
+                         
+                     }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+             },
              getAllModuleProjet:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -970,7 +1013,6 @@ const { ModulesDescriptionModel } = require("../models/moduleDescription.model")
              },
 
              // Fiche Technique
-
              createFiche:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -1080,6 +1122,147 @@ const { ModulesDescriptionModel } = require("../models/moduleDescription.model")
                 })
 
              },
+             // Creation module et Affectation sur le interface projet 
+
+             getAllModuleNotSite:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                    if(aclres){
+                        Modules.find({type:{ $ne: 'Site' }}).then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module,
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+             },
+
+             addModuleProjet:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                    if(aclres){
+                        Modules.findByIdAndUpdate({_id:req.params.id},{type:"Site"},{ new: true }).then((module) => {
+                            moduleService.addModuleProjet(req.params.id,req.params.projet);
+                            res.json({
+                                success: true,
+                                message: module
+                            });
+                        }).catch((error) => {
+                                      console.error(error);
+                                      return res.status(500).json({
+                                        success: false,
+                                        message: error.message
+                                      });
+                        });
+                        
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+             },
+
+             createModuleAffecteProjet:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        var code = codes.generate({
+                            length: 12,
+                            count: 1,
+                            charset: "0123456789"
+                        });
+                        code = code[0];
+                        let numero=0;
+                        let totalDigits = 4;
+                        let leadingZeros;
+
+                        //const lastRecord = await Modules.findOne({sort:{'dateLastUpdate': -1}});
+                        const count = await Modules.countDocuments();
+                        if(count){
+                           numero=Math.floor(Math.log10(count)) + 1;
+                           leadingZeros =  totalDigits - numero;
+                        }
+                        let module = new Modules();
+
+                        module.dateLastUpdate=new Date();
+                        module.type='Site';
+                        module.nom=req.body.nom;
+                        module.categorie=req.body.categorie;
+                        module.position=req.body.position;
+                        module.hauteur=req.body.hauteur;
+                        module.largeur=req.body.largeur;
+                        module.longueur=req.body.longueur;
+                        module.marque=req.body.marque;
+                        module.dateFabrication=req.body.dateFabrication;
+                        module.entreprise= req.body.entreprise;
+                        module.module_type = req.body.module_type;
+                        module.qrcode=code;
+                        if(req.body.marque){
+                            module.numero_serie = req.body.marque.substring(0, 3).toUpperCase()+"0".repeat(leadingZeros)+count;
+                        }else{
+                            module.numero_serie = "FAB"+"0".repeat(leadingZeros)+count
+                        }
+                        
+                        try {
+                            if(req.files.imageFile){
+                                module.nom_photo=req.files.imageFile[0].filename;
+                                module.photo = await uploadService.uploadModuleToFirebaseStorage(req.files.imageFile[0].filename);
+                            }
+                            if(req.files.planFile){
+                                let on=req.files.planFile[0].originalname.split('.');
+                                let extension=on[on.length -1];
+                                module.extension=extension;
+                                module.plan=req.files.planFile[0].filename;
+                                let chemin = await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);
+                                if(chemin){
+                                  module.chemin = chemin;
+                                }
+                            }
+                            module.save().then((data)=>{
+                                moduleService.addModuleProjet(data?._id,req.params.id);
+                                res.json({
+                                    success: true,
+                                    message: data
+                                  });
+                              
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                });
+                            });
+
+                            
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error
+                            })
+                        }
+
+                        
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
 
 
         }

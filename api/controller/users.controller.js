@@ -464,6 +464,65 @@
                 });
             },
 
+            addTransporteur(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+                            let password="mlka@2024";
+                            var user = new User();
+                            user.email = req.body.email;
+                            user.nom = req.body.nom;
+                            user.prenom = req.body.prenom;
+                            user.role = "transporteur";
+                            user.valid = true;
+                            var query = {email:req.body.email};
+
+                            User.findOne(query).then((result)=>{
+                                if(result){
+                                    return res.json({
+                                        success:false,
+                                        message: "already exists"
+                                    })
+                                } 
+                                User.deleteOne(query)
+                                .then((result) => {
+                                    user.password = crypto.createHash('md5').update(password).digest("hex");
+                                    user.save().then((result)=>{
+                                        //mailService.signup(result, password);
+                                        res.json({
+                                            success:true,
+                                            user:result
+                                        });
+                                        
+                                    }).catch((error)=>{
+                                        return res.status(500).json({
+                                            success:false,
+                                            message: error.message
+                                        });
+                                    })
+                                })
+                                .catch((error) => {
+                                    return res.status(500).json({
+                                        success:false,
+                                        message: error.message
+                                    });
+                                });
+            
+                            }).catch((error)=>{
+                                
+                                return res.status(500).json({
+                                    success:false,
+                                    message: error.message
+                                });
+                            })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
             addEmploye(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
@@ -606,6 +665,29 @@
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
                         User.find({role:"agent"}).then((contact)=>{
+                            res.json({
+                                success:true,
+                                message:contact
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })   
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
+            allTransporteur(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+                        User.find({role:"transporteur"}).then((contact)=>{
                             res.json({
                                 success:true,
                                 message:contact

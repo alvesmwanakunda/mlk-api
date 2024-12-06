@@ -33,7 +33,9 @@
                             devis.dateLastUpdate=new Date();
                             devis.numero=generatedCode+""+code; 
                             devis.entreprise=req.body.entreprise;  
-                            devis.total = req.body.total;                      
+                            devis.total = req.body.total;  
+                            devis.isPrestation = req.body.isPrestation; 
+                                              
                             if(req.body.projet){
                                 devis.projet=req.body.projet;
                             }
@@ -77,6 +79,7 @@
                             let devis = await Devis.findOne({_id:req.params.id});
                             devis.dateLastUpdate=new Date();
                             devis.total=req.body.total;
+
 
                             const newDevis = await Devis.findByIdAndUpdate({_id:req.params.id},devis, { new: true });
 

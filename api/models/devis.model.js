@@ -37,7 +37,12 @@
         signature:{
           type:String,
           required:false
-        }
+        },
+        isPrestation:{
+          type:Boolean,
+          default:false,
+          required:false
+        },
     });
     devisSchema.pre('remove', async function (next) {
         try {

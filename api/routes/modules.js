@@ -67,6 +67,7 @@
            //.post(Ctrl.affectModule)
            .get(Ctrl.getAllModuleProjet)
            .delete(Ctrl.deleteModuleProjet)
+           .put(Ctrl.updatePositionModule)
        
        app.post('/projet/module/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.affectModule)
 
@@ -83,6 +84,19 @@
 
        app.route('/module/fiche/:id([a-fA-F\\d]{24})')
           .put(Ctrl.updateFiche)
+
+      // Projet affectation direct
+
+      app.post('/affecte/module/:id([a-fA-F\\d]{24})',upload.fields([{name:'imageFile'},{name:'planFile'}]),Ctrl.createModuleAffecteProjet)
+
+      app.route('/modules/notsite/')
+          .get(Ctrl.getAllModuleNotSite)
+
+      app.route('/modules/notsite/:id([a-fA-F\\d]{24})/:projet([a-fA-F\\d]{24})')
+          .get(Ctrl.addModuleProjet)
+
+
+
 
 
        
