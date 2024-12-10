@@ -3,6 +3,9 @@
 
     var mongoose = require('mongoose');
     var Schema = mongoose.Schema;
+    var ProjetModule = require('../models/projetModule.model').ProjetModulesModel;
+    var ModuleDescription = require('../models/moduleDescription.model').ModulesDescriptionModel;
+
 
     var modulesSchema = new Schema({
 
@@ -89,6 +92,19 @@
         dateFabrication:{
            type:Date, 
            required:true  
+        }
+    });
+
+    modulesSchema.pre('deleteOne',{ document: true }, async function (next) {
+        console.log("remove",this._id);
+        try {
+            // Supprimer les devis associés
+            await ProjetModule.deleteMany({module: this._id});
+            await ModuleDescription.deleteOne({module:this._id});
+            next();
+        } catch (error) {
+            console.log(error);
+            next(error);
         }
     });
     module.exports = {

@@ -6,6 +6,7 @@
     var Devis = require('../models/devis.model').DevisModel;
     var Fichier = require('../models/fichiers.model').FichierModel;
     var Dossier = require('../models/dossiers.model').DossierModel;
+    var ProjetModule = require('../models/projetModule.model').ProjetModulesModel;
  
     var projetSchema = new Schema({
  
@@ -126,6 +127,8 @@
     
             // Supprimer les dossiers associés
             await Dossier.deleteMany({ project: this._id });
+
+            await ProjetModule.deleteMany({projet: this._id});
     
             next();
         } catch (error) {
