@@ -13,5 +13,8 @@
            .get(Ctrl.getAgenda)
            .delete(Ctrl.deleteAgenda)
            .put(Ctrl.updateAgenda)
+
+        app.route('/agenda/web/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.getAgendaWeb)
     }
 })();

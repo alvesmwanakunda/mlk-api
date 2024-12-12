@@ -13,6 +13,14 @@
             type:Date,
             required: false
         },
+        heure_start:{
+            type:String,
+            required: false
+        },
+        heure_end:{
+            type:String,
+            required: false
+        },
         end:{
             type:Date,
             required: false
@@ -27,6 +35,11 @@
             ref:"Users",
             required:false
         },
+        isDay:{
+            type:Boolean,
+            default:false,
+            required:false
+        }
     });
     module.exports = {
         agendaSchema: agendaSchema,
