@@ -52,10 +52,10 @@
                     if(aclres){
                         let agenda = await Agenda.findOne({_id:req.params.id});
 
-                        if(req.body.isDay==false){
+                        if(req.body.isDay==false || req.body.isDay=="false"){
                             agenda.end=req.body.start;
                         }
-                        if(req.body.isDay==true){
+                        if(req.body.isDay==true || req.body.isDay=="true"){
                             agenda.end=req.body.end;
                         }
                         agenda.user = req.decoded.id;
