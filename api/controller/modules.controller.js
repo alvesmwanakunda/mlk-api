@@ -1,10 +1,7 @@
-const { ModulesDescriptionModel } = require("../models/moduleDescription.model");
-
 (function(){
     'use strict';
     var Modules = require("../models/modules.model").ModulesModel;
     var ProjetModules = require("../models/projetModule.model").ProjetModulesModel;
-    var ModuleDescription = require("../models/moduleDescription.model").ModulesDescriptionModel;
     var FicheTechniques = require('../models/ficheTechnique.model').FicheTechniqueModel;
     var Projet = require("../models/projets.model").ProjetModel;
     var uploadService = require('../services/upload.service');
@@ -899,128 +896,15 @@ const { ModulesDescriptionModel } = require("../models/moduleDescription.model")
 
              },
 
-             // Description modules
-
-
-             createDescription:function(req,res){
-                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
-
-                    if(aclres){
-
-                        let module = new ModuleDescription();
-                        module.description=req.body.description;
-                        module.module=req.params.id;
-                        try {
-                            module.save().then((data)=>{
-
-                                res.json({
-                                    success: true,
-                                    message: data
-                                  });
-                              
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                });
-                            });
-
-                            
-                        } catch (error) {
-                            return res.status(500).json({
-                                success:false,
-                                message:error
-                            })
-                        }
-
-                        
-
-                    }else{
-                        return res.status(401).json({
-                            success: false,
-                            message: "401"
-                        });  
-                    }
-                })
-
-             },
-
-             updateDescription:function(req,res){
-                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
-
-                    if(aclres){
-
-                        let module = await ModuleDescription.findOne({_id:req.params.id});
-                        module.description=req.body.description;
-
-                        try {
-                            ModuleDescription.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
-                                res.json({
-                                    success: true,
-                                    message: module
-                                });
-                            }).catch((error) => {
-                                          console.error(error);
-                                          return res.status(500).json({
-                                            success: false,
-                                            message: error.message
-                                          });
-                            });
-
-                        
-                           
-                        } catch (error) {
-                            return res.status(500).json({
-                                success:false,
-                                message:error
-                            })
-                        }
-
-                        
-
-                    }else{
-                        return res.status(401).json({
-                            success: false,
-                            message: "401"
-                        });  
-                    }
-                })
-
-             },
-
-             getModuleDescription:function(req,res){
-                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
-                    if(aclres){
-                        ModuleDescription.findOne({module:req.params.id}).then((module)=>{
-                            res.json({
-                                success: true,
-                                message:module,
-                            });
-                        }).catch((error)=>{
-                            return res.status(500).json({
-                                success:false,
-                                message:error.message
-                            })
-                        })
-                    }else{
-                        return res.status(401).json({
-                            success: false,
-                            message: "401"
-                        });  
-                    }
-                })
-
-             },
-
              // Fiche Technique
              createFiche:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
 
-                        let fiche = new FicheTechniques();
-                        fiche.description=req.body.description;
+                        let fiche = new FicheTechniques(req.body);
                         fiche.createdAt=new Date();
+                        fiche.module=req.params.id;
                         try {
                             fiche.save().then((data)=>{
 
@@ -1062,10 +946,9 @@ const { ModulesDescriptionModel } = require("../models/moduleDescription.model")
                     if(aclres){
 
                         let fiche = await FicheTechniques.findOne({_id:req.params.id});
-                        fiche.description=req.body.description;
 
                         try {
-                            FicheTechniques.findByIdAndUpdate({_id:req.params.id},fiche, { new: true }).then((module) => {
+                            FicheTechniques.findByIdAndUpdate({_id:fiche._id},req.body, { new: true }).then((module) => {
                                 res.json({
                                     success: true,
                                     message: module
@@ -1099,13 +982,40 @@ const { ModulesDescriptionModel } = require("../models/moduleDescription.model")
 
              },
 
-             getFiche:function(req,res){
+             getFicheByModule:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
                     if(aclres){
-                        FicheTechniques.find().then((module)=>{
+                        FicheTechniques.findOne({module:req.params.id}).then((module)=>{
                             res.json({
                                 success: true,
                                 message:module,
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
+             deleteFicheModule:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                        let module = await FicheTechniques.findOne({_id:req.params.id});
+                        module.deleteOne().then((module)=>{
+                            res.json({
+                                success: true,
+                                message:module
                             });
                         }).catch((error)=>{
                             return res.status(500).json({

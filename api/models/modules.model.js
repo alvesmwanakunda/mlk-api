@@ -4,7 +4,7 @@
     var mongoose = require('mongoose');
     var Schema = mongoose.Schema;
     var ProjetModule = require('../models/projetModule.model').ProjetModulesModel;
-    var ModuleDescription = require('../models/moduleDescription.model').ModulesDescriptionModel;
+    var FicheTechnique = require('../models/ficheTechnique.model').FicheTechniqueModel;
 
 
     var modulesSchema = new Schema({
@@ -100,7 +100,7 @@
         try {
             // Supprimer les devis associés
             await ProjetModule.deleteMany({module: this._id});
-            await ModuleDescription.deleteOne({module:this._id});
+            await FicheTechnique.deleteOne({module:this._id});
             next();
         } catch (error) {
             console.log(error);

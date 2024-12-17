@@ -73,17 +73,11 @@
 
        // Fiche technique et description module
 
-       app.route('/module/description/:id([a-fA-F\\d]{24})')
-           .post(Ctrl.createDescription)
-           .put(Ctrl.updateDescription)
-           .get(Ctrl.getModuleDescription)
-
-       app.route('/module/fiche')
-          .post(Ctrl.createFiche)
-          .get(Ctrl.getFiche)
-
        app.route('/module/fiche/:id([a-fA-F\\d]{24})')
+          .post(Ctrl.createFiche)
           .put(Ctrl.updateFiche)
+          .delete(Ctrl.deleteFicheModule)
+          .get(Ctrl.getFicheByModule)
 
       // Projet affectation direct
 
