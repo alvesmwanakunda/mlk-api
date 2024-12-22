@@ -1,6 +1,7 @@
 (function(){
     "use strict";
     var Agenda = require("../models/agenda.model").AgendaModel;
+    var AgendaProjet = require("../models/agendaProjet.model").AgendaProjetModel;
 
     module.exports = function(acl){
         return {
@@ -119,7 +120,41 @@
 
                     if(aclres){
 
-                        Agenda.find({user:req.decoded.id}).then((agenda)=>{
+                        let agenda = await Agenda.find({user:req.decoded.id});
+                        let agendaP = await AgendaProjet.find();
+                        let agendas = agenda.map((data)=>({
+                            _id:data?._id,
+                            title:data?.title,
+                            start: data?.start.toISOString().split('T')[0]+"T"+data?.heure_start,
+                            end: data?.end.toISOString().split('T')[0]+"T"+data?.heure_end,
+                            heure_start: data?.heure_start,
+                            heure_end:data?.heure_end,
+                            color:data?.color,
+                            isDay:data?.isDay,
+                            user:data?.user,
+                            type:"agenda"
+                        }));
+                        let agendasp = agendaP.map((data)=>({
+                            _id:data?._id,
+                            title:data?.title,
+                            start: data?.start.toISOString().split('T')[0]+"T"+data?.heure_start,
+                            end: data?.end.toISOString().split('T')[0]+"T"+data?.heure_end,
+                            heure_start: data?.heure_start,
+                            heure_end:data?.heure_end,
+                            color:data?.color,
+                            isDay:data?.isDay,
+                            user:data?.user,
+                            projet:data?.projet,
+                            type:"planning"
+                        }));
+                        let combinedList = [...agendasp, ...agendas]; // Concaténation si besoin
+                        res.json({
+                            success: true,
+                            message:combinedList
+                        });
+
+
+                        /*Agenda.find({user:req.decoded.id}).then((agenda)=>{
                             let agendas = agenda.map((data)=>({
                                 _id:data?._id,
                                 title:data?.title,
@@ -129,7 +164,8 @@
                                 heure_end:data?.heure_end,
                                 color:data?.color,
                                 isDay:data?.isDay,
-                                user:data?.user
+                                user:data?.user,
+                                type:"agenda"
                             }))
                             res.json({
                                 success: true,
@@ -140,7 +176,7 @@
                                 success:false,
                                 message:error.message
                             })
-                        })
+                        })*/
 
                     }else{
                         return res.status(401).json({

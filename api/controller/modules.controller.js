@@ -576,6 +576,69 @@
 
              },
 
+             updateProjetModule:function(req,res){
+
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                     if(aclres){
+                          let module = await ProjetModules.findOne({_id:req.params.id});
+                          module.projet = req.body.projet;
+                          let plan = module?.plan;
+
+                          if(req.file){
+                            let on=req.file.originalname.split('.');
+                            let extension=on[on.length -1];
+                            module.extension=extension;
+                            if(plan){
+                              await uploadService.deleteProjetsModulesFirebaseStorage(plan);
+                            }
+                            module.plan = await uploadService.uploadProjetsModulesToFirebaseStorage(req.file.filename);
+                          }
+                          
+                          ProjetModules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
+                                res.json({
+                                  success: true,
+                                  message: module
+                                });
+                          }).catch((error) => {
+                                return res.status(500).json({
+                                    success: false,
+                                    message: error.message
+                                });
+                            });
+                     }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+             },
+
+             getProjetModule:function(req,res){
+
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                     if(aclres){
+                          
+                          ProjetModules.findOne({_id:req.params.id}).then((module) => {
+                                res.json({
+                                  success: true,
+                                  message: module
+                                });
+                          }).catch((error) => {
+                                return res.status(500).json({
+                                    success: false,
+                                    message: error.message
+                                });
+                            });
+                     }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+             },
+
              updatePositionModule:function(req,res){
 
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
@@ -617,6 +680,7 @@
                     }
                 })
              },
+
              getAllModuleProjet:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -985,7 +1049,7 @@
              getFicheByModule:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
                     if(aclres){
-                        FicheTechniques.findOne({module:req.params.id}).then((module)=>{
+                        FicheTechniques.findOne({module:req.params.id}).populate('module','_id nom').then((module)=>{
                             res.json({
                                 success: true,
                                 message:module,

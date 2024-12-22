@@ -70,6 +70,10 @@
            .put(Ctrl.updatePositionModule)
        
        app.post('/projet/module/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.affectModule)
+       app.put('/projet/module/plan/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjetModule)
+       
+       app.route('/projet/module/plan/:id([a-fA-F\\d]{24})')
+          .get(Ctrl.getProjetModule)
 
        // Fiche technique et description module
 
