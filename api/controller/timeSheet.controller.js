@@ -441,7 +441,7 @@
                     const heure = `${hours}:${minutes}`;
                     let hPause = "13:00";
                     let nbrHeure = 0;
-                    let nbreHeureSP = 0;
+                    let nbrMin =0;
 
                     if(user){
 
@@ -466,19 +466,23 @@
                                 workedMinutes -= 60;
                                 const hoursWorked = Math.floor(workedMinutes / 60);
                                 nbrHeure = hoursWorked;
-                                //const minutesWorked = workedMinutes % 60;
+                                const minutesWorked = workedMinutes % 60;
+                                nbrMin = minutesWorked;
                             }else{
                                 if(workedMinutes < 60){
                                     nbrHeure=0
                                 }else{
                                     const hoursWorked = Math.floor(workedMinutes / 60);
                                     nbrHeure = hoursWorked;
+                                    const minutesWorked = workedMinutes % 60;
+                                    nbrMin = minutesWorked;
                                 }
                             }
                             let body={
                                 heureFin:heure,
                                 pause:hPause,
-                                heure:nbrHeure
+                                heure:nbrHeure,
+                                minute:nbrMin,
                             };
                             TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
                                 res.json({
@@ -491,49 +495,14 @@
                                     message:error.message
                                 })
                             })
-
-                            /*if(heure > hPause){
-                                //console.log("Sup",heure);
-                                let body={
-                                    heureFin:heure,
-                                    pause:hPause,
-                                    heure:nbrHeure
-                                };
-                                TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
-                                    res.json({
-                                        success:true,
-                                        message:conge
-                                    });
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message:error.message
-                                    })
-                                })
-                            }else{
-                                let body={
-                                    heureFin:heure,
-                                    heure:nbreHeureSP
-                                };
-                                TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
-                                    res.json({
-                                        success:true,
-                                        message:conge
-                                    });
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message:error.message
-                                    })
-                                })
-                            }*/
                         }else{
                                let timeSheet = new TimeSheet({
                                 user:user._id,
                                 createdAt:req.body.createdAt,
                                 heureDebut:heure,
                                 localisation:req.body.position,
-                                responsable:req.decoded.id
+                                responsable:req.decoded.id,
+                                presence:"Présent"
                                });
                                await timeSheet.save();
                                res.json({

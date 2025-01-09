@@ -26,6 +26,10 @@
         type:Number,
         require:false
     },
+    minute:{
+       type: Number,
+       require:false
+    },
     status:{
         type:String,
         required: false
