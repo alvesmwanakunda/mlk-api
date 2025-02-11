@@ -637,6 +637,32 @@ async function deleteClientLocation(email){
 }
 
 
+async function getProductTest(id) {
+    const prestashopUrl = process.env.shopUrl;
+    const prestashopApiKey = process.env.shopApiKey;
+
+    try {
+        const response = await axios.get(`${prestashopUrl}products/${id}`, {
+            params: {
+                ws_key: prestashopApiKey,
+                output_format: 'JSON',
+            }
+        });
+
+        let product = response.data.product;
+        console.log("Product", product);
+        //return produit;
+    } catch (error) {
+        if (error.code === 'ETIMEDOUT') {
+            console.log("La requête a expiré en raison d'un délai d'attente.");
+            return null; // ou renvoyer une valeur par défaut
+        } else {
+            console.log("Erreur", error.message);
+            throw error;
+        }
+    }
+}
+
 module.exports = {
     addClient,
     getClient,
@@ -654,5 +680,6 @@ module.exports = {
     updateLocation,
     updatePasswordClientLocation,
     updateClientLocation,
-    deleteClientLocation
+    deleteClientLocation,
+    getProductTest
   };

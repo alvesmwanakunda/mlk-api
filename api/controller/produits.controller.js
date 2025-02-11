@@ -147,7 +147,18 @@
                         }); 
                     }
                 })
-            }
+            },
+
+            // Test api produit prestashop
+
+            getProduitTest:async function(req,res){
+                
+                let produit = await prestashopService.getProductTest(req.params.id);
+                res.json({
+                    success: true,
+                    message:produit
+                });
+            },
         }
     }
 })();

@@ -12,6 +12,9 @@
    app.route('/produit/:id')
       .get(Ctrl.getProduit)
 
+   app.route('/produit/test/:id')
+      .get(Ctrl.getProduitTest)
+
    app.route('/images/produit/:id')
       .get(Ctrl.getImagesProduit)
 
