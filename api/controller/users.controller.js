@@ -173,6 +173,7 @@
                        user.save().then((user)=>{
                         if(user.role=="user"){
                             prestashopService.updatePasswordClient(user.email,req.body.password);
+                            prestashopService.updatePasswordClientLocation(user.email,req.body.password);
                             odooService.updateUserPassword(req.body.password,user.email);
                         }
                         res.json({
@@ -287,6 +288,7 @@
                           user.save().then((result)=>{
                                     mailService.signup(result, password);
                                     prestashopService.addClient(payload,adresse);
+                                    prestashopService.addClientLocation(payload,adresse);
                                     odooService.addCompany(payloadOdoo,entreprise);
                                     res.json({
                                         success:true,
@@ -357,6 +359,7 @@
                                         await Contact.findOneAndUpdate({_id:contact._id},contact,{new:true});
                                         odooService.update(payload,contact);
                                         prestashopService.update(req.body.nom, req.body.prenom, contact.email);
+                                        prestashopService.updateLocation(req.body.nom, req.body.prenom, contact.email);
                                      }
                                  }
                                 res.json({
@@ -417,6 +420,7 @@
 
                             if(user.role=="user"){
                                 prestashopService.updatePasswordClient(user.email,req.body.password);
+                                prestashopService.updatePasswordClientLocation(user.email,req.body.password);
                                 odooService.updateUserPassword(req.body.password,user.email);
                             }
                            

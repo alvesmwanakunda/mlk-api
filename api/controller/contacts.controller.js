@@ -125,6 +125,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                                             //mailService.signup(result, password);
                                             odooService.addContact(payloadContact,password,contact);
                                             prestashopService.addClient(payload,adresse);
+                                            prestashopService.addClientLocation(payload,adresse);
                                             res.json({
                                                 success:true,
                                                 message:contact,
@@ -212,6 +213,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                             if(isUpdate){
                                 odooService.updateContact(payload,contact,oldEmail);
                                 prestashopService.updateClient(oldEmail,contact.nom, contact.prenom, contact.email);
+                                prestashopService.updateClientLocation(oldEmail,contact.nom, contact.prenom, contact.email);
                             }if(isEmail){
                                 userService.updateEmailUser(oldEmail,contact.email);
                             }
@@ -281,6 +283,7 @@ const adresseLivraisonModel = require("../models/adresseLivraison.model");
                                 user.deleteOne().then(async (user)=>{
                                     odooService.deletePartner(cont.contact_id,cont.client_id),
                                     prestashopService.deleteClient(cont.email),
+                                    prestashopService.deleteClientLocation(cont.email),
                                     await AdresseLivraison.deleteOne({contact:req.params.id});
                                     res.json({
                                         success: true,
