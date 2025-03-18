@@ -2,20 +2,20 @@ var fs = require("fs");
 const bucket = require("../../firebase-config");
 
 // Box
-
 async function uploadFileToFirebaseStorage(filename) {
 
   const path = `./public/${filename}`;
+  const destination = `files/${filename}`;
 
   try {
     await bucket.upload(path, {
-      destination: `files/${filename}`
+      destination: destination
     });
 
-    const [url] = await bucket.file(`files/${filename}`).getSignedUrl({
+    /*const [url] = await bucket.file(`files/${filename}`).getSignedUrl({
       action: "read",
       expires: "03-17-2025"
-    });
+    });*/
 
     fs.unlink(path, (err) => {
       if (err) {
@@ -23,7 +23,7 @@ async function uploadFileToFirebaseStorage(filename) {
         return;
       }
     });
-    return url;
+    return destination;
   } catch (error) {
     //throw error;
     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
@@ -45,20 +45,21 @@ async function deleteFirebaseStorage(filename){
 }
 
 // Projets
-
 async function uploadProjetsToFirebaseStorage(filename) {
 
   const path = `./public/${filename}`;
+  const destination = `projets/${filename}`;
+
 
   try {
     await bucket.upload(path, {
-      destination: `projets/${filename}`
+      destination: destination
     });
 
-    const [url] = await bucket.file(`projets/${filename}`).getSignedUrl({
+    /*const [url] = await bucket.file(`projets/${filename}`).getSignedUrl({
       action: "read",
       expires: "03-17-2025"
-    });
+    });*/
 
     fs.unlink(path, (err) => {
       if (err) {
@@ -66,7 +67,7 @@ async function uploadProjetsToFirebaseStorage(filename) {
         return;
       }
     });
-    return url;
+    return destination;
   } catch (error) {
     //throw error;
     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
@@ -90,16 +91,18 @@ async function deleteProjetsFirebaseStorage(filename){
 async function uploadPlansToFirebaseStorage(filename) {
 
   const path = `./public/${filename}`;
+  const destination = `plans/${filename}`;
+
 
   try {
     await bucket.upload(path, {
-      destination: `plans/${filename}`
+      destination: destination
     });
 
-    const [url] = await bucket.file(`plans/${filename}`).getSignedUrl({
+    /*const [url] = await bucket.file(`plans/${filename}`).getSignedUrl({
       action: "read",
       expires: "03-17-2025"
-    });
+    });*/
 
     fs.unlink(path, (err) => {
       if (err) {
@@ -107,7 +110,7 @@ async function uploadPlansToFirebaseStorage(filename) {
         return;
       }
     });
-    return url;
+    return destination;
   } catch (error) {
     //throw error;
     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
@@ -131,16 +134,18 @@ async function deletePlansFirebaseStorage(filename){
 async function uploadModuleToFirebaseStorage(filename) {
 
   const path = `./public/${filename}`;
+  const destination = `photosmodules/${filename}`;
+
 
   try {
     await bucket.upload(path, {
-      destination: `photosmodules/${filename}`
+      destination: destination
     });
 
-    const [url] = await bucket.file(`photosmodules/${filename}`).getSignedUrl({
+    /*const [url] = await bucket.file(`photosmodules/${filename}`).getSignedUrl({
       action: "read",
       expires: "03-17-2025"
-    });
+    });*/
 
     fs.unlink(path, (err) => {
       if (err) {
@@ -148,7 +153,7 @@ async function uploadModuleToFirebaseStorage(filename) {
         return;
       }
     });
-    return url;
+    return destination;
   } catch (error) {
     //throw error;
     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
@@ -172,16 +177,17 @@ async function deleteModuleFirebaseStorage(filename){
 async function uploadCongesToFirebaseStorage(filename) {
 
   const path = `./public/${filename}`;
+  const destination = `conges/${filename}`;
 
   try {
     await bucket.upload(path, {
-      destination: `conges/${filename}`
+      destination: destination
     });
 
-    const [url] = await bucket.file(`conges/${filename}`).getSignedUrl({
+    /*const [url] = await bucket.file(`conges/${filename}`).getSignedUrl({
       action: "read",
       expires: "03-17-2025"
-    });
+    });*/
 
     fs.unlink(path, (err) => {
       if (err) {
@@ -189,7 +195,7 @@ async function uploadCongesToFirebaseStorage(filename) {
         return;
       }
     });
-    return url;
+    return destination;
   } catch (error) {
     //throw error;
     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
@@ -213,16 +219,17 @@ async function deleteCongesFirebaseStorage(filename){
 async function uploadProjetsModulesToFirebaseStorage(filename) {
 
   const path = `./public/${filename}`;
+  const destination = `projetmodules/${filename}`
 
   try {
     await bucket.upload(path, {
-      destination: `projetmodules/${filename}`
+      destination: destination
     });
 
-    const [url] = await bucket.file(`projetmodules/${filename}`).getSignedUrl({
+    /*const [url] = await bucket.file(`projetmodules/${filename}`).getSignedUrl({
       action: "read",
       expires: "03-17-2025"
-    });
+    });*/
 
     fs.unlink(path, (err) => {
       if (err) {
@@ -230,7 +237,7 @@ async function uploadProjetsModulesToFirebaseStorage(filename) {
         return;
       }
     });
-    return url;
+    return destination;
   } catch (error) {
     //throw error;
     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
@@ -251,6 +258,25 @@ async function deleteProjetsModulesFirebaseStorage(filename){
   }
 }
 
+async function getSignedUrl(filePath) {
+  try {
+    const [url] = await bucket.file(filePath).getSignedUrl({
+      action: "read",
+      expires: "03-17-2050"
+    });
+    //console.log("url", url);
+    return url;
+  } catch (error) {
+    console.error("Erreur lors de la génération de l'URL signée :", error);
+    throw error;
+  }
+}
+
+function extractFilePath(url) {
+  const match = url.match(/plans\/[^?]+/);
+  return match ? match[0] : null;
+}
+
 
 module.exports = {
   uploadFileToFirebaseStorage,
@@ -264,5 +290,7 @@ module.exports = {
   uploadCongesToFirebaseStorage,
   deleteCongesFirebaseStorage,
   uploadProjetsModulesToFirebaseStorage,
-  deleteProjetsModulesFirebaseStorage
+  deleteProjetsModulesFirebaseStorage,
+  getSignedUrl,
+  extractFilePath
 };

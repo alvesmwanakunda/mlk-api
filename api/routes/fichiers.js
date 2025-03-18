@@ -20,6 +20,12 @@
 
         app.route('/fichier/move/:id([a-fA-F\\d]{24})/:parent([a-fA-F\\d]{24})')
            .get(Ctrl.moveFile)
+
+        app.route('/open/fichier/:url')
+            .get(Ctrl.openAllFile)
+
+        app.route('/update/database')
+           .get(Ctrl.updatePhotoPaths)
     }
 
 

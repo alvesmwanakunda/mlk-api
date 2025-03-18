@@ -3,6 +3,7 @@
     'use strict';
     var Dossier = require('../models/dossiers.model').DossierModel,
         Fichier = require('../models/fichiers.model').FichierModel,
+        Module = require('../models/planModule.model').PlanModuleModel,
         Project = require('../models/projets.model').ProjetModel;
         var ObjectId = require('mongoose').Types.ObjectId;
         var fs = require("fs");
@@ -10,7 +11,7 @@
         const bucket = require("../../firebase-config");
 
     module.exports=function(acl){
-        return{
+    return{
             create:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
@@ -458,8 +459,51 @@
                  }
 
                 })
+            },
+            openAllFile:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+                    if(aclres){
+                        const filePath = decodeURIComponent(req.params.url); // Décoder l'URL
+                        //console.log('Chemin du fichier:', filePath);
+                        const downloadUrl = await uploadService.getSignedUrl(filePath);
+                        res.json({
+                            success: true,
+                            message:downloadUrl
+                        });
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+                })
+            },
+
+        
+  
+        // Fonction pour extraire le chemin "files/nom_fichier.png" depuis l'URL complète
+        
+        
+        // Mise à jour des documents dans MongoDB
+         updatePhotoPaths: async function() {
+            try {
+            // Récupérer tous les projets avec un champ photo
+            const projets = await Module.find({ chemin: { $exists: true, $ne: null } });
+        
+            for (let projet of projets) {
+                const newPath = uploadService.extractFilePath(projet.chemin);
+                if (newPath) {
+                await Module.updateOne({ _id: projet._id }, { $set: { chemin: newPath } });
+                console.log(`Mise à jour de l'ID ${projet._id} avec ${newPath}`);
+                }
             }
+        
+            console.log("Mise à jour terminée !");
+            } catch (error) {
+            console.error("Erreur lors de la mise à jour :", error);
+            } 
         }
+    }
     }
 
 })();
