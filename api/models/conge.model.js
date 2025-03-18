@@ -3,6 +3,8 @@
     "use strict";
     var mongoose = require("mongoose");
     var Schema = mongoose.Schema;
+    var uploadService = require('../services/upload.service');
+
 
     var congeSchema = new Schema({
 
@@ -91,6 +93,48 @@
         },
         
     });
+
+     // Middleware pour modifier le champ "photo" après avoir récupéré un ou plusieurs documents
+     congeSchema.post('find', async function (docs, next) {
+        for (const doc of docs) {
+        if (doc.fichier) {
+            doc.fichier = await uploadService.getSignedUrl(doc.fichier);
+        }
+        }
+        next();
+      });
+  
+      congeSchema.post('findOneAndUpdate', async function (doc, next) {
+          if (doc.fichier) {
+              doc.fichier = await uploadService.getSignedUrl(doc.fichier);
+          }
+          next();
+      });
+  
+      congeSchema.post('findByIdAndUpdate', async function (doc, next) {
+          if (doc.fichier) {
+              doc.fichier = await uploadService.getSignedUrl(doc.fichier);
+          }
+          next();
+      });
+      
+      // Middleware pour modifier le champ "photo" après avoir récupéré un seul document
+      congeSchema.post('findOne', async function (doc, next) {
+          if (doc && doc.fichier) {
+          doc.fichier = await uploadService.getSignedUrl(doc.fichier);
+          }
+          next();
+      });
+      
+      // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
+      congeSchema.post('findById', async function (doc, next) {
+          if (doc && doc.fichier) {
+          doc.fichier = await uploadService.getSignedUrl(doc.fichier);
+          }
+          next();
+      });
+
+    
     module.exports = {
         congeSchema: congeSchema,
         CongeModel: mongoose.model('Conge',congeSchema)

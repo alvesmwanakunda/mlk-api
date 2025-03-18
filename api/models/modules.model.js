@@ -5,6 +5,8 @@
     var Schema = mongoose.Schema;
     var ProjetModule = require('../models/projetModule.model').ProjetModulesModel;
     var FicheTechnique = require('../models/ficheTechnique.model').FicheTechniqueModel;
+    var uploadService = require('../services/upload.service');
+
 
 
     var modulesSchema = new Schema({
@@ -107,6 +109,77 @@
             next(error);
         }
     });
+
+    // Middleware pour modifier le champ "photo" après avoir récupéré un ou plusieurs documents
+     modulesSchema.post('find', async function (docs, next) {
+        for (const doc of docs) {
+            if (doc.chemin) {
+                doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+            }
+            if (doc && doc.photo) {
+                doc.photo = await uploadService.getSignedUrlPhoto(doc.photo);
+            }
+        }
+        next();
+      });
+  
+      modulesSchema.post('findOneAndUpdate', async function (doc, next) {
+           if (doc && doc.chemin) {
+             doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+           }
+          next();
+      });
+
+      modulesSchema.post('findOneAndUpdate', async function (doc, next) {
+        if (doc && doc.photo) {
+          doc.photo = await uploadService.getSignedUrlPhoto(doc.photo);
+        }
+       next();
+   });
+  
+      modulesSchema.post('findByIdAndUpdate', async function (doc, next) {
+           if (doc && doc.chemin) {
+             doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+           }
+          next();
+      });
+
+      modulesSchema.post('findByIdAndUpdate', async function (doc, next) {
+        if (doc && doc.photo) {
+          doc.photo = await uploadService.getSignedUrlPhoto(doc.photo);
+        }
+       next();
+   });
+      
+      // Middleware pour modifier le champ "photo" après avoir récupéré un seul document
+      modulesSchema.post('findOne', async function (doc, next) {
+          if (doc && doc.chemin) {
+           doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+          }
+          next();
+      });
+
+      modulesSchema.post('findOne', async function (doc, next) {
+        if (doc && doc.photo) {
+          doc.photo = await uploadService.getSignedUrlPhoto(doc.photo);
+          //console.log("photo", doc.photo);
+        }
+        next();
+    });
+      
+      // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
+      modulesSchema.post('findById', async function (doc, next) {
+          if (doc && doc.chemin) {
+          doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+          }
+          if (doc && doc.photo) {
+            doc.photo = await uploadService.getSignedUrlPhoto(doc.photo);
+            //console.log("photo", doc.photo);
+          }
+          next();
+      });
+
+
     module.exports = {
       ModulesSchema: modulesSchema,
       ModulesModel: mongoose.model("Modules",modulesSchema)

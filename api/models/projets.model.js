@@ -7,6 +7,9 @@
     var Fichier = require('../models/fichiers.model').FichierModel;
     var Dossier = require('../models/dossiers.model').DossierModel;
     var ProjetModule = require('../models/projetModule.model').ProjetModulesModel;
+    var uploadService = require('../services/upload.service');
+
+
  
     var projetSchema = new Schema({
  
@@ -136,7 +139,47 @@
             next(error);
         }
     });
+
+    // Middleware pour modifier le champ "photo" après avoir récupéré un ou plusieurs documents
+    projetSchema.post('find', async function (docs, next) {
+        for (const doc of docs) {
+        if (doc.photo) {
+            doc.photo = await uploadService.getSignedUrl(doc.photo);
+        }
+        }
+        next();
+    });
+
+    projetSchema.post('findOneAndUpdate', async function (doc, next) {
+        if (doc.photo) {
+            doc.photo = await uploadService.getSignedUrl(doc.photo);
+        }
+        next();
+    });
+
+    projetSchema.post('findByIdAndUpdate', async function (doc, next) {
+        if (doc.photo) {
+            doc.photo = await uploadService.getSignedUrl(doc.photo);
+        }
+        next();
+    });
     
+    // Middleware pour modifier le champ "photo" après avoir récupéré un seul document
+    projetSchema.post('findOne', async function (doc, next) {
+        if (doc && doc.photo) {
+        doc.photo = await uploadService.getSignedUrl(doc.photo);
+        }
+        next();
+    });
+    
+    // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
+    projetSchema.post('findById', async function (doc, next) {
+        if (doc && doc.photo) {
+        doc.photo = await uploadService.getSignedUrl(doc.photo);
+        }
+        next();
+    });
+
     module.exports = {
      ProjetSchema: projetSchema,
      ProjetModel: mongoose.model('Projets',projetSchema)

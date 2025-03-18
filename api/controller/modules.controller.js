@@ -407,7 +407,10 @@
                                 module.photo = await uploadService.uploadModuleToFirebaseStorage(req.file.filename);;
                             }
                          
-                            Modules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
+                            Modules.findByIdAndUpdate({_id:req.params.id},{
+                                nom_photo: module.nom_photo, // Champ à mettre à jour
+                                photo: module.photo, // Champ à mettre à jour
+                              },{ new: true }).then((module) => {
                                           //console.log("Module", module);
                                           res.json({
                                             success: true,
@@ -456,7 +459,11 @@
                                   module.chemin = chemin;
                                 }
                             }
-                            Modules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
+                            Modules.findByIdAndUpdate({_id:req.params.id},{
+                                extension: module.extension, // Champ à mettre à jour
+                                plan: module.plan, // Champ à mettre à jour
+                                chemin: module.chemin, // Champ à mettre à jour
+                              },{ new: true }).then((module) => {
                                           //console.log("Module", module);
                                           res.json({
                                             success: true,

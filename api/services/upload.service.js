@@ -272,6 +272,20 @@ async function getSignedUrl(filePath) {
   }
 }
 
+async function getSignedUrlPhoto(filePath) {
+  try {
+    const [url] = await bucket.file(filePath).getSignedUrl({
+      action: "read",
+      expires: "03-17-2050"
+    });
+    //console.log("url", url);
+    return url;
+  } catch (error) {
+    console.error("Erreur lors de la génération de l'URL signée :", error);
+    throw error;
+  }
+}
+
 function extractFilePath(url) {
   const match = url.match(/plans\/[^?]+/);
   return match ? match[0] : null;
@@ -292,5 +306,6 @@ module.exports = {
   uploadProjetsModulesToFirebaseStorage,
   deleteProjetsModulesFirebaseStorage,
   getSignedUrl,
-  extractFilePath
+  extractFilePath,
+  getSignedUrlPhoto
 };

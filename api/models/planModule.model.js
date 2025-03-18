@@ -3,6 +3,8 @@
 
     var mongoose = require('mongoose');
     var Schema = mongoose.Schema;
+    var uploadService = require('../services/upload.service');
+
 
     var planModuleSchema = new Schema({
 
@@ -52,6 +54,47 @@
       
 
     });
+
+    // Middleware pour modifier le champ "photo" après avoir récupéré un ou plusieurs documents
+    planModuleSchema.post('find', async function (docs, next) {
+      for (const doc of docs) {
+      if (doc.chemin) {
+          doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+      }
+      }
+      next();
+    });
+
+    planModuleSchema.post('findOneAndUpdate', async function (doc, next) {
+        if (doc && doc.chemin) {
+          doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+        }
+        next();
+    });
+
+    planModuleSchema.post('findByIdAndUpdate', async function (doc, next) {
+        if (doc && doc.chemin) {
+         doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+        }
+        next();
+    });
+    
+    // Middleware pour modifier le champ "photo" après avoir récupéré un seul document
+    planModuleSchema.post('findOne', async function (doc, next) {
+        if (doc && doc.chemin) {
+        doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+        }
+        next();
+    });
+    
+    // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
+    planModuleSchema.post('findById', async function (doc, next) {
+        if (doc && doc.chemin) {
+        doc.chemin = await uploadService.getSignedUrl(doc.chemin);
+        }
+        next();
+    });
+
     module.exports = {
         PlanModuleSchema: planModuleSchema,
         PlanModuleModel: mongoose.model('PlanModule', planModuleSchema)
