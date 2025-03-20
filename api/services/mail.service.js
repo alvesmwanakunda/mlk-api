@@ -73,16 +73,21 @@ module.exports={
                 
                 let message = {
                     to: user.email,
-                    subject: 'Bienvenue sur MLKA - Votre partenaire en bâtiments préfabriqués',
-                    html:'Cher(e)' + user?.nom +" "+user?.prenom+ 
+                    subject: 'Bienvenue sur MLKA GROUPE - Votre partenaire en bâtiments préfabriqués',
+                    html:'Cher(e) ' + user?.nom +" "+user?.prenom+ 
                     '<br/><br/>'+ 
-                    '<p>Nous sommes ravis de vous accueillir chez MLKA, votre partenaire de confiance pour le suivi, la fourniture et l\'installation de bâtiments préfabriqués. Nous vous remercions de vous être inscrit(e) sur notre plateforme et de nous avoir choisi pour répondre à vos besoins en construction.<p/>'+
-                    '<p>Chez MLKA, notre engagement est de vous offrir une expérience exceptionnelle à chaque étape de votre projet.</p>'+
-                    '<p>Pour commencer votre projet avec MLKA, il vous suffit de vous connecter à notre plateforme avec vos identifiants :</p>'+
-                    '<p> <b>Adresse mail: '+user.email+'</b> </p>'+
-                    '<p> <b>Mot de passe: '+password+'</b> </p>'+
-                    '<p>Si vous avez des projets en cours ou des demandes spécifiques, vous pouvez les ajouter directement depuis votre tableau de bord.</p>'+
-                    '<p>Bienvenue chez MLKA, où la qualité et le professionnalisme sont au cœur de tout ce que nous faisons.</p>',
+                    '<p>Nous sommes ravis de vous accueillir chez <b>MLKA GROUPE</b>, votre partenaire de confiance pour le suivi, la fourniture et l\'installation de bâtiments préfabriqués. Merci de votre inscription et de votre confiance en notre expertise.<p/>'+
+                    '<p>Chez <b>MLKA GROUPE</b>, nous nous engageons à vous offrir une <br>expérience optimale</b> à chaque étape de votre projet.</p>'+
+                    '<p><b>🌐 Accédez à nos plateformes dès maintenant</b></p>'+
+                    '<p>🔹 <a href="https://mlka-market.com/" target="_blank"><b>Accéder à la MarketPlace MLKA</b></a> – Trouvez, achetez et louez des modules en toute simplicité.</p>' +
+                    '<p>🔹 <a href="https://mlka.app" target="_blank"><b>Gérez vos projets en temps réel</b></a> – Suivez l’avancement de vos chantiers et optimisez votre gestion.</p>' +
+                    '<p>Pour commencer, connectez-vous à votre compte MLKA GROUPE avec vos identifiants :</p>'+
+                    '<p> <b>📧 Adresse e-mail: '+user.email+'</b> </p>'+
+                    '<p> <b>🔑 Mot de passe: '+password+'</b> </p>'+
+                    '<p>Si vous avez des projets en cours ou des demandes spécifiques, ajoutez-les dès maintenant depuis votre tableau de bord.</p>'+
+                    '<p>Bienvenue chez <b>MLKA GROUPE</b>, où la qualité et le professionnalisme sont au cœur de tout ce que nous faisons.</p>'+
+                    '<p>À très bientôt !</p>'+
+                    '<p><b>L\'équipe MLKA GROUPE</b></p>',
                 };
                 transporter.sendMail(message, (error, user)=>{
                     if(error){

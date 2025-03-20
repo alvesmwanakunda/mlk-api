@@ -216,12 +216,14 @@
                 entreprise.telephone = req.body.telephone;
                 entreprise.pays = req.body.pays;
 
-                var password = codes.generate({
+                /*var password = codes.generate({
                     length: 9,
                     count: 1,
                     charset: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 });
-                password = password[0];
+                password = password[0];*/
+
+                password = req.body.password;
 
                 var user = new User();
                 user.email = req.body.email;
@@ -229,6 +231,7 @@
                 user.prenom = req.body.prenom;
                 user.role = "user";
                 user.valid = true;
+                user.password = req.body.password;
 
                 if(req.body.genre=='Mr'){
                     gender=1;
