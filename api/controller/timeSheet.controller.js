@@ -172,6 +172,7 @@
                 }
             })
         },
+
         getAllTimeSheetUserByDate(req,res){
             acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
@@ -231,6 +232,81 @@
                 }
             })
         },
+        //Pour aperçu
+        getAllTimeSheetUserByPeriod(req,res){
+            acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
+
+                if(aclres){
+                    try {
+                        const startDate = new Date(req.params.start);
+                        const endDate = new Date(req.params.end);
+                        endDate.setDate(endDate.getDate() + 1);
+
+                        const timesheets = await TimeSheet.aggregate([
+                            {
+                              $match: {
+                                user: new ObjectId(req.params.id),
+                                createdAt: {
+                                  $gte: startDate,
+                                  $lt: endDate
+                                }
+                              }
+                            },
+                            // Trier par ordre croissant suivant date
+                            {
+                              $sort : {createdAt : 1}
+                            },
+                            // Ajouter le jour de la semaine
+                            {
+                              $addFields: {
+                                dayOfWeek: { 
+                                  $subtract: [{ $dayOfWeek: "$createdAt" }, 1] // Ajustement: 1 (dimanche) devient 0 et ainsi de suite
+                                }
+                              }
+                            },
+                            //Faire une projection sur ces champs
+                            {
+                                $project: { 
+                                    _id: 1,
+                                    createdAt: 1,
+                                    dayOfWeek: 1,
+                                    tache: 1,
+                                    heure: 1,
+                                    deplacement: 1,
+                                    projet: 1,
+                                    motifs: 1,
+                                    presence: 1,
+                                    types_deplacement: 1
+                                }
+                            },
+                        ])
+
+                        const daysOfWeek = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                          
+                        timesheets.forEach(ts => {
+                           ts.dayOfWeek = daysOfWeek[ts.dayOfWeek];
+                        });
+                       
+                        res.json({
+                            success: true,
+                            message:timesheets
+                        });  
+                    } catch (error) {
+                        return res.status(500).json({
+                            success:false,
+                            message:error.message
+                        })
+                    }
+
+                }else{
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+            })
+        },
+
         // TimeSheet for user agent
         getAllTimeSheetByAgent(req,res){
             acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
