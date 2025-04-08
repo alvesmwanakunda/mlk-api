@@ -5,6 +5,7 @@ const mailService = require("../services/mail.service");
     "use strict";
     var Conge = require("../models/conge.model").CongeModel;
     var User = require("../models/users.model").UserModel;
+    var TimeSheet = require('../models/timesheet.model').TimeSheetModel;
     var EmailService = require("../services/mail.service");
     var uploadService = require('../services/upload.service');
 
@@ -200,6 +201,22 @@ const mailService = require("../services/mail.service");
                     if(aclres){
                         Conge.findOneAndUpdate({_id:req.params.id},{status:"Validé",date_signature:new Date(),responsable:req.decoded.id},{new:true}).then((conge)=>{
                             EmailService.mailValidationconge(conge._id);
+                            //Créer feuille de temps après validation de congés
+                            if(conge.types == "Congé de naissance" || conge.types == "Congé d'accueil" || conge.types == "Congé paternité"){
+                                const date = conge.debut;
+                                while (date <= conge.fin) {
+                                    let timeSheet = new TimeSheet();
+                                    timeSheet.user = conge.user._id;
+                                    timeSheet.responsable = req.decoded.id;
+                                    timeSheet.createdAt = new Date(date)
+                                    timeSheet.presence = "Absent";
+                                    timeSheet.deplacement = "Non";
+                                    timeSheet.heure = 0;
+                                    timeSheet.motifs = conge.types;
+                                    timeSheet.save();
+                                    date.setDate(date.getDate()+1);
+                                }
+                            }
                             res.json({
                                 success:true,
                                 message:conge
