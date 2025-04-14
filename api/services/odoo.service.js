@@ -45,6 +45,25 @@ async function addCompany(payload,entreprise){
     });
 } 
 
+async function addPerson(payload){
+
+    odooClient.methodCall('authenticate', [odooDb, odooUsername, odooPassword, {}], (error, uid) => {
+        console.log("Auth", uid);
+        
+        if (error) {
+            console.error('Erreur d\'authentification:', error);
+        } else {
+            xmlrpcClientObject.methodCall('execute_kw', [odooDb, uid, odooPassword, 'res.partner', 'create', [payload]], (error, company_id) => {
+                if (error) {
+                    console.error('Erreur lors de la création de l\'entreprise:', error);
+                } else {
+                    console.log('Entreprise créée avec l\'ID:', company_id);
+                }
+            });
+        }
+    });
+} 
+
 async function updateEntreprise(payload, entreprise){
     let _id = parseInt(entreprise.company_id);
     console.log("ID", _id);
@@ -258,5 +277,6 @@ module.exports = {
     updateEntreprise,
     getAllUser,
     updateUserPassword,
-    update
+    update,
+    addPerson
   };

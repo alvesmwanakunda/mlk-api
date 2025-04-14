@@ -267,7 +267,7 @@
 
                 let payloadOdoo={
                     'name': req.body.societe,
-                    'company_type':req.body.company, // Type de l'entreprise
+                    'company_type':"company",//req.body.company, // Type de l'entreprise
                     'is_company': true, // Indique qu'il s'agit d'une entreprise
                     'street': req.body.rue+" "+req.body.numero,
                     'city': req.body.rue,
@@ -310,6 +310,96 @@
                                 message: error.message
                             })
                          })
+                    } 
+                }).catch((error)=>{
+                    
+                    return res.status(500).json({
+                        success:false,
+                        message: error.message
+                    });
+                })
+            },
+            signupUserParticulier:function(req,res){
+
+                let gender='';
+
+                var query = {email:req.body.email}
+
+                password = req.body.password;
+
+                var user = new User();
+                user.email = req.body.email;
+                user.nom = req.body.nom;
+                user.prenom = req.body.prenom;
+                user.role = "user";
+                user.valid = false;
+                user.isPerson = true;
+
+                if(req.body.genre=='Mr'){
+                    gender=1;
+                    user.genre = "Mr"
+                }else{
+                    gender=2;
+                    user.genre = "Mlle"
+                }
+
+                let payload={
+                    lastname: req.body.nom,
+                    firstname: req.body.prenom,
+                    email : req.body.email,
+                    active:"1",
+                    passwd: password,
+                    id_gender:gender,
+                    id_default_group:3,
+                    phone:req.body.indicatif+""+req.body.telephone
+                };
+                let adresse={
+                    id_country:8,
+                    alias:req.body.prenom+""+req.body.nom,
+                    lastname: req.body.nom,
+                    firstname: req.body.prenom,
+                    adress1:req.body.rue+" "+req.body.numero,
+                    postcode:req.body.postal,
+                    phone:req.body.indicatif+""+req.body.telephone,
+                    city:req.body.rue,
+                }
+
+                let payloadOdoo={
+                    'name': req.body.prenom+""+req.body.nom,
+                    'company_type':"person", // Type de l'entreprise
+                    'is_company': false, // Indique qu'il s'agit d'une entreprise
+                    'street': req.body.rue+" "+req.body.numero,
+                    'city': req.body.rue,
+                    'zip': req.body.postal,
+                    'country_id': false, // ID du pays (peut être défini si nécessaire)
+                    'phone': req.body.indicatif+""+req.body.telephone,
+                    'email': req.body.email,
+                }
+
+                User.findOne(query).then((result)=>{
+                    if(result){
+                        return res.json({
+                            success:false,
+                            message: "already exists"
+                        })
+                    }else{
+                        user.password = crypto.createHash('md5').update(password).digest("hex");
+                        user.save().then((result)=>{
+                                  mailService.signup(result, password);
+                                  prestashopService.addClient(payload,adresse);
+                                  prestashopService.addClientLocation(payload,adresse);
+                                  odooService.addPerson(payloadOdoo);
+                                  res.json({
+                                      success:true,
+                                      message:result,
+                                      signature:password
+                                  });
+                              }).catch((error)=>{
+                                  return res.status(500).json({
+                                      success:false,
+                                      message: error.message
+                                  });
+                        })
                     } 
                 }).catch((error)=>{
                     

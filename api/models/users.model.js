@@ -42,6 +42,10 @@
             type: Boolean,
             default: false
         },
+        isPerson:{
+            type: Boolean,
+            default: false
+        },
         role:String,
         code: {
             type: String,
