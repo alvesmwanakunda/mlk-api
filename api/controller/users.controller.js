@@ -231,7 +231,7 @@
                 user.prenom = req.body.prenom;
                 user.role = "user";
                 user.valid = true;
-                user.password = req.body.password;
+                //user.password = req.body.password;
 
                 if(req.body.genre=='Mr'){
                     gender=1;
