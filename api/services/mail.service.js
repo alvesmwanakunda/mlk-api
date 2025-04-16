@@ -49,6 +49,7 @@ module.exports={
             
         });
     },
+
     signup:(user,password)=>{
         return new Promise(async(resolve, reject)=>{
             try {
@@ -77,8 +78,8 @@ module.exports={
                     html:'Cher(e) ' + user?.nom +" "+user?.prenom+ 
                     '<br/><br/>'+ 
                     '<p>Nous sommes ravis de vous accueillir chez <b>MLKA GROUPE</b>, votre partenaire de confiance pour le suivi, la fourniture et l\'installation de bâtiments préfabriqués. Merci de votre inscription et de votre confiance en notre expertise.<p/>'+
-                    '<p>Chez <b>MLKA GROUPE</b>, nous nous engageons à vous offrir une <br>expérience optimale</b> à chaque étape de votre projet.</p>'+
-                    '<p><b>🌐 Accédez à nos plateformes dès maintenant</b></p>'+
+                    '<p>Chez <b>MLKA GROUPE</b>, nous nous engageons à vous offrir une <b>expérience optimale</b> à chaque étape de votre projet.</p>'+
+                    '<p><b>🌐 Accédez à nos plateformes dès maintenant :</b></p>'+
                     '<p>🔹 <a href="https://mlka-market.com/" target="_blank"><b>Accéder à la MarketPlace MLKA</b></a> – Trouvez, achetez et louez des modules en toute simplicité.</p>' +
                     '<p>🔹 <a href="https://mlka.app" target="_blank"><b>Gérez vos projets en temps réel</b></a> – Suivez l’avancement de vos chantiers et optimisez votre gestion.</p>' +
                     '<p>Pour commencer, connectez-vous à votre compte MLKA GROUPE avec vos identifiants :</p>'+
@@ -105,6 +106,66 @@ module.exports={
             
         });
     },
+
+    signupParticulier:(user,password)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+                
+                let message = {
+                    to: user.email,
+                    subject: 'Bienvenue sur MLKA GROUPE - Votre partenaire en bâtiments préfabriqués',
+                    html:'Cher(e) ' + user?.nom +" "+user?.prenom+ 
+                    '<br/><br/>'+ 
+                    '<p>Nous sommes ravis de vous accueillir chez <b>MLKA GROUPE</b>, votre partenaire de confiance pour le suivi, la fourniture et l\'installation de bâtiments préfabriqués. Merci de votre inscription et de votre confiance en notre expertise.<p/>'+
+                    '<p>Que vous ayez un projet de construction, d’aménagement ou simplement une curiosité pour les bâtiments préfabriqués, vous êtes au bon endroit.</p>'+
+                    '<p><b>🔐 Accédez dès maintenant à notre Marketplace pour consulter nos offres :</b></p>'+
+                    '<p>🔹 <a href="https://mlka-market.com/" target="_blank"><b>MLKA MarketPlace</b></a> – Achetez, louez ou découvrez nos modules préfabriqués en quelques clics.</p>'+
+                    '<p>Voici vos identifiants pour vous connecter :</p>'+
+                    '<p> <b>📧 Adresse e-mail: '+user.email+'</b> </p>'+
+                    '<p> <b>🔑 Mot de passe: '+password+'</b> </p>'+
+                    '<p>Découvrez qui nous sommes, nos services et nos engagements sur notre site officiel :</p>'+
+                    '<p>🌐 <a href="https://mlka-groupe.fr/" target="_blank"><b>www.mlka-groupe.fr</b></a></p>'+
+                    '<p>Nous mettons tout en œuvre pour vous garantir une expérience simple, rapide et fiable.</p>'+
+                    '<p style="margin-top: 20px;">Bienvenue dans la famille <b>MLKA GROUPE</b> ! Ensemble, concrétisons vos projets avec qualité et sérénité.</p>'+
+                    '<p>À très bientôt !</p>'+
+                    '<p><b>L\'équipe MLKA GROUPE</b></p>',
+                };
+
+                transporter.sendMail(message, (error, user)=>{
+                    if(error){
+                        console.log("erreur", error);
+                    }
+                    resolve(user);
+                    transporter.close();
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+    },
+
     mailconge:(user)=>{
         return new Promise(async(resolve, reject)=>{
             try {

@@ -18,6 +18,9 @@
         app.route('/signup')
            .post(Ctrl.signupUser);
 
+        app.route('/signup/particulier')
+           .post(Ctrl.signupUserParticulier);
+
        app.route('/signup/odoo')
            .post(Ctrl.addCompany);
 

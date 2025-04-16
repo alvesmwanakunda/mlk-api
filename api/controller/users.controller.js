@@ -223,7 +223,7 @@
                 });
                 password = password[0];*/
 
-                password = req.body.password;
+                var password = req.body.password;
 
                 var user = new User();
                 user.email = req.body.email;
@@ -231,7 +231,7 @@
                 user.prenom = req.body.prenom;
                 user.role = "user";
                 user.valid = true;
-                //user.password = req.body.password;
+                user.password = req.body.password;
 
                 if(req.body.genre=='Mr'){
                     gender=1;
@@ -290,9 +290,9 @@
                           user.password = crypto.createHash('md5').update(password).digest("hex");
                           user.save().then((result)=>{
                                     mailService.signup(result, password);
-                                    prestashopService.addClient(payload,adresse);
-                                    prestashopService.addClientLocation(payload,adresse);
-                                    odooService.addCompany(payloadOdoo,entreprise);
+                                    // prestashopService.addClient(payload,adresse);
+                                    // prestashopService.addClientLocation(payload,adresse);
+                                    // odooService.addCompany(payloadOdoo,entreprise);
                                     res.json({
                                         success:true,
                                         message:result,
@@ -319,13 +319,14 @@
                     });
                 })
             },
+
             signupUserParticulier:function(req,res){
 
                 let gender='';
 
                 var query = {email:req.body.email}
 
-                password = req.body.password;
+                var password = req.body.password;
 
                 var user = new User();
                 user.email = req.body.email;
@@ -333,6 +334,7 @@
                 user.prenom = req.body.prenom;
                 user.role = "user";
                 user.valid = false;
+                user.password = password;
                 user.isPerson = true;
 
                 if(req.body.genre=='Mr'){
@@ -365,7 +367,7 @@
                 }
 
                 let payloadOdoo={
-                    'name': req.body.prenom+""+req.body.nom,
+                    'name': req.body.prenom+" "+req.body.nom,
                     'company_type':"person", // Type de l'entreprise
                     'is_company': false, // Indique qu'il s'agit d'une entreprise
                     'street': req.body.rue+" "+req.body.numero,
@@ -385,20 +387,20 @@
                     }else{
                         user.password = crypto.createHash('md5').update(password).digest("hex");
                         user.save().then((result)=>{
-                                  mailService.signup(result, password);
-                                  prestashopService.addClient(payload,adresse);
-                                  prestashopService.addClientLocation(payload,adresse);
-                                  odooService.addPerson(payloadOdoo);
-                                  res.json({
-                                      success:true,
-                                      message:result,
-                                      signature:password
-                                  });
-                              }).catch((error)=>{
-                                  return res.status(500).json({
-                                      success:false,
-                                      message: error.message
-                                  });
+                            mailService.signupParticulier(result, password);
+                            // prestashopService.addClient(payload,adresse);
+                            // prestashopService.addClientLocation(payload,adresse);
+                            // odooService.addPerson(payloadOdoo);
+                            res.json({
+                                success:true,
+                                message:result,
+                                signature:password
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message: error.message
+                            });
                         })
                     } 
                 }).catch((error)=>{
