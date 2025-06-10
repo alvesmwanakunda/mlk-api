@@ -328,30 +328,31 @@ async function getProduct(id) {
                 //binary: imageResponse.data.image.content
             });
         }*/
-        for (let image of product.associations.images) {
-            const imageResponse = await axios.get(`${prestashopUrl}images/products/${id}/${image.id}`, {
-                params: {
-                    ws_key: prestashopApiKey,
-                    output_format: 'JSON'
-                },
-                responseType: 'arraybuffer'
-            });
-        
-            // Convertir les données binaires en base64 en tranches
-            let base64Chunks = [];
-            const chunkSize = 1024 * 1024; // Taille de chaque tranche (1 Mo)
-            for (let i = 0; i < imageResponse.data.byteLength; i += chunkSize) {
-                let chunk = imageResponse.data.slice(i, i + chunkSize);
-                base64Chunks.push(arrayBufferToBase64(chunk));
+        if (product.associations && Array.isArray(product.associations.images)) {
+            for (let image of product.associations.images) {
+                const imageResponse = await axios.get(`${prestashopUrl}images/products/${id}/${image.id}`, {
+                    params: {
+                        ws_key: prestashopApiKey,
+                        output_format: 'JSON'
+                    },
+                    responseType: 'arraybuffer'
+                });
+            
+                // Convertir les données binaires en base64 en tranches
+                let base64Chunks = [];
+                const chunkSize = 1024 * 1024; // Taille de chaque tranche (1 Mo)
+                for (let i = 0; i < imageResponse.data.byteLength; i += chunkSize) {
+                    let chunk = imageResponse.data.slice(i, i + chunkSize);
+                    base64Chunks.push(arrayBufferToBase64(chunk));
+                }
+                // Concaténer les tranches de base64
+                let base64String = base64Chunks.join('');
+                produit.images.push({
+                    id: image.id,
+                    base64: base64String
+                });
             }
-            // Concaténer les tranches de base64
-            let base64String = base64Chunks.join('');
-            produit.images.push({
-                id: image.id,
-                base64: base64String
-            });
         }
-        
         
         return produit;
     } catch (error) {

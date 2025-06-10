@@ -290,9 +290,9 @@
                           user.password = crypto.createHash('md5').update(password).digest("hex");
                           user.save().then((result)=>{
                                     mailService.signup(result, password);
-                                    // prestashopService.addClient(payload,adresse);
-                                    // prestashopService.addClientLocation(payload,adresse);
-                                    // odooService.addCompany(payloadOdoo,entreprise);
+                                    prestashopService.addClient(payload,adresse);
+                                    prestashopService.addClientLocation(payload,adresse);
+                                    odooService.addCompany(payloadOdoo,entreprise);
                                     res.json({
                                         success:true,
                                         message:result,
@@ -388,9 +388,9 @@
                         user.password = crypto.createHash('md5').update(password).digest("hex");
                         user.save().then((result)=>{
                             mailService.signupParticulier(result, password);
-                            // prestashopService.addClient(payload,adresse);
-                            // prestashopService.addClientLocation(payload,adresse);
-                            // odooService.addPerson(payloadOdoo);
+                            prestashopService.addClient(payload,adresse);
+                            prestashopService.addClientLocation(payload,adresse);
+                            odooService.addPerson(payloadOdoo);
                             res.json({
                                 success:true,
                                 message:result,

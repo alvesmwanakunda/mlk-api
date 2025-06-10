@@ -6,6 +6,9 @@
     app.route('/add/produit')
     .post(Ctrl.addProduit)
 
+    app.route('/produits/prestashop')
+      .get(Ctrl.getPrestashopProduits)
+
     app.route('/produits')
       .get(Ctrl.getProduits)
 
