@@ -6,42 +6,6 @@
 
     module.exports = function(acl){
         return{
-
-            async getPrestashopProduits(req, res) {
-                try {
-                    let produits = await prestashopService.getAllProducts();
-                    let produit_list = [];
-
-                    if (produits && produits.products) {
-                        let promises = produits.products.map(async (p) => {
-                            try {
-                                let prod = await prestashopService.getProduct(p.id);
-                                console.log(prod);
-                                return prod; 
-                            } catch (error) {
-                                console.error(`Erreur pour le produit ${p.id}:`, error.message);
-                                return null;
-                            }
-                        });
-
-                        let results = await Promise.all(promises);
-                        produit_list = results.filter(prod => prod !== null); // filtre les erreurs
-                    }
-
-                    res.json({
-                        success: true,
-                        produits: produit_list
-                    });
-                } catch (error) {
-                    console.error("Erreur dans getPrestashopProduits:", error.message);
-                    res.status(500).json({
-                        success: false,
-                        message: error.message
-                    });
-                }
-            },
-
-
             getProduits:function(req,res){
                     acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
                         if(aclres){
@@ -184,16 +148,7 @@
                 })
             },
 
-            // Test api produit prestashop
-
-            getProduitTest:async function(req,res){
-                
-                let produit = await prestashopService.getProductTest(req.params.id);
-                res.json({
-                    success: true,
-                    message:produit
-                });
-            },
+           
         }
     }
 })();
