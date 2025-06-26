@@ -3,6 +3,8 @@
     "use strict";
     var Projet = require('../models/projets.model').ProjetModel;
     var Dossier = require('../models/dossiers.model').DossierModel;
+    var Entreprise = require('../models/entreprises.model').EntrepriseModel;
+    var Contact = require('../models/contacts.model').ContactModel;
     var EntrepriseService = require('../services/entreprises.service');
     var fs = require("fs");
     var codes = require('voucher-code-generator');
@@ -12,6 +14,103 @@
 
     module.exports = function(acl){
         return{
+
+            // Add Projet by odoo 
+            addProjetByOdoo(req,res,next){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+                        try {
+                            let entreprise = await Entreprise.findOne({company_id:req.body.entreprise.id});
+                            if(!entreprise){
+                                entreprise = new Entreprise();
+                                entreprise.createdDate = new Date();
+                                entreprise.company_id = req.body.entreprise.id;
+                                entreprise.societe = req.body.entreprise.name;
+                                entreprise.rue = req.body.entreprise.street;
+                                entreprise.postal = req.body.entreprise.zip;
+                                entreprise.numero = req.body.entreprise.city;
+                                entreprise.pays = req.body.entreprise.country;
+                                entreprise.type_entreprise = req.body.entreprise.type;
+                                entreprise.categorie_societe = req.body.entreprise.categorie
+                                entreprise.indicatif = req.body.entreprise.indicatif;
+                                entreprise.telephone = req.body.entreprise.phone;
+                                entreprise.email = req.body.entreprise.email;
+                                
+                                entreprise.save().then((result)=>{
+                                   entreprise = result;
+                                }).catch((error)=>{
+                                    return res.status(500).json({
+                                        success:false,
+                                        message:error.message
+                                    })
+                                })
+                            }
+                            let contact = await Contact.findOne({client_id:req.body.contact.id});
+                            if(!contact){
+                                contact = new Contact();
+                                contact.createdDate = new Date();
+                                contact.entreprise = entreprise._id;
+                                contact.contact_id = entreprise.company_id;
+                                contact.client_id = req.body.contact.id;
+                                contact.nom = req.body.contact.nom;
+                                contact.prenom = req.body.contact.prenom;
+                                contact.genre = req.body.contact.genre;
+                                contact.email = req.body.contact.email;
+                                contact.indicatif = req.body.contact.indicatif;
+                                contact.phone = req.body.contact.phone;
+                                contact.rue = req.body.contact.street;
+                                contact.postal = req.body.contact.zip;
+                                contact.poste = req.body.contact.poste;
+                                contact.save().then((result)=>{
+                                    contact = result;
+                                }).catch((error)=>{
+                                    return res.status(500).json({
+                                        success:false,
+                                        message:error.message
+                                    })
+                                })
+                            }
+                            req.body.entreprise = entreprise._id;
+                            req.body.contact = contact._id;
+                            let projet = await Projet.findOne({projet:req.body.projet});
+                            if(projet){
+                                return res.status(400).json({
+                                    success:false,
+                                    message:"Le projet existe déjà"
+                                })
+                            }else{
+                                projet = await Projet.findOne({id_odoo:req.body.id_odoo});
+                                console.log(projet);
+                                if(projet){
+                                    Projet.findOneAndUpdate({_id:projet._id},{projet:req.body.projet},{new:true}).then((result)=>{
+                                        console.log(result);
+                                        return res.json({
+                                            success:true,
+                                            message:result
+                                        })
+                                    }).catch((error)=>{
+                                        return res.status(500).json({   
+                                            success:false,
+                                            message:error.message
+                                        })
+                                    })
+                                }else{
+                                    return module.exports(acl).addProjet(req,res,next);
+                                }
+                            }
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "Vous n'êtes pas autoriser à accéder à cette ressource"
+                        }); 
+                    }})
+            },
 
             addProjet(req,res,next){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){

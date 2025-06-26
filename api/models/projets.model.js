@@ -116,7 +116,11 @@
         type:Schema.ObjectId,
             ref:"Contacts",
             required:false
-    }
+    },
+    id_odoo:{
+        type:String,
+        required:false
+    },
     });
 
     projetSchema.pre('deleteOne',{ document: true }, async function (next) {

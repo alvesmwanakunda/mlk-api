@@ -19,6 +19,8 @@
            .get(Ctrl.getProjetByEntreprise)
 
         app.post('/projet',upload.single("uploadfile"),Ctrl.addProjet)
+         // AJouter un projet par odoo
+        app.post('/projet/odoo',Ctrl.addProjetByOdoo)
         
         app.put('/projet/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjet)
 
