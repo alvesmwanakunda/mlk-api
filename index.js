@@ -11,6 +11,10 @@ const Encryption = require('./utils/Encryption');
 const config = require('./config');
 var path = require('path');
 const cors = require('cors');
+// Dépendences pour Google Authentication : passport passport-google-oauth20 express-session
+// const passport = require('passport');
+// const GoogleStrategy = require('passport-google-oauth20').Strategy;
+// const session = require('express-session');
 
 /*var admin = require("firebase-admin");
 
@@ -26,6 +30,7 @@ admin.initializeApp({
 if(process.env.NODE_ENV !=="production"){
     require("dotenv").config();
 }
+
 const port = process.env.PORT||5000;
 const MONGO_URL = process.env.MONGODB_URI;
 var acl = new node_acl(new node_acl.memoryBackend());
@@ -108,10 +113,49 @@ function initApp(){
       routeModule(app,acl);
     }
   })
+  
+  // Google Authentication
+  // passport.use(new GoogleStrategy({
+  //   clientID: process.env.GOOGLE_CLIENT_ID,
+  //   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  //   callbackURL: 'http://localhost:5000/auth/google/callback'
+  // }, (accessToken, refreshToken, profile, done) => {
+  //   // Ici tu peux créer ou rechercher l’utilisateur dans la base de données
+  //   console.log("PROFILE : ",profile._json);
+
+  //   return done(null, profile);
+  // }));
+
+  // //Save user data in session
+  // passport.serializeUser((user, done) => {
+  //   done(null, user);
+  // });
+
+  // // Retreive the data from session to use it
+  // passport.deserializeUser((obj, done) => {
+  //   done(null, obj);
+  // });
+
+  
+  // app.use(session({ secret: config.certif, resave: false, saveUninitialized: true }));
+  // app.use(passport.initialize());
+  // app.use(passport.session());
+
+  // app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+  // app.get('/auth/google/callback',
+  //   passport.authenticate('google', { failureRedirect: 'http://localhost:4200/login' }),
+  //   (req, res) => {
+  //     // const token = jwt.sign({ email: profile.emails[0].value }, config.certif, { expiresIn: '1h' });
+      
+  //     res.redirect(`http://localhost:4200`);
+  //   }
+  // );
 
   var server = app.listen(port,()=>{
     console.log(`Now listening on port ${port}`);
   });
+
   // Socket io
   var io = require('socket.io')(server,{
     cors:{origin:'*'}
@@ -121,5 +165,7 @@ function initApp(){
     global.socket=socket;
     console.log("Socket run");
   })
+
+  
 }
 

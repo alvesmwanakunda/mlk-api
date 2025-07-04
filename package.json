@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index"
   },
   "author": "",
   "license": "ISC",
@@ -19,6 +20,7 @@
     "express": "^4.21.1",
     "firebase-admin": "^13.3.0",
     "fs": "^0.0.1-security",
+    "google-auth-library": "^10.1.0",
     "iconv-lite": "^0.6.3",
     "js2xmlparser": "^5.0.0",
     "jsonwebtoken": "^9.0.0",
@@ -31,5 +33,8 @@
     "voucher-code-generator": "^1.3.0",
     "xml2js": "^0.6.2",
     "xmlrpc": "^1.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

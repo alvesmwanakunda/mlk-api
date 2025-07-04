@@ -31,7 +31,7 @@
         },
         password:{
           type: String,
-          required:true,
+          required:false,
           select:false
         },
         valid:{
@@ -68,7 +68,15 @@
          heure:{
             type:Number,
             required:false
-         }
+         },
+        source_id:{
+            type:String,
+            required:false
+        },
+        source:{
+            type:String,
+            required:false
+        }
     });
 
     module.exports = {

@@ -14,6 +14,11 @@
     var prestashopService = require('../services/prestashop.service');
     var odooService = require('../services/odoo.service');
     var codes = require('voucher-code-generator');
+    var userService = require('../services/user.service');
+
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 
 
@@ -827,6 +832,343 @@
                         }); 
                     }
                 })
+            },
+
+            googleAuth:async function(req,res){
+                const { credential } = req.body;
+                try {
+                    // Vérification du token auprès de Google
+                    const ticket = await client.verifyIdToken({
+                        idToken: credential,
+                        audience: process.env.GOOGLE_CLIENT_ID,
+                    });
+                    const payload = ticket.getPayload();
+
+                    if(payload.email_verified){
+                        const values = {
+                            prenom: payload.given_name,
+                            nom: payload.family_name,
+                            source_id: payload.sub,
+                            source: "google"
+                        }
+                        const query={
+                            email:payload.email,
+                            desactive:false,
+                            valid:true
+                        };
+                        let user = await User.findOneAndUpdate(query,values,{new:true})
+                        .then((user)=>{
+                            if(!user){
+                                return res.status(404).json({
+                                    success: false,
+                                    message: "User not found",
+                                });
+                            }else{
+                                var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'7d'});
+
+                                return res.status(200).json({
+                                    success: true,
+                                    message:{
+                                        token:token,
+                                        user:user,
+                                    }
+                                });
+                            }
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success: false,
+                                message: error.message,
+                            });
+                        });
+                    }else{
+                        return res.status(400).json({
+                            success: false,
+                            message: "Email non vérifié",
+                        });
+                    }
+                    
+                } catch (error) {
+                    res.status(400).json({ 
+                        success: false,
+                        message: "Exception :"+error.message,
+                    });
+                }
+            },
+
+            googleSignup:async function(req,res){
+                const { credential } = req.body;
+                try {
+                    // Vérification du token auprès de Google
+                    const ticket = await client.verifyIdToken({
+                        idToken: credential,
+                        audience: process.env.GOOGLE_CLIENT_ID,
+                    });
+                    const payloadGoogle = ticket.getPayload();
+
+                    if(payloadGoogle.email_verified){
+                        
+                        var user = new User();
+                        user.email = payloadGoogle.email;
+                        user.nom = payloadGoogle.family_name;
+                        user.prenom = payloadGoogle.given_name;
+                        user.role = "user";
+                        user.valid = false;
+                        user.isPerson = true;
+                        user.source_id = payloadGoogle.sub;
+                        user.source = "google";
+                        user.genre = "Mr"
+
+                        let gender=1;
+
+                        let payload={
+                            lastname: payloadGoogle.family_name,
+                            firstname: payloadGoogle.given_name,
+                            email : payloadGoogle.email,
+                            active:"1",
+                            passwd: '',
+                            id_gender:gender,
+                            id_default_group:3,
+                            phone:''
+                        };
+                        let adresse={
+                            id_country:8,
+                            alias:payloadGoogle.name,
+                            lastname: payloadGoogle.family_name,
+                            firstname: payloadGoogle.given_name,
+                            adress1:'',
+                            postcode:'',
+                            phone:'',
+                            city:'',
+                        }
+
+                        let payloadOdoo={
+                            'name': payloadGoogle.name,
+                            'company_type':"person", // Type de l'entreprise
+                            'is_company': false, // Indique qu'il s'agit d'une entreprise
+                            'street': '',
+                            'city': '',
+                            'zip': '',
+                            'country_id': false, // ID du pays (peut être défini si nécessaire)
+                            'phone': '',
+                            'email': payloadGoogle.email,
+                        }
+
+                        var query = {email:payloadGoogle.email}
+
+                        User.findOne(query).then((result)=>{
+                            if(result){
+                                return res.json({
+                                    success:false,
+                                    message: "already exists"
+                                })
+                            }else{
+                                user.save().then((result)=>{
+                                    mailService.signupParticulierSource(result, "Google");
+                                    prestashopService.addClient(payload,adresse);
+                                    prestashopService.addClientLocation(payload,adresse);
+                                    odooService.addPerson(payloadOdoo);
+                                    res.json({
+                                        success:true,
+                                        message:result
+                                    });
+                                }).catch((error)=>{
+                                    return res.status(500).json({
+                                        success:false,
+                                        message: error.message
+                                    });
+                                })
+                            } 
+                        }).catch((error)=>{
+                            
+                            return res.status(500).json({
+                                success:false,
+                                message: error.message
+                            });
+                        })
+
+                    }else{
+                        return res.status(400).json({
+                            success: false,
+                            message: "Email non vérifié",
+                        });
+                    }
+                    
+                } catch (error) {
+                    res.status(400).json({ 
+                        success: false,
+                        message: "Exception :"+error.message,
+                    });
+                }
+            },
+
+            linkedInAuth:async function(req,res){
+                const { code } = req.body;
+                try {
+                    var redirect_uri = process.env.MLKA_APP_URL + "/login";
+                    userService.getLinkedInUserInfos(code, redirect_uri).then((userInfos)=>{
+                        if(userInfos.message.email && userInfos.success == true){
+                            const values = {
+                                prenom: userInfos.message.given_name,
+                                nom: userInfos.message.family_name,
+                                source_id: userInfos.message.sub,
+                                source: "linkedin"
+                            }
+                            const query={
+                                email:userInfos.message.email,
+                                desactive:false,
+                                valid:true
+                            };
+                            
+                            User.findOneAndUpdate(query,values,{new:true})
+                            .then((user)=>{
+                                if(!user){
+                                    return res.status(404).json({
+                                        success: false,
+                                        message: "User not found",
+                                    });
+                                }else{
+                                    var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'7d'});
+
+                                    return res.status(200).json({
+                                        success: true,
+                                        message:{
+                                            token:token,
+                                            user:user,
+                                        }
+                                    });
+                                }
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success: false,
+                                    message: error.message,
+                                });
+                            });
+                        }else{
+                            return res.status(400).json({
+                                success: false,
+                                message: "Email non trouvé",
+                            });
+                        }
+                    }).catch((error)=>{
+                        console.log("ERROR :", error);
+                        res.status(400).json({ 
+                            success: false,
+                            message: "Exception :"+error.message,
+                        });
+                    });
+                    
+                } catch (error) {
+                    res.status(400).json({ 
+                        success: false,
+                        message: "Exception :"+error.message,
+                    });
+                }
+            },
+
+            linkedInSignup:async function(req,res){
+                const { code } = req.body;
+                try {
+                    var redirect_uri = process.env.MLKA_APP_URL + "/signup";
+                    userService.getLinkedInUserInfos(code, redirect_uri).then((userInfos)=>{
+                        if(userInfos.message.email && userInfos.success == true){
+                            var user = new User();
+                            user.email = userInfos.message.email;
+                            user.nom = userInfos.message.family_name;
+                            user.prenom = userInfos.message.given_name;
+                            user.role = "user";
+                            user.valid = false;
+                            user.isPerson = true;
+                            user.source_id = userInfos.message.sub;
+                            user.source = "linkedin";
+                            user.genre = "Mr"
+
+                            let gender=1;
+
+                            let payload={
+                                lastname: userInfos.message.family_name,
+                                firstname: userInfos.message.given_name,
+                                email : userInfos.message.email,
+                                active:"1",
+                                passwd: '',
+                                id_gender:gender,
+                                id_default_group:3,
+                                phone:''
+                            };
+                            let adresse={
+                                id_country:8,
+                                alias:userInfos.message.name,
+                                lastname: userInfos.message.family_name,
+                                firstname: userInfos.message.given_name,
+                                adress1:'',
+                                postcode:'',
+                                phone:'',
+                                city:'',
+                            }
+
+                            let payloadOdoo={
+                                'name': userInfos.message.name,
+                                'company_type':"person", // Type de l'entreprise
+                                'is_company': false, // Indique qu'il s'agit d'une entreprise
+                                'street': '',
+                                'city': '',
+                                'zip': '',
+                                'country_id': false, // ID du pays (peut être défini si nécessaire)
+                                'phone': '',
+                                'email': userInfos.message.email,
+                            }
+
+                            var query = {email:userInfos.message.email}
+
+                            User.findOne(query).then((result)=>{
+                                if(result){
+                                    return res.json({
+                                        success:false,
+                                        message: "already exists"
+                                    })
+                                }else{
+                                    user.save().then((result)=>{
+                                        mailService.signupParticulierSource(result, "LinkedIn");
+                                        prestashopService.addClient(payload,adresse);
+                                        prestashopService.addClientLocation(payload,adresse);
+                                        odooService.addPerson(payloadOdoo);
+                                        res.json({
+                                            success:true,
+                                            message:result
+                                        });
+                                    }).catch((error)=>{
+                                        return res.status(500).json({
+                                            success:false,
+                                            message: error.message
+                                        });
+                                    })
+                                } 
+                            }).catch((error)=>{
+                                
+                                return res.status(500).json({
+                                    success:false,
+                                    message: error.message
+                                });
+                            })
+                            
+                        }else{
+                            return res.status(400).json({
+                                success: false,
+                                message: "Email non trouvé",
+                            });
+                        }
+                    }).catch((error)=>{
+                        console.log("ERROR :", error);
+                        res.status(400).json({ 
+                            success: false,
+                            message: "Exception :"+error.message,
+                        });
+                    });
+                } catch (error) {
+                    res.status(400).json({ 
+                        success: false,
+                        message: "Exception :"+error.message,
+                    });
+                }
             },
         }
     }

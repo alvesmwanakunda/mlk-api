@@ -59,9 +59,19 @@
       app.route('/dissable/employe/:id([a-fA-F\\d]{24})')
            .get(Ctrl.dissableEmploye)
    
-        
+      // Verifiy Google Credentials for authentication
+      app.route('/auth/google')
+         .post(Ctrl.googleAuth);
+      
+      app.route('/signup/particulier/google')
+         .post(Ctrl.googleSignup);
 
-  
+      app.route('/auth/linkedin')
+         .post(Ctrl.linkedInAuth);
+
+      app.route('/signup/particulier/linkedin')
+         .post(Ctrl.linkedInSignup);
+      
 
     }
 
