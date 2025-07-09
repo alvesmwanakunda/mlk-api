@@ -15,6 +15,8 @@
     var odooService = require('../services/odoo.service');
     var codes = require('voucher-code-generator');
     var userService = require('../services/user.service');
+    const speakeasy = require('speakeasy');
+    const QRCode = require('qrcode');
 
     const { OAuth2Client } = require('google-auth-library');
     const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -98,8 +100,15 @@
                     }
                     var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'1h'});
 
-                    Role.findOne({roles:user.role}).then((role)=>{
+                    Role.findOne({roles:user.role}).then( async (role)=>{
                         //prestashopService.getClient();
+                        if(user.twoFactorEnabled && user.twoFactorType == "email"){
+                            var code = Math.floor(100000 + Math.random() * 900000);
+                            user.code = code;
+                            user.codeExpiration = new Date(Date.now() + 10 * 60 * 1000);
+                            await user.save();
+                            mailService.mailCodeAuthentication(user, user.code);
+                        }
                         res.json({
                             success: true,
                             message:{
@@ -857,7 +866,7 @@
                             valid:true
                         };
                         let user = await User.findOneAndUpdate(query,values,{new:true})
-                        .then((user)=>{
+                        .then( async (user)=>{
                             if(!user){
                                 return res.status(404).json({
                                     success: false,
@@ -866,6 +875,13 @@
                             }else{
                                 var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'7d'});
 
+                                if(user.twoFactorEnabled && user.twoFactorType == "email"){
+                                    var code = Math.floor(100000 + Math.random() * 900000);
+                                    user.code = code;
+                                    user.codeExpiration = new Date(Date.now() + 10 * 60 * 1000);
+                                    await user.save();
+                                    mailService.mailCodeAuthentication(user, user.code);
+                                }
                                 return res.status(200).json({
                                     success: true,
                                     message:{
@@ -1020,7 +1036,7 @@
                             };
                             
                             User.findOneAndUpdate(query,values,{new:true})
-                            .then((user)=>{
+                            .then( async (user)=>{
                                 if(!user){
                                     return res.status(404).json({
                                         success: false,
@@ -1028,6 +1044,14 @@
                                     });
                                 }else{
                                     var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'7d'});
+
+                                    if(user.twoFactorEnabled && user.twoFactorType == "email"){
+                                        var code = Math.floor(100000 + Math.random() * 900000);
+                                        user.code = code;
+                                        user.codeExpiration = new Date(Date.now() + 10 * 60 * 1000);
+                                        await user.save();
+                                        mailService.mailCodeAuthentication(user, user.code);
+                                    }
 
                                     return res.status(200).json({
                                         success: true,
@@ -1170,6 +1194,145 @@
                     });
                 }
             },
+
+            updateA2FAuthentication(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+
+                        let qrCode = null;
+                        let user = await User.findOne({_id:req.decoded.id});
+                        user.twoFactorEnabled = req.body.twoFactorEnabled;
+                        if (req.body.twoFactorEnabled){
+                            user.twoFactorType = req.body.twoFactorType;
+                            if(req.body.twoFactorType == "application"){
+                                const secret = speakeasy.generateSecret({ name: "Mlka App: " + user.email });
+                                user.twoFactorSecret = secret.base32;
+                                const otpauthUrl = secret.otpauth_url;
+                                // Generate QR code
+                                qrCode = await QRCode.toDataURL(otpauthUrl);
+                            }else{
+                                user.twoFactorSecret = null;
+                            }
+                        }else{
+                            user.twoFactorType = null;
+                            user.twoFactorSecret = null;
+                        }
+                    
+                        User.findOneAndUpdate({_id:req.decoded.id},user,{new:true}).then((user)=>{
+                            res.json({
+                                success:true,
+                                message:{
+                                    user : user,
+                                    qrCode: qrCode
+                                }
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
+            verifyA2FAuthentication:async function(req,res){
+                if(req.body.user_id && req.body.code && req.body.type){
+                    let user = await User.findOne({_id:req.body.user_id}).select('+code');
+                    if(user){
+                        if(req.body.type == "email"){
+                            if(user.code == req.body.code.toString() && user.codeExpiration > new Date()){
+                                user.code = null;
+                                user.codeExpiration = null;
+                                await user.save();
+
+                                var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'1h'});
+
+                                return res.status(200).json({
+                                    success: true,
+                                    message: {
+                                        token:token,
+                                        user:user
+                                    }
+                                });
+                            }else{
+                                return res.status(400).json({
+                                    success: false,
+                                    message: "Code invalid"
+                                });
+                            }
+                        }else if(req.body.type == "application"){
+                            const isValid = speakeasy.totp.verify({
+                                secret: user.twoFactorSecret,
+                                encoding: 'base32',
+                                token: req.body.code
+                            });
+                            if(isValid){
+
+                                var token = jwt.sign({id:user._id,role:Encryption.encrypt(user.role)}, config.certif,{expiresIn:'1h'});
+                                return res.status(200).json({
+                                    success: true,
+                                    message: {
+                                        token:token,
+                                        user:user
+                                    }
+                                });
+                            }else{
+                                return res.status(400).json({   
+                                    success: false,
+                                    message: "Code invalid"
+                                });
+                            }
+                        }
+                    }else{
+                        return res.status(404).json({
+                            success: false,
+                            message: "User not found"
+                        });
+                    }
+                }else{
+                    return res.status(400).json({
+                        success: false,
+                        message: "Bad request"
+                    });
+                }
+            },
+
+            resendAuthenticationEmailCode:async function(req,res){
+                if(req.body.user_id){
+                    let user = await User.findOne({_id:req.body.user_id});
+                    if(user){
+                        if(user.twoFactorEnabled && user.twoFactorType == "email"){
+                            var code = Math.floor(100000 + Math.random() * 900000);
+                            user.code = code;
+                            user.codeExpiration = new Date(Date.now() + 10 * 60 * 1000);
+                            await user.save();
+                            mailService.mailCodeAuthentication(user, user.code);
+                            return res.status(200).json({
+                                success: true,
+                                message: "Code sent"
+                            });
+                        }
+                    }else{
+                        return res.status(404).json({
+                            success: false,
+                            message: "User not found"   
+                        });
+                    }
+                }else{
+                    return res.status(400).json({
+                        success: false,
+                        message: "Bad request"
+                    });
+                }
+            }
+
         }
     }
 

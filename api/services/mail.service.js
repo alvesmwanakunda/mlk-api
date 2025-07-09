@@ -331,5 +331,58 @@ module.exports={
             
         });
     },
+    
+    mailCodeAuthentication:(user, code)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
 
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+                
+                let message = {
+                    to: user.email,
+                    subject: 'Votre code d’authentification MLKA APP',
+                    html:'Bonjour ' + user?.nom +" "+user?.prenom+ 
+                    '<br/><br/>'+ 
+                    '<p>Voici votre code d’authentification :</p>' +
+                    '<p style="font-size: 24px; font-weight: bold; color: #2c3e50; margin: 20px 0;">' + code + '</p>' +
+                    '<p>Ce code est personnel et valable pendant <b>10 minutes</b>.</p>' +
+                    '<br/>' +
+                    '<p>Si vous n\'êtes pas à l’origine de cette demande, vous pouvez ignorer cet e-mail.</p>' +
+                    '<br/>' +
+                    '<p>À très bientôt !</p>'+
+                    '<p><b>L\'équipe MLKA GROUPE</b></p>',
+                };
+
+                transporter.sendMail(message, (error, user)=>{
+                    if(error){
+                        console.log("erreur", error);
+                    }
+                    resolve(user);
+                    transporter.close();
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+    },
 }

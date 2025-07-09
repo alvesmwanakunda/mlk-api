@@ -76,6 +76,22 @@
         source:{
             type:String,
             required:false
+        },
+        twoFactorEnabled: { 
+            type: Boolean, 
+            required:false
+        },
+        twoFactorType:{
+            type:String,
+            required:false
+        },
+        twoFactorSecret: { 
+            type: String,
+            required:false
+        },
+        codeExpiration: {
+            type: Date,
+            required:false
         }
     });
 

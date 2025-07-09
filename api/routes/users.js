@@ -72,7 +72,14 @@
       app.route('/signup/particulier/linkedin')
          .post(Ctrl.linkedInSignup);
       
+      app.route('/update/profil/a2f')
+         .put(Ctrl.updateA2FAuthentication);
 
+      app.route('/verify/a2f/authentication')
+         .post(Ctrl.verifyA2FAuthentication);
+      
+      app.route('/resend/authentication/code')
+         .post(Ctrl.resendAuthenticationEmailCode);
     }
 
 })();
