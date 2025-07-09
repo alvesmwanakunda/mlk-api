@@ -47,6 +47,7 @@
             default: false
         },
         role:String,
+        
         code: {
             type: String,
             required: false,
