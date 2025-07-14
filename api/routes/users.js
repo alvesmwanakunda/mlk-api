@@ -15,8 +15,8 @@
         app.route('/reset/password')
            .post(Ctrl.changePassword);
         
-        app.route('/signup')
-           .post(Ctrl.signupUser);
+      //   app.route('/signup')
+      //      .post(Ctrl.signupUser);
 
         app.route('/signup/particulier')
            .post(Ctrl.signupUserParticulier);

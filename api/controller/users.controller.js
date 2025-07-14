@@ -210,129 +210,129 @@
                     }); 
                 })
             },
-            signupUser:function(req,res){
+            // signupUser:function(req,res){
 
-                let gender='';
+            //     let gender='';
 
-                var query = {email:req.body.email}
-                var entreprise = new Entreprise();
-                entreprise.societe = req.body.societe;
-                entreprise.nom= req.body.nom;
-                entreprise.prenom= req.body.prenom;
-                entreprise.email = req.body.email;
-                entreprise.genre= req.body.genre;
-                entreprise.siret= req.body.siret;
-                entreprise.postal= req.body.postal;
-                entreprise.rue= req.body.rue;
-                entreprise.numero= req.body.numero;
-                entreprise.adresse= req.body.adresse;
-                entreprise.indicatif = req.body.indicatif;
-                entreprise.telephone = req.body.telephone;
-                entreprise.pays = req.body.pays;
+            //     var query = {email:req.body.email}
+            //     var entreprise = new Entreprise();
+            //     entreprise.societe = req.body.societe;
+            //     entreprise.nom= req.body.nom;
+            //     entreprise.prenom= req.body.prenom;
+            //     entreprise.email = req.body.email;
+            //     entreprise.genre= req.body.genre;
+            //     entreprise.siret= req.body.siret;
+            //     entreprise.postal= req.body.postal;
+            //     entreprise.rue= req.body.rue;
+            //     entreprise.numero= req.body.numero;
+            //     entreprise.adresse= req.body.adresse;
+            //     entreprise.indicatif = req.body.indicatif;
+            //     entreprise.telephone = req.body.telephone;
+            //     entreprise.pays = req.body.pays;
 
-                /*var password = codes.generate({
-                    length: 9,
-                    count: 1,
-                    charset: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                });
-                password = password[0];*/
+            //     /*var password = codes.generate({
+            //         length: 9,
+            //         count: 1,
+            //         charset: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            //     });
+            //     password = password[0];*/
 
-                var password = req.body.password;
+            //     var password = req.body.password;
 
-                var user = new User();
-                user.email = req.body.email;
-                user.nom = req.body.nom;
-                user.prenom = req.body.prenom;
-                user.role = "user";
-                user.valid = true;
-                user.password = req.body.password;
+            //     var user = new User();
+            //     user.email = req.body.email;
+            //     user.nom = req.body.nom;
+            //     user.prenom = req.body.prenom;
+            //     user.role = "user";
+            //     user.valid = true;
+            //     user.password = req.body.password;
 
-                if(req.body.genre=='Mr'){
-                    gender=1;
-                    user.genre = "Mr"
-                }else{
-                    gender=2;
-                    user.genre = "Mlle"
-                }
+            //     if(req.body.genre=='Mr'){
+            //         gender=1;
+            //         user.genre = "Mr"
+            //     }else{
+            //         gender=2;
+            //         user.genre = "Mlle"
+            //     }
 
-                let payload={
-                    lastname: req.body.nom,
-                    firstname: req.body.prenom,
-                    email : req.body.email,
-                    active:"1",
-                    company:req.body.societe,
-                    siret: req.body.siret,
-                    passwd: password,
-                    id_gender:gender,
-                    id_default_group:3,
-                    phone:req.body.indicatif+""+req.body.telephone
-                };
-                let adresse={
-                    id_country:8,
-                    alias:req.body.prenom+""+req.body.nom,
-                    lastname: req.body.nom,
-                    firstname: req.body.prenom,
-                    adress1:req.body.rue+" "+req.body.numero,
-                    postcode:req.body.postal,
-                    phone:req.body.indicatif+""+req.body.telephone,
-                    city:req.body.rue,
-                    company:req.body.societe,
-                }
+            //     let payload={
+            //         lastname: req.body.nom,
+            //         firstname: req.body.prenom,
+            //         email : req.body.email,
+            //         active:"1",
+            //         company:req.body.societe,
+            //         siret: req.body.siret,
+            //         passwd: password,
+            //         id_gender:gender,
+            //         id_default_group:3,
+            //         phone:req.body.indicatif+""+req.body.telephone
+            //     };
+            //     let adresse={
+            //         id_country:8,
+            //         alias:req.body.prenom+""+req.body.nom,
+            //         lastname: req.body.nom,
+            //         firstname: req.body.prenom,
+            //         adress1:req.body.rue+" "+req.body.numero,
+            //         postcode:req.body.postal,
+            //         phone:req.body.indicatif+""+req.body.telephone,
+            //         city:req.body.rue,
+            //         company:req.body.societe,
+            //     }
 
-                let payloadOdoo={
-                    'name': req.body.societe,
-                    'company_type':"company",//req.body.company, // Type de l'entreprise
-                    'is_company': true, // Indique qu'il s'agit d'une entreprise
-                    'street': req.body.rue+" "+req.body.numero,
-                    'city': req.body.rue,
-                    'zip': req.body.postal,
-                    'country_id': false, // ID du pays (peut être défini si nécessaire)
-                    'phone': req.body.indicatif+""+req.body.telephone,
-                    'email': req.body.email,
-                }
+            //     let payloadOdoo={
+            //         'name': req.body.societe,
+            //         'company_type':"company",//req.body.company, // Type de l'entreprise
+            //         'is_company': true, // Indique qu'il s'agit d'une entreprise
+            //         'street': req.body.rue+" "+req.body.numero,
+            //         'city': req.body.rue,
+            //         'zip': req.body.postal,
+            //         'country_id': false, // ID du pays (peut être défini si nécessaire)
+            //         'phone': req.body.indicatif+""+req.body.telephone,
+            //         'email': req.body.email,
+            //     }
 
-                User.findOne(query).then((result)=>{
-                    if(result){
-                        return res.json({
-                            success:false,
-                            message: "already exists"
-                        })
-                    }else{
-                         entreprise.save().then((entreprise)=>{
-                          //console.log("Entreprise", entreprise);  
-                          user.entreprise=new ObjectId(entreprise._id);
-                          user.password = crypto.createHash('md5').update(password).digest("hex");
-                          user.save().then((result)=>{
-                                    mailService.signup(result, password);
-                                    prestashopService.addClient(payload,adresse);
-                                    prestashopService.addClientLocation(payload,adresse);
-                                    odooService.addCompany(payloadOdoo,entreprise);
-                                    res.json({
-                                        success:true,
-                                        message:result,
-                                        signature:password
-                                    });
-                                }).catch((error)=>{
-                                    return res.status(500).json({
-                                        success:false,
-                                        message: error.message
-                                    });
-                          })
-                         }).catch((error)=>{
-                            return res.status(500).json({
-                                success:false,
-                                message: error.message
-                            })
-                         })
-                    } 
-                }).catch((error)=>{
+            //     User.findOne(query).then((result)=>{
+            //         if(result){
+            //             return res.json({
+            //                 success:false,
+            //                 message: "already exists"
+            //             })
+            //         }else{
+            //              entreprise.save().then((entreprise)=>{
+            //               //console.log("Entreprise", entreprise);  
+            //               user.entreprise=new ObjectId(entreprise._id);
+            //               user.password = crypto.createHash('md5').update(password).digest("hex");
+            //               user.save().then((result)=>{
+            //                         mailService.signup(result, password);
+            //                         prestashopService.addClient(payload,adresse);
+            //                         prestashopService.addClientLocation(payload,adresse);
+            //                         odooService.addCompany(payloadOdoo,entreprise);
+            //                         res.json({
+            //                             success:true,
+            //                             message:result,
+            //                             signature:password
+            //                         });
+            //                     }).catch((error)=>{
+            //                         return res.status(500).json({
+            //                             success:false,
+            //                             message: error.message
+            //                         });
+            //               })
+            //              }).catch((error)=>{
+            //                 return res.status(500).json({
+            //                     success:false,
+            //                     message: error.message
+            //                 })
+            //              })
+            //         } 
+            //     }).catch((error)=>{
                     
-                    return res.status(500).json({
-                        success:false,
-                        message: error.message
-                    });
-                })
-            },
+            //         return res.status(500).json({
+            //             success:false,
+            //             message: error.message
+            //         });
+            //     })
+            // },
 
             signupUserParticulier:function(req,res){
 
@@ -350,6 +350,8 @@
                 user.valid = false;
                 user.password = password;
                 user.isPerson = true;
+                user.adresse = req.body.rue+" "+req.body.numero;
+                user.phone = req.body.indicatif+""+req.body.telephone;
 
                 if(req.body.genre=='Mr'){
                     gender=1;
@@ -380,17 +382,17 @@
                     city:req.body.rue,
                 }
 
-                let payloadOdoo={
-                    'name': req.body.prenom+" "+req.body.nom,
-                    'company_type':"person", // Type de l'entreprise
-                    'is_company': false, // Indique qu'il s'agit d'une entreprise
-                    'street': req.body.rue+" "+req.body.numero,
-                    'city': req.body.rue,
-                    'zip': req.body.postal,
-                    'country_id': false, // ID du pays (peut être défini si nécessaire)
-                    'phone': req.body.indicatif+""+req.body.telephone,
-                    'email': req.body.email,
-                }
+                // let payloadOdoo={
+                //     'name': req.body.prenom+" "+req.body.nom,
+                //     'company_type':"person", // Type de l'entreprise
+                //     'is_company': false, // Indique qu'il s'agit d'une entreprise
+                //     'street': req.body.rue+" "+req.body.numero,
+                //     'city': req.body.rue,
+                //     'zip': req.body.postal,
+                //     'country_id': false, // ID du pays (peut être défini si nécessaire)
+                //     'phone': req.body.indicatif+""+req.body.telephone,
+                //     'email': req.body.email,
+                // }
 
                 User.findOne(query).then((result)=>{
                     if(result){
@@ -404,7 +406,7 @@
                             mailService.signupParticulier(result, password);
                             prestashopService.addClient(payload,adresse);
                             prestashopService.addClientLocation(payload,adresse);
-                            odooService.addPerson(payloadOdoo);
+                            // odooService.addPerson(payloadOdoo);
                             res.json({
                                 success:true,
                                 message:result,
@@ -957,17 +959,17 @@
                             city:'',
                         }
 
-                        let payloadOdoo={
-                            'name': payloadGoogle.name,
-                            'company_type':"person", // Type de l'entreprise
-                            'is_company': false, // Indique qu'il s'agit d'une entreprise
-                            'street': '',
-                            'city': '',
-                            'zip': '',
-                            'country_id': false, // ID du pays (peut être défini si nécessaire)
-                            'phone': '',
-                            'email': payloadGoogle.email,
-                        }
+                        // let payloadOdoo={
+                        //     'name': payloadGoogle.name,
+                        //     'company_type':"person", // Type de l'entreprise
+                        //     'is_company': false, // Indique qu'il s'agit d'une entreprise
+                        //     'street': '',
+                        //     'city': '',
+                        //     'zip': '',
+                        //     'country_id': false, // ID du pays (peut être défini si nécessaire)
+                        //     'phone': '',
+                        //     'email': payloadGoogle.email,
+                        // }
 
                         var query = {email:payloadGoogle.email}
 
@@ -982,7 +984,7 @@
                                     mailService.signupParticulierSource(result, "Google");
                                     prestashopService.addClient(payload,adresse);
                                     prestashopService.addClientLocation(payload,adresse);
-                                    odooService.addPerson(payloadOdoo);
+                                    // odooService.addPerson(payloadOdoo);
                                     res.json({
                                         success:true,
                                         message:result
@@ -1129,17 +1131,17 @@
                                 city:'',
                             }
 
-                            let payloadOdoo={
-                                'name': userInfos.message.name,
-                                'company_type':"person", // Type de l'entreprise
-                                'is_company': false, // Indique qu'il s'agit d'une entreprise
-                                'street': '',
-                                'city': '',
-                                'zip': '',
-                                'country_id': false, // ID du pays (peut être défini si nécessaire)
-                                'phone': '',
-                                'email': userInfos.message.email,
-                            }
+                            // let payloadOdoo={
+                            //     'name': userInfos.message.name,
+                            //     'company_type':"person", // Type de l'entreprise
+                            //     'is_company': false, // Indique qu'il s'agit d'une entreprise
+                            //     'street': '',
+                            //     'city': '',
+                            //     'zip': '',
+                            //     'country_id': false, // ID du pays (peut être défini si nécessaire)
+                            //     'phone': '',
+                            //     'email': userInfos.message.email,
+                            // }
 
                             var query = {email:userInfos.message.email}
 
@@ -1154,7 +1156,7 @@
                                         mailService.signupParticulierSource(result, "LinkedIn");
                                         prestashopService.addClient(payload,adresse);
                                         prestashopService.addClientLocation(payload,adresse);
-                                        odooService.addPerson(payloadOdoo);
+                                        // odooService.addPerson(payloadOdoo);
                                         res.json({
                                             success:true,
                                             message:result
