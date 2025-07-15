@@ -6,6 +6,7 @@
     var Devis = require('../models/devis.model').DevisModel;
     var Fichier = require('../models/fichiers.model').FichierModel;
     var Dossier = require('../models/dossiers.model').DossierModel;
+    var Tache = require('../models/taches.model').TacheModel;
     var ProjetModule = require('../models/projetModule.model').ProjetModulesModel;
     var uploadService = require('../services/upload.service');
 
@@ -136,6 +137,8 @@
             await Dossier.deleteMany({ project: this._id });
 
             await ProjetModule.deleteMany({projet: this._id});
+
+            await Tache.deleteMany({projet: this._id});
     
             next();
         } catch (error) {
