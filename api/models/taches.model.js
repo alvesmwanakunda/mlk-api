@@ -4,6 +4,8 @@
  
     var mongoose = require("mongoose");
     var Schema = mongoose.Schema;
+    var Time = require('../models/timesheetTask.model').TimesheetTaskModel;
+    var SubTask = require('../models/sousTache.model').SousTacheModel;
 
      var tacheSchema = new Schema({
 
@@ -54,6 +56,19 @@
         date_creation: { type: Date, default: Date.now }
 
      });
+      tacheSchema.pre('deleteOne',{ document: true }, async function (next) {
+        console.log("remove",this._id);
+        try {
+            // Supprimer les devis associés
+            await Time.deleteMany({ tache: this._id });
+            await SubTask.deleteMany({ tache: this._id });
+    
+            next();
+        } catch (error) {
+            console.log(error);
+            next(error);
+        }
+    });
       module.exports = {
         tacheSchema: tacheSchema,
         TacheModel: mongoose.model('Taches',tacheSchema)
