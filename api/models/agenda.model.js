@@ -39,7 +39,12 @@
             type:Boolean,
             default:false,
             required:false
-        }
+        },
+        assigne: [{
+            type: Schema.ObjectId,
+            ref: "Users",
+            required: false
+        }]
     });
     module.exports = {
         agendaSchema: agendaSchema,

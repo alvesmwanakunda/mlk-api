@@ -122,6 +122,14 @@
         type:String,
         required:false
     },
+    latitude:{
+        type:String,
+        required: false
+    },
+    longitude:{
+        type:String,
+        required: false
+    },
     });
 
     projetSchema.pre('deleteOne',{ document: true }, async function (next) {

@@ -1,6 +1,7 @@
 var nodemailer = require('nodemailer');
 var ObjectId = require('mongoose').Types.ObjectId;
 var Conge = require('../models/conge.model').CongeModel;
+var Agenda = require ('../models/agenda.model').AgendaModel;
 
 
 module.exports={
@@ -385,4 +386,86 @@ module.exports={
             
         });
     },
+
+
+     mailPlanning:(idAgenda)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+
+                let duree;
+                let agenda = await Agenda.findOne({_id:idAgenda}).populate('assigne');
+                if(agenda.isDay){
+                    const start = new Date(agenda.start);
+                    const end = new Date(agenda.end);
+                    const diffTime = end - start; // Différence en millisecondes
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 pour inclure le jour de début
+                    duree = `${diffDays} jour(s) complet(s)`;
+                }else{
+                    const dateStart = new Date(agenda.start);
+                    const dateEnd = new Date(agenda.end);
+
+                    // Séparer les heures et minutes
+                    const [hStart, mStart] = agenda.heure_start.split(':').map(Number);
+                    const [hEnd, mEnd] = agenda.heure_end.split(':').map(Number);
+
+                    // Fixer les heures dans les dates
+                    dateStart.setHours(hStart, mStart, 0);
+                    dateEnd.setHours(hEnd, mEnd, 0);
+
+                    const diffTime = dateEnd - dateStart; // ms
+                    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+                    const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+
+                    duree = `${diffHours}h ${diffMinutes}min`;
+                }
+
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+
+                agenda?.assigne.forEach(user=>{
+
+                    //console.log("User", user);
+
+                    let message = {
+                        to:user?.email,
+                        subject: 'Planning de travail',
+                        html:'Cher(e) '+user.nom+' '+user.prenom+' '+'<br/><br/>'+ 
+                        '<p>Vous avez été assigné à l\'agenda '+agenda.title+' pour une durée '+duree+'.<p/>'+
+                        '<p>Merci.</p>'+
+                        '<p>Cordialement.</p>',
+                    };
+                    transporter.sendMail(message, (error, user)=>{
+                        if(error){
+                            console.log("erreur", error);
+                        }
+                        resolve(user);
+                        transporter.close();
+                    });
+
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+    },
+
 }

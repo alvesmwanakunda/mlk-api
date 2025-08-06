@@ -2,6 +2,9 @@
     "use strict";
     var Agenda = require("../models/agenda.model").AgendaModel;
     var AgendaProjet = require("../models/agendaProjet.model").AgendaProjetModel;
+    var ObjectId = require('mongoose').Types.ObjectId;
+    var mailService = require('../services/mail.service');
+
 
     module.exports = function(acl){
         return {
@@ -25,10 +28,20 @@
                             agenda.heure_end=req.body.heure_end;
                             agenda.heure_start=req.body.heure_start;
                             agenda.start = req.body.start;
+                            console.log("Assigne====>", req.body.assigne);
+
+                            if (req.body.assigne && Array.isArray(req.body.assigne)) {
+                                // S'assurer que ce sont bien des ObjectId
+                                agenda.assigne = req.body.assigne.map(id => new ObjectId(id));
+                            }
 
                             //console.log("Agenda", agenda);
 
                             agenda.save().then((agenda)=>{
+
+                                if(agenda?.assigne){
+                                   mailService.mailPlanning(agenda?._id);
+                                }
                                 res.json({
                                     success:true,
                                     message:agenda
@@ -66,6 +79,12 @@
                         agenda.heure_end=req.body.heure_end;
                         agenda.heure_start=req.body.heure_start;
                         agenda.start = req.body.start;
+
+                        // Nouveau : mise à jour des utilisateurs assignés
+                        //console.log("Assigne", req.body.assigne);
+                        if (req.body.assigne && Array.isArray(req.body.assigne)) {
+                            agenda.assigne = req.body.assigne.map(id => new ObjectId(id));
+                        }
 
                         Agenda.findOneAndUpdate({_id:req.params.id},agenda,{new:true}).then((agenda)=>{
                             res.json({
@@ -120,7 +139,7 @@
 
                     if(aclres){
 
-                        let agenda = await Agenda.find({user:req.decoded.id});
+                        /*let agenda = await Agenda.find({user:req.decoded.id});
                         let agendaP = await AgendaProjet.find();
                         let agendas = agenda.map((data)=>({
                             _id:data?._id,
@@ -151,10 +170,10 @@
                         res.json({
                             success: true,
                             message:combinedList
-                        });
+                        });*/
 
 
-                        /*Agenda.find({user:req.decoded.id}).then((agenda)=>{
+                        Agenda.find({user:req.decoded.id}).populate('assigne', 'nom prenom _id').then((agenda)=>{
                             let agendas = agenda.map((data)=>({
                                 _id:data?._id,
                                 title:data?.title,
@@ -165,6 +184,7 @@
                                 color:data?.color,
                                 isDay:data?.isDay,
                                 user:data?.user,
+                                assigne:data?.assigne,
                                 type:"agenda"
                             }))
                             res.json({
@@ -176,7 +196,7 @@
                                 success:false,
                                 message:error.message
                             })
-                        })*/
+                        })
 
                     }else{
                         return res.status(401).json({
@@ -226,6 +246,7 @@
                                 heure_end:data?.heure_end,
                                 color:data?.color,
                                 isDay:data?.isDay,
+                                assigne:data?.assigne,
                                 user:data?.user
                             }
                             res.json({
