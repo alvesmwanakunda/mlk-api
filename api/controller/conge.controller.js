@@ -8,6 +8,7 @@ const mailService = require("../services/mail.service");
     var TimeSheet = require('../models/timesheet.model').TimeSheetModel;
     var EmailService = require("../services/mail.service");
     var uploadService = require('../services/upload.service');
+    var AgendaService = require('../services/agenda.service');
 
 
     module.exports = function(acl){
@@ -217,6 +218,7 @@ const mailService = require("../services/mail.service");
                                     date.setDate(date.getDate()+1);
                                 }
                             }
+                            AgendaService.addAgenda(conge);
                             res.json({
                                 success:true,
                                 message:conge

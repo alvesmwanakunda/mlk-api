@@ -172,8 +172,8 @@
                             message:combinedList
                         });*/
 
-
-                        Agenda.find({user:req.decoded.id}).populate('assigne', 'nom prenom _id').then((agenda)=>{
+                        //Agenda.find({user:req.decoded.id})
+                        Agenda.find().populate('assigne', 'nom prenom _id').then((agenda)=>{
                             let agendas = agenda.map((data)=>({
                                 _id:data?._id,
                                 title:data?.title,
@@ -236,7 +236,8 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Agenda.findOne({_id:req.params.id}).then((data)=>{
+                        //Agenda.findOne({_id:req.params.id})
+                        Agenda.findOne().then((data)=>{
                             let agend = {
                                 _id:data?._id,
                                 title:data?.title,
