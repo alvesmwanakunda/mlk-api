@@ -189,8 +189,9 @@
                         projet.date_fin_contrat=req.body.date_fin_contrat;
                         projet.plan=req.body.plan;
                         projet.contact=req.body.contact;
-                        projet.latitude=req.body.latitude
-                        projet.longitude=req.body.longitude
+                        projet.latitude=req.body.latitude;
+                        projet.longitude=req.body.longitude;
+                        projet.coordonnees = req.body.coordonnees;
 
                         if(req.file){
                             if(projet.photo){
@@ -535,8 +536,9 @@
                         projet.date_limite=req.body.date_limite;
                         projet.plan=req.body.plan;
                         projet.contact=req.body.contact;
-                        projet.latitude=req.body.latitude
-                        projet.longitude=req.body.longitude
+                        projet.latitude=req.body.latitude;
+                        projet.longitude=req.body.longitude;
+                        projet.coordonnees = req.body.coordonnees;
 
 
                         if(req.file){
