@@ -12,6 +12,8 @@
             addAgenda(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                     if(aclres){
+
+                            console.log("Agenda Body",req.body);
                       
                             var agenda = new Agenda();
 
@@ -237,7 +239,7 @@
 
                     if(aclres){
                         //Agenda.findOne({_id:req.params.id})
-                        Agenda.findOne().then((data)=>{
+                        Agenda.findOne({_id:req.params.id}).then((data)=>{
                             let agend = {
                                 _id:data?._id,
                                 title:data?.title,

@@ -211,7 +211,7 @@
                               $gte: new Date(year, month - 1, 1),
                               $lt: new Date(year, month, 1)
                             }
-                          }).sort({ createdAt: 1 }).populate('responsable');
+                          }).sort({ createdAt: 1 }).populate('responsable').populate('projet');
                        
                         res.json({
                             success: true,

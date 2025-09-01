@@ -39,8 +39,9 @@
        required: false
     },
     projet:{
-        type:String,
-        required: false
+        type:Schema.ObjectId,
+        ref:"Projets",
+        required:false
     },
     motifs:{
         type:String,
