@@ -73,7 +73,7 @@
     localisation:{
         type:String,
         required: false
-      },
+    },
    });
    module.exports = {
     timeSheetSchema: timeSheetSchema,

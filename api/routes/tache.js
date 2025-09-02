@@ -14,10 +14,10 @@
 
         // Time Sheet
 
-        app.route('/time/tache/:id([a-fA-F\\d]{24})')
+         app.route('/time/tache/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllTimeByTask)
 
-        app.route('/time/taches/:id([a-fA-F\\d]{24})')
+         app.route('/time/taches/:id([a-fA-F\\d]{24})')
            .post(Ctrl.addTime)
            .put(Ctrl.updateTime)
            .delete(Ctrl.deleteTime)
