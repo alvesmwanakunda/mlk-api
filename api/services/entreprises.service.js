@@ -37,6 +37,14 @@ module.exports={
             dossier.profondeur=0;
             dossier.nom = "PV de réception";
 
+            let dossierPhoto = new Dossiers();
+            dossierPhoto.date=new Date();
+            dossierPhoto.dateLastUpdate=new Date();
+            dossierPhoto.creator=user;
+            dossierPhoto.project=projet._id;
+            dossierPhoto.profondeur=0;
+            dossierPhoto.nom = "Photos";
+
             let dossierEtat = new Dossiers();
             dossierEtat.date=new Date();
             dossierEtat.dateLastUpdate=new Date();
@@ -46,6 +54,7 @@ module.exports={
             dossierEtat.nom = "Etat de lieu";
 
             dossier.save();
+            dossierPhoto.save();
             dossierEtat.save().then((data)=>{
                 resolve({
                     status:'success',

@@ -1,6 +1,24 @@
 var fs = require("fs");
 const bucket = require("../../firebase-config");
 
+//Fichier 
+async function renameFileFromFirebaseStorage(filename, newFilename) {
+  try{
+    const destination = `files/${encodeURIComponent(newFilename)}`;
+    const path = `files/${filename}`;
+
+    // Copy the file to the new path
+    await bucket.file(path).copy(bucket.file(destination));
+    // Delete the original file
+    await bucket.file(path).delete();
+
+    return destination;
+  }catch(error){
+    // throw error;
+    console.error("Une erreur s'est produite lors de la renommation du fichier :", error);
+  }
+}
+
 // Box
 async function uploadFileToFirebaseStorage(filename) {
 
@@ -31,6 +49,7 @@ async function uploadFileToFirebaseStorage(filename) {
      //process.exit(1);
   }
 }
+
 async function deleteFirebaseStorage(filename){
 
   try {
@@ -307,5 +326,6 @@ module.exports = {
   deleteProjetsModulesFirebaseStorage,
   getSignedUrl,
   extractFilePath,
-  getSignedUrlPhoto
+  getSignedUrlPhoto,
+  renameFileFromFirebaseStorage
 };

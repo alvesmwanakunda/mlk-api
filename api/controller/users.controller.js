@@ -520,6 +520,34 @@
                 })
             },
 
+            deleteIdphone(req, res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+
+                        let user = User.findOne({_id:req.params.id});
+                        if(user){ 
+                            User.findByIdAndUpdate({_id:req.params.id},{$unset: { idPhone: 1 } },{new:true}).then(async (user)=>{
+                                console.log(user)
+                                res.json({
+                                    success:true,
+                                    message:user
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
             updatePassword(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){

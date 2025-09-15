@@ -10,6 +10,9 @@
         app.post('/fichier/projet/:id([a-fA-F\\d]{24})',upload.array("uploadfile",5),Ctrl.createProject)
 
         app.put('/fichier/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.update)
+        
+        app.route('/fichier/rename/:id([a-fA-F\\d]{24})')
+           .put(Ctrl.renameFile);
 
         app.route('/fichier/:id([a-fA-F\\d]{24})')
            .get(Ctrl.read)

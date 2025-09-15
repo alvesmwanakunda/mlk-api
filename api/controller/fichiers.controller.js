@@ -177,6 +177,62 @@
                    
                 })
             },
+            renameFile:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                        let fichier = await Fichier.findOne({_id:req.params.id});
+                        let notfound={
+                            success:false,
+                            code:"404",
+                            message:"le fichier spécifié est introuvable"
+                        };
+                        if(fichier){
+                            req.body.creator=req.decoded.id;
+                            req.body.date=new Date();
+                            req.body.dateLastUpdate=new Date();
+
+                            
+                            try {
+                                    uploadService.renameFileFromFirebaseStorage(fichier.nom, req.body.nom)
+                                    .then((downloadUrl) => {
+                                      req.body.chemin=downloadUrl;
+                                      Fichier.findByIdAndUpdate({_id:fichier._id}, req.body, { new: true })
+                                        .then((updatedFile) => {
+                                          res.json({
+                                            success: true,
+                                            message: updatedFile
+                                          });
+                                        })
+                                        .catch((error) => {
+                                          console.error(error);
+                                          return res.status(500).json({
+                                            success: false,
+                                            message: error.message
+                                          });
+                                        });
+                                    });
+                                
+                            } catch (error) {
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            }
+
+
+                        }else{
+                          res.json(notfound);
+                        }  
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
             update:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 

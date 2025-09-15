@@ -53,6 +53,10 @@
       app.route('/update/idphone')
            .put(Ctrl.updateIdPhone);
 
+      app.route('/delete/idphone/:id([a-fA-F\\d]{24})')
+           .delete(Ctrl.deleteIdphone);
+      
+
       app.route('/active/employe/:id([a-fA-F\\d]{24})')
            .get(Ctrl.activeEmploye)
 
