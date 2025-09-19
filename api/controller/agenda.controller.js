@@ -4,6 +4,8 @@
     var AgendaProjet = require("../models/agendaProjet.model").AgendaProjetModel;
     var ObjectId = require('mongoose').Types.ObjectId;
     var mailService = require('../services/mail.service');
+    var User = require("../models/users.model").UserModel;
+    var notificationService = require('../services/notification.service');
 
 
     module.exports = function(acl){
@@ -42,8 +44,15 @@
                             agenda.save().then((agenda)=>{
 
                                 if(agenda?.assigne){
-                                   mailService.mailPlanning(agenda?._id);
+                                    mailService.mailPlanning(agenda?._id);
+                                    //send notification to assigne
+                                    agenda.assigne.forEach(user=>{
+                                        User.findOne({_id:user}).then((user)=>{
+                                            notificationService.sendNotification(user.fcmToken, 'Nouvelle tâche assignée', 'La tâche \''+agenda.title+'\' vous a été assignée. Merci de vérifier votre agenda.');
+                                        });
+                                    });
                                 }
+
                                 res.json({
                                     success:true,
                                     message:agenda
@@ -89,6 +98,12 @@
                         }
 
                         Agenda.findOneAndUpdate({_id:req.params.id},agenda,{new:true}).then((agenda)=>{
+                            //send notification to assigne
+                            agenda.assigne.forEach(user=>{
+                                User.findOne({_id:user}).then((user)=>{
+                                    notificationService.sendNotification(user.fcmToken, 'Tâche assignée', 'La tâche \''+agenda.title+'\' a été modifiée. Veuillez vérifier votre agenda.');
+                                });
+                            });
                             res.json({
                                 success:true,
                                 message:agenda

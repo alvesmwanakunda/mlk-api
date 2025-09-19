@@ -93,6 +93,10 @@
         codeExpiration: {
             type: Date,
             required:false
+        },
+        fcmToken: {
+            type: String,
+            required:false
         }
     });
 
