@@ -49,12 +49,16 @@
       app.route('/transporteur')
          .post(Ctrl.addTransporteur)
          .get(Ctrl.allTransporteur);
-
+      
+      
       app.route('/update/idphone')
-           .put(Ctrl.updateIdPhone);
+           .put(Ctrl.updateIdPhoneOrFcmToken);
 
       app.route('/delete/idphone/:id([a-fA-F\\d]{24})')
            .delete(Ctrl.deleteIdphone);
+           
+      app.route('/delete/fcmtoken/:id([a-fA-F\\d]{24})')
+           .delete(Ctrl.deleteFcmToken);
       
 
       app.route('/active/employe/:id([a-fA-F\\d]{24})')
