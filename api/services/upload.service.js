@@ -1,5 +1,5 @@
 var fs = require("fs");
-const bucket = require("../../firebase-config");
+const bucket = require("../../firebase-config").bucket;
 
 //Fichier 
 async function renameFileFromFirebaseStorage(filename, newFilename) {

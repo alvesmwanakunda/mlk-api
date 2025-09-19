@@ -8,7 +8,7 @@
     var qrcodeService = require('../services/qrCode.service');
     var moduleService = require('../services/modules.service');
 
-    const bucket = require("../../firebase-config");
+    const bucket = require("../../firebase-config").bucket;
     var codes = require('voucher-code-generator');
     var fs = require("fs");
 

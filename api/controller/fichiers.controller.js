@@ -8,7 +8,7 @@
         var ObjectId = require('mongoose').Types.ObjectId;
         var fs = require("fs");
         var uploadService = require('../services/upload.service');
-        const bucket = require("../../firebase-config");
+        const bucket = require("../../firebase-config").bucket;
 
     module.exports=function(acl){
     return{
