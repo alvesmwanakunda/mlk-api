@@ -38,6 +38,9 @@
       app.route('/users')
            .get(Ctrl.allUser);
 
+      app.route('/employe/all')
+           .get(Ctrl.getAdminAndAgent);
+
       app.route('/employe')
            .get(Ctrl.allEmploye)
            .post(Ctrl.addEmploye);

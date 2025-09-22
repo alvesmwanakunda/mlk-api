@@ -830,6 +830,29 @@
                 })
             },
 
+            getAdminAndAgent(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+                        User.find({role: {$in : ["agent", "admin"]} }).then((contact)=>{
+                            res.json({
+                                success:true,
+                                message:contact
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })   
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
             allEmploye(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
