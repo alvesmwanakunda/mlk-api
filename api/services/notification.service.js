@@ -2,7 +2,7 @@ const { admin } = require('../../firebase-config');
 
 module.exports={
 
-    sendNotification:(fcmToken, title, body)=>{
+    sendNotification:(fcmToken, title, body, data)=>{
         return new Promise (async(resolve, reject)=>{
  
             try {
@@ -12,7 +12,8 @@ module.exports={
                         notification: {
                             title: title,
                             body: body
-                        }
+                        },
+                        data: data
                     };
                     await admin.messaging().send(message);
                     console.log('Notification envoyée avec succès');

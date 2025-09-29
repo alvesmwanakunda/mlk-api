@@ -48,7 +48,15 @@
                                     //send notification to assigne
                                     agenda.assigne.forEach(user=>{
                                         User.findOne({_id:user}).then((user)=>{
-                                            notificationService.sendNotification(user.fcmToken, 'Nouvelle tâche assignée', 'La tâche \''+agenda.title+'\' vous a été assignée. Merci de vérifier votre agenda.');
+                                            notificationService.sendNotification(
+                                                user.fcmToken, 
+                                                'Nouvelle tâche assignée', 
+                                                'La tâche \''+agenda.title+'\' vous a été assignée. Merci de vérifier votre agenda.',
+                                                {
+                                                    type: "agenda",
+                                                    userId: user._id.toString(),
+                                                }
+                                            );
                                         });
                                     });
                                 }
@@ -101,7 +109,14 @@
                             //send notification to assigne
                             agenda.assigne.forEach(user=>{
                                 User.findOne({_id:user}).then((user)=>{
-                                    notificationService.sendNotification(user.fcmToken, 'Tâche assignée', 'La tâche \''+agenda.title+'\' a été modifiée. Veuillez vérifier votre agenda.');
+                                    notificationService.sendNotification(
+                                        user.fcmToken, 'Tâche assignée', 
+                                        'La tâche \''+agenda.title+'\' a été modifiée. Veuillez vérifier votre agenda.',
+                                        {
+                                            type: "agenda",
+                                            userId: user._id.toString(),
+                                        }
+                                    );
                                 });
                             });
                             res.json({

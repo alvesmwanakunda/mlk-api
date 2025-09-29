@@ -376,7 +376,7 @@
                 acl.isAllowed(req.decoded.id,'projets', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Projet.findOne({_id:req.params.id}).then((projet)=>{
+                        Projet.findOne({_id:req.params.id}).populate("entreprise").then((projet)=>{
                             res.json({
                                 success: true,
                                 message:projet

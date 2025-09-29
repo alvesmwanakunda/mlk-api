@@ -1,12 +1,17 @@
 (function(){
 
-     "use strict";
-     var Tache = require('../models/taches.model').TacheModel;
-     var Timesheet = require('../models/timesheetTask.model').TimesheetTaskModel;
-     var SubTask = require('../models/sousTache.model').SousTacheModel;
+    "use strict";
+    var Tache = require('../models/taches.model').TacheModel;
+    var Timesheet = require('../models/timesheetTask.model').TimesheetTaskModel;
+    var SubTask = require('../models/sousTache.model').SousTacheModel;
+    var notificationService = require('../services/notification.service');
+    var User = require("../models/users.model").UserModel;
+    var Projet = require("../models/projets.model").ProjetModel;
 
 
-     module.exports = function(acl){
+
+
+    module.exports = function(acl){
         return {
                  
             addTache(req,res,next){
@@ -23,7 +28,23 @@
                         //if(tache.assignes)
                        
                         tache.projet = req.params.id;
-                        tache.save().then((tache)=>{
+                        tache.save().then(async (tache)=>{
+                            if(tache.assignes){
+                                let projet = await Projet.findOne({_id:tache.projet});
+                                User.findOne({_id:tache.assignes}).then((user)=>{
+                                    notificationService.sendNotification(
+                                        user.fcmToken, 
+                                        'Nouvelle tâche assignée', 
+                                        'La tâche \''+tache.titre+'\' vous a été assignée dans le projet \''+projet.projet+'\'. Merci de vérifier votre tâche.',
+                                        {
+                                            type: "tache", 
+                                            userId: user._id.toString(),
+                                            resource: "projet",
+                                            resourceId: projet._id.toString()
+                                        }
+                                    );
+                                });
+                            }
                                 res.json({
                                     success:true,
                                     message:tache
@@ -46,7 +67,23 @@
             updateTache(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                     if(aclres){
-                        Tache.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((tache)=>{
+                        Tache.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then(async (tache)=>{
+                            if(tache.assignes){
+                                let projet = await Projet.findOne({_id:tache.projet});
+                                User.findOne({_id:tache.assignes}).then((user)=>{
+                                    notificationService.sendNotification(
+                                        user.fcmToken, 
+                                        'Tâche assignée', 
+                                        'La tâche \''+tache.titre+'\' a été modifiée dans le projet \''+projet.projet+'\'. Merci de vérifier votre tâche.',
+                                        {
+                                            type: "tache", 
+                                            userId: user._id.toString(),
+                                            resource: "projet",
+                                            resourceId: projet._id.toString()
+                                        }
+                                    );
+                                });
+                            }
                             res.json({
                                 success:true,
                                 message:tache

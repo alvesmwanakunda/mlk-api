@@ -499,6 +499,13 @@
 
                         let user = User.findOne({_id:req.decoded.id});
                         if(user){ 
+                            if(req.body.fcmToken){
+                                let users = await User.find({fcmToken:req.body.fcmToken});
+                                users.forEach( user => {
+                                    user.fcmToken = undefined;
+                                    user.save();
+                                });
+                            }
                             User.findOneAndUpdate({_id:req.decoded.id},req.body,{new:true}).then(async (user)=>{
                                 res.json({
                                     success:true,
