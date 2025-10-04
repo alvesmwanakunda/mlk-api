@@ -25,6 +25,10 @@
             type:Date,
             required: false
         },
+        timeZoneOffset:{
+            type:Number,
+            required: false
+        },
         color:{
              type:String,
              default:'#03A9F4',

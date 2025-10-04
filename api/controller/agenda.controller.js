@@ -32,7 +32,7 @@
                             agenda.heure_end=req.body.heure_end;
                             agenda.heure_start=req.body.heure_start;
                             agenda.start = req.body.start;
-                            console.log("Assigne====>", req.body.assigne);
+                            agenda.timeZoneOffset = req.body.timeZoneOffset;
 
                             if (req.body.assigne && Array.isArray(req.body.assigne)) {
                                 // S'assurer que ce sont bien des ObjectId
@@ -98,6 +98,7 @@
                         agenda.heure_end=req.body.heure_end;
                         agenda.heure_start=req.body.heure_start;
                         agenda.start = req.body.start;
+                        agenda.timeZoneOffset = req.body.timeZoneOffset;
 
                         // Nouveau : mise à jour des utilisateurs assignés
                         //console.log("Assigne", req.body.assigne);
@@ -217,7 +218,8 @@
                                 isDay:data?.isDay,
                                 user:data?.user,
                                 assigne:data?.assigne,
-                                type:"agenda"
+                                type:"agenda",
+                                timeZoneOffset:data?.timeZoneOffset
                             }))
                             res.json({
                                 success: true,
@@ -280,7 +282,8 @@
                                 color:data?.color,
                                 isDay:data?.isDay,
                                 assigne:data?.assigne,
-                                user:data?.user
+                                user:data?.user,
+                                timeZoneOffset:data?.timeZoneOffset
                             }
                             res.json({
                                 success: true,
