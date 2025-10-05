@@ -28,6 +28,7 @@
                             agenda.heure_end=req.body.heure_end;
                             agenda.heure_start=req.body.heure_start;
                             agenda.start = req.body.start;
+                            agenda.timeZoneOffset = req.body.timeZoneOffset;
 
                             agenda.save().then((agenda)=>{
                                 res.json({
@@ -68,6 +69,7 @@
                         agenda.heure_end=req.body.heure_end;
                         agenda.heure_start=req.body.heure_start;
                         agenda.start = req.body.start;
+                        agenda.timeZoneOffset = req.body.timeZoneOffset;
 
 
                         Agenda.findOneAndUpdate({_id:req.params.id},agenda,{new:true}).then((agenda)=>{
@@ -134,7 +136,8 @@
                                 color:data?.color,
                                 isDay:data?.isDay,
                                 user:data?.user,
-                                projet:data?.projet
+                                projet:data?.projet,
+                                timeZoneOffset:data?.timeZoneOffset
                             }))
                             res.json({
                                 success: true,
@@ -194,7 +197,8 @@
                                 heure_end:data?.heure_end,
                                 color:data?.color,
                                 isDay:data?.isDay,
-                                user:data?.user
+                                user:data?.user,
+                                timeZoneOffset:data?.timeZoneOffset
                             }
                             res.json({
                                 success: true,
