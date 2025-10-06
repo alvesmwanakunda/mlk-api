@@ -6,6 +6,7 @@
     var mailService = require('../services/mail.service');
     var User = require("../models/users.model").UserModel;
     var notificationService = require('../services/notification.service');
+    var agendaService = require('../services/agenda.service');
 
 
     module.exports = function(acl){
@@ -18,6 +19,7 @@
                             console.log("Agenda Body",req.body);
                       
                             var agenda = new Agenda();
+                            let task=null;
 
                             if(req.body.end){
                                 agenda.end=req.body.end;
@@ -39,9 +41,34 @@
                                 agenda.assigne = req.body.assigne.map(id => new ObjectId(id));
                             }
 
+                            if (req.body.projet) {
+
+                                agenda.projet = req.body.projet;
+
+                                let assigneIds = [];
+
+                                if (Array.isArray(req.body.assigne) && req.body.assigne.length > 0) {
+                                    // On prend uniquement le premier élément du tableau
+                                    assigneIds = [new ObjectId(req.body.assigne[0])];
+                                } else if (req.body.assigne) {
+                                    // Si c’est une seule valeur (pas un tableau)
+                                    assigneIds = [new ObjectId(req.body.assigne)];
+                                }
+
+                                task = {
+                                    titre: req.body.title,
+                                    projet: req.body.projet,
+                                    assignes: assigneIds
+                                };
+                            }
+
+
                             //console.log("Agenda", agenda);
 
                             agenda.save().then((agenda)=>{
+                                if(agenda?.projet){
+                                    agendaService.addTask(task);
+                                }
 
                                 if(agenda?.assigne){
                                     mailService.mailPlanning(agenda?._id);

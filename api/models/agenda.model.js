@@ -44,6 +44,11 @@
             default:false,
             required:false
         },
+        projet: {
+            type: Schema.ObjectId,
+            ref: 'Projets',
+            required: false
+        },
         assigne: [{
             type: Schema.ObjectId,
             ref: "Users",

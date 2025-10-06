@@ -1,4 +1,5 @@
 var Agenda = require('../models/agenda.model').AgendaModel;
+var Tache = require('../models/taches.model').TacheModel;
 
 module.exports={
 
@@ -35,6 +36,37 @@ module.exports={
                 resolve({
                     success:true,
                     message:agenda,
+                });
+
+                }).catch((error)=>{
+                    reject({
+                        status:'error',
+                        body:error.message
+                    })
+                })
+            })
+    },
+
+    addTask:(tache)=>{
+        return new Promise(async(resolve,reject)=>{
+
+              var task = new Tache(tache);
+
+              /*agenda.end=conge.fin;
+              agenda.user = conge.user;
+              agenda.isDay = true;
+              agenda.title = "Vacance";
+              agenda.color = "#7f0638ff";
+              agenda.heure_end=heureEnd;
+              agenda.heure_start=heureStart;
+              agenda.start = conge.debut;
+              agenda.assigne = conge.user*/
+
+              task.save().then((tache)=>{
+                                          
+                resolve({
+                    success:true,
+                    message:tache,
                 });
 
                 }).catch((error)=>{
