@@ -20,6 +20,12 @@
             required:true
         },
 
+        agenda:{
+            type:Schema.ObjectId,
+            ref:"Agendas",
+            required:false
+        },
+
         temps:{
             type:String,
             required: false,

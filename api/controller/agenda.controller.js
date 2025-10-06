@@ -7,6 +7,7 @@
     var User = require("../models/users.model").UserModel;
     var notificationService = require('../services/notification.service');
     var agendaService = require('../services/agenda.service');
+    var Tache = require('../models/taches.model').TacheModel;
 
 
     module.exports = function(acl){
@@ -41,32 +42,31 @@
                                 agenda.assigne = req.body.assigne.map(id => new ObjectId(id));
                             }
 
-                            if (req.body.projet) {
+                             if (req.body.projet) {
 
                                 agenda.projet = req.body.projet;
-
-                                let assigneIds = [];
-
-                                if (Array.isArray(req.body.assigne) && req.body.assigne.length > 0) {
-                                    // On prend uniquement le premier élément du tableau
-                                    assigneIds = [new ObjectId(req.body.assigne[0])];
-                                } else if (req.body.assigne) {
-                                    // Si c’est une seule valeur (pas un tableau)
-                                    assigneIds = [new ObjectId(req.body.assigne)];
-                                }
-
-                                task = {
-                                    titre: req.body.title,
-                                    projet: req.body.projet,
-                                    assignes: assigneIds
-                                };
-                            }
-
+                             }
 
                             //console.log("Agenda", agenda);
 
                             agenda.save().then((agenda)=>{
                                 if(agenda?.projet){
+
+                                    let assigneIds = [];
+                                    if (Array.isArray(req.body.assigne) && req.body.assigne.length > 0) {
+                                        // On prend uniquement le premier élément du tableau
+                                        assigneIds = [new ObjectId(req.body.assigne[0])];
+                                    } else if (req.body.assigne) {
+                                        // Si c’est une seule valeur (pas un tableau)
+                                        assigneIds = [new ObjectId(req.body.assigne)];
+                                    }
+
+                                    task = {
+                                        titre: req.body.title,
+                                        projet: req.body.projet,
+                                        assignes: assigneIds,
+                                        agenda: agenda?._id,
+                                    };
                                     agendaService.addTask(task);
                                 }
 
@@ -131,6 +131,27 @@
                         //console.log("Assigne", req.body.assigne);
                         if (req.body.assigne && Array.isArray(req.body.assigne)) {
                             agenda.assigne = req.body.assigne.map(id => new ObjectId(id));
+                        }
+
+                        if (req.body.projet) {
+
+                           agenda.projet = req.body.projet;
+                           let task = await Tache.findOne({agenda:agenda._id});
+                           if(task){
+                             if(task.projet.equals(req.body.projet)){
+                                console.log("Success");
+                                let tacheObjet={
+                                    titre: req.body.title
+                                 };
+                                 agendaService.updateTask(task._id, tacheObjet);
+                             }else{
+                                 let tacheObjet={
+                                    projet:req.body.projet,
+                                    titre: req.body.title
+                                 };
+                                 agendaService.updateTask(task._id, tacheObjet);
+                             }
+                           }
                         }
 
                         Agenda.findOneAndUpdate({_id:req.params.id},agenda,{new:true}).then((agenda)=>{
@@ -310,7 +331,8 @@
                                 isDay:data?.isDay,
                                 assigne:data?.assigne,
                                 user:data?.user,
-                                timeZoneOffset:data?.timeZoneOffset
+                                timeZoneOffset:data?.timeZoneOffset,
+                                projet:data?.projet,
                             }
                             res.json({
                                 success: true,

@@ -76,5 +76,35 @@ module.exports={
                     })
                 })
             })
+    },
+     updateTask:(idtache,tache)=>{
+        return new Promise(async(resolve,reject)=>{
+
+              //var task = await Tache.findOne({_id:idtache});
+
+              /*agenda.end=conge.fin;
+              agenda.user = conge.user;
+              agenda.isDay = true;
+              agenda.title = "Vacance";
+              agenda.color = "#7f0638ff";
+              agenda.heure_end=heureEnd;
+              agenda.heure_start=heureStart;
+              agenda.start = conge.debut;
+              agenda.assigne = conge.user*/
+
+              Tache.findOneAndUpdate({_id:idtache},tache,{new:true}).then((tache)=>{
+                                          
+                resolve({
+                    success:true,
+                    message:tache,
+                });
+
+                }).catch((error)=>{
+                    reject({
+                        status:'error',
+                        body:error.message
+                    })
+                })
+            })
     }
 }
