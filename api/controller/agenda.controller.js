@@ -267,7 +267,8 @@
                                 user:data?.user,
                                 assigne:data?.assigne,
                                 type:"agenda",
-                                timeZoneOffset:data?.timeZoneOffset
+                                timeZoneOffset:data?.timeZoneOffset,
+                                projet: data?.projet
                             }))
                             res.json({
                                 success: true,
