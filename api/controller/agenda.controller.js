@@ -50,25 +50,31 @@
                             //console.log("Agenda", agenda);
 
                             agenda.save().then((agenda)=>{
-                                if(agenda?.projet){
+                                if (agenda?.projet) {
+                                    let assigneId = null; // <-- pas un tableau
 
-                                    let assigneIds = [];
-                                    if (Array.isArray(req.body.assigne) && req.body.assigne.length > 0) {
-                                        // On prend uniquement le premier élément du tableau
-                                        assigneIds = [new ObjectId(req.body.assigne[0])];
-                                    } else if (req.body.assigne) {
-                                        // Si c’est une seule valeur (pas un tableau)
-                                        assigneIds = [new ObjectId(req.body.assigne)];
+                                    const assigne = req.body?.assigne;
+
+                                    if (Array.isArray(assigne) && assigne.length > 0) {
+                                        const firstId = assigne[0];
+                                        if (firstId && ObjectId.isValid(firstId)) {
+                                        assigneId = new ObjectId(firstId);
+                                        }
+                                    } else if (assigne && ObjectId.isValid(assigne)) {
+                                        // si c’est une seule valeur
+                                        assigneId = new ObjectId(assigne);
                                     }
 
-                                    task = {
-                                        titre: req.body.title,
-                                        projet: req.body.projet,
-                                        assignes: assigneIds,
-                                        agenda: agenda?._id,
+                                    const task = {
+                                        titre: req.body?.title || '',
+                                        projet: req.body?.projet || null,
+                                        assignes: assigneId,
+                                        agenda: agenda?._id || null,
                                     };
+
                                     agendaService.addTask(task);
                                 }
+
 
                                 if(agenda?.assigne){
                                     mailService.mailPlanning(agenda?._id);
@@ -136,18 +142,34 @@
                         if (req.body.projet) {
 
                            agenda.projet = req.body.projet;
+                           let assigneId = null; // <-- pas un tableau
+
+                            const assigne = req.body?.assigne;
+
+                            if (Array.isArray(assigne) && assigne.length > 0) {
+                                const firstId = assigne[0];
+                                if (firstId && ObjectId.isValid(firstId)) {
+                                assigneId = new ObjectId(firstId);
+                                }
+                            } else if (assigne && ObjectId.isValid(assigne)) {
+                                // si c’est une seule valeur
+                                assigneId = new ObjectId(assigne);
+                            }
+
                            let task = await Tache.findOne({agenda:agenda._id});
                            if(task){
                              if(task.projet.equals(req.body.projet)){
                                 console.log("Success");
                                 let tacheObjet={
-                                    titre: req.body.title
+                                    titre: req.body.title,
+                                    assignes: assigneId,
                                  };
                                  agendaService.updateTask(task._id, tacheObjet);
                              }else{
                                  let tacheObjet={
                                     projet:req.body.projet,
-                                    titre: req.body.title
+                                    titre: req.body.title,
+                                    assignes: assigneId,
                                  };
                                  agendaService.updateTask(task._id, tacheObjet);
                              }
