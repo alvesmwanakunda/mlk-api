@@ -17,6 +17,26 @@
         app.route('/plans/module/:id([a-fA-F\\d]{24})')
            .get(Ctrl.readAll)
 
+        app.route('/plan/module/move/:id([a-fA-F\\d]{24})/:parent([a-fA-F\\d]{24})')
+           .get(Ctrl.moveFile)
+
+        // Dossier
+
+        app.route('/dossier/modulaire/module/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.list)
+           .post(Ctrl.createDossier)
+
+        app.route('/dossier/module/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.readDossier)
+           .delete(Ctrl.deleteDossier)
+           .put(Ctrl.updateDossier)
+
+        app.route('/dossier/module/read/:id([a-fA-F\\d]{24})')
+           .get(Ctrl.readOnly)
+
+        app.route('/dossier/module/move/:id([a-fA-F\\d]{24})/:parent([a-fA-F\\d]{24})')
+           .get(Ctrl.moveFolder)
+
     }
 
 

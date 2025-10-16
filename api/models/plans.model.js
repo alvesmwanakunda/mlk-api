@@ -6,7 +6,7 @@
     var uploadService = require('../services/upload.service');
 
 
-    var planModuleSchema = new Schema({
+    var planSchema = new Schema({
 
         nom: {
             type: String,
@@ -72,7 +72,7 @@
     });
 
     // Middleware pour modifier le champ "photo" après avoir récupéré un ou plusieurs documents
-    planModuleSchema.post('find', async function (docs, next) {
+    planSchema.post('find', async function (docs, next) {
       for (const doc of docs) {
       if (doc.chemin) {
           doc.chemin = await uploadService.getSignedUrl(doc.chemin);
@@ -81,14 +81,14 @@
       next();
     });
 
-    planModuleSchema.post('findOneAndUpdate', async function (doc, next) {
+    planSchema.post('findOneAndUpdate', async function (doc, next) {
         if (doc && doc.chemin) {
           doc.chemin = await uploadService.getSignedUrl(doc.chemin);
         }
         next();
     });
 
-    planModuleSchema.post('findByIdAndUpdate', async function (doc, next) {
+    planSchema.post('findByIdAndUpdate', async function (doc, next) {
         if (doc && doc.chemin) {
          doc.chemin = await uploadService.getSignedUrl(doc.chemin);
         }
@@ -96,7 +96,7 @@
     });
     
     // Middleware pour modifier le champ "photo" après avoir récupéré un seul document
-    planModuleSchema.post('findOne', async function (doc, next) {
+    planSchema.post('findOne', async function (doc, next) {
         if (doc && doc.chemin) {
         doc.chemin = await uploadService.getSignedUrl(doc.chemin);
         }
@@ -104,7 +104,7 @@
     });
     
     // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
-    planModuleSchema.post('findById', async function (doc, next) {
+    planSchema.post('findById', async function (doc, next) {
         if (doc && doc.chemin) {
         doc.chemin = await uploadService.getSignedUrl(doc.chemin);
         }
@@ -112,7 +112,7 @@
     });
 
     module.exports = {
-        PlanModuleSchema: planModuleSchema,
-        PlanModuleModel: mongoose.model('PlanModule', planModuleSchema)
+        PlanSchema:planSchema,
+        PlanModel: mongoose.model('Plans', planSchema)
     }
 })();

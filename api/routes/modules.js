@@ -90,8 +90,10 @@
       app.route('/modules/notsite/')
           .get(Ctrl.getAllModuleNotSite)
 
-      app.route('/modules/notsite/:id([a-fA-F\\d]{24})/:projet([a-fA-F\\d]{24})')
-          .get(Ctrl.addModuleProjet)
+      /*app.route('/modules/notsite/:id([a-fA-F\\d]{24})/:projet([a-fA-F\\d]{24})')
+          .get(Ctrl.addModuleProjet)*/
+      app.route('/modules/notsite/:projet([a-fA-F\\d]{24})')
+          .post(Ctrl.addModuleProjet)
 
 
 

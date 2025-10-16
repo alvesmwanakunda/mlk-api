@@ -7,6 +7,7 @@
     var notificationService = require('../services/notification.service');
     var User = require("../models/users.model").UserModel;
     var Projet = require("../models/projets.model").ProjetModel;
+    var MailService = require('../services/mail.service');
 
 
 
@@ -28,8 +29,10 @@
                         //if(tache.assignes)
                        
                         tache.projet = req.params.id;
+                        tache.user = req.decoded.id;
                         tache.save().then(async (tache)=>{
                             if(tache.assignes){
+                                MailService.mailTache(tache?._id);
                                 let projet = await Projet.findOne({_id:tache.projet});
                                 User.findOne({_id:tache.assignes}).then((user)=>{
                                     notificationService.sendNotification(
@@ -67,7 +70,12 @@
             updateTache(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                     if(aclres){
+                        let task = await Tache.findOne({_id:req.params.id});
+
                         Tache.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then(async (tache)=>{
+                            if(task.statut!=tache?.statut){
+                                MailService.mailUpdateTache(tache?._id);
+                            }
                             if(tache.assignes){
                                 let projet = await Projet.findOne({_id:tache.projet});
                                 User.findOne({_id:tache.assignes}).then((user)=>{
@@ -204,17 +212,50 @@
                         times = [times];
                     }
 
+                    const savedTimesheets = [];
+
                     // Ajouter l'ID de la tâche à chaque élément
-                    const timesToInsert = times.map(t => ({
+                    /*const timesToInsert = times.map(t => ({
                         ...t,
-                        tache: tacheId
-                    }));
+                        tache: tacheId,
+                        user: req.decoded.id
+                    }));*/
 
-                    const result = await Timesheet.insertMany(timesToInsert);
+                    for (const timeData of times) {
+                        const time = new Timesheet({
+                            ...timeData,
+                            tache: tacheId,
+                            user: req.decoded.id
+                        });
+                        
+                        const savedDoc = await time.save();
+                        savedTimesheets.push(savedDoc);
+                        
+                        // Envoyer l'email immédiatement
+                         MailService.mailSousTache(savedDoc._id)
+                            .catch(emailError => {
+                                console.error('Erreur email:', emailError);
+                            });
+                    }
 
+                    /*const result = await Timesheet.insertMany(timesToInsert);
+                    console.log("result", result);
+                    const insertedIds = Object.values(result.insertedIds);
+                    const insertedDocuments = await Timesheet.find({ 
+                            _id: { $in: insertedIds } 
+                    });
+
+                        // Envoyer les emails
+                    insertedDocuments.forEach(timesheet => {
+                        console.log("resultat", timesheet);
+                        MailService.mailSousTache(timesheet._id).catch(emailError => {
+                            console.error(`Erreur envoi email pour timesheet ${timesheet._id}:`, emailError);
+                        });
+                    });*/
+                    
                     return res.json({
                         success: true,
-                        message: result
+                        message: savedTimesheets
                     });
 
                     } catch (error) {
@@ -344,6 +385,8 @@
                     try {
                     let times = req.body; // Peut être un objet ou un tableau
                     const tacheId = req.params.id;
+                    
+
 
                     // Toujours forcer un tableau
                     if (!Array.isArray(times)) {
@@ -353,7 +396,8 @@
                     // Ajouter l'ID de la tâche à chaque élément
                     const timesToInsert = times.map(t => ({
                         ...t,
-                        tache: tacheId
+                        tache: tacheId,
+                        user: req.decoded.id
                     }));
 
                     const result = await SubTask.insertMany(timesToInsert);

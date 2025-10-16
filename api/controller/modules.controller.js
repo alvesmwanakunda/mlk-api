@@ -7,6 +7,8 @@
     var uploadService = require('../services/upload.service');
     var qrcodeService = require('../services/qrCode.service');
     var moduleService = require('../services/modules.service');
+    var Dossier = require('../models/dossiersModule.model').DossierModuleModel;
+    var Plan = require('../models/plans.model').PlanModel;
 
     const bucket = require("../../firebase-config").bucket;
     var codes = require('voucher-code-generator');
@@ -41,6 +43,7 @@
                            leadingZeros =  totalDigits - numero;
                         }
                         let module = new Modules();
+                        let plan=new Plan();
 
                         module.dateLastUpdate=new Date();
                         module.type=req.body.type;
@@ -85,9 +88,21 @@
                                 let chemin = await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);
                                 if(chemin){
                                   module.chemin = chemin;
+                                  plan.chemin= chemin;
                                 }
                             }
-                            module.save().then((data)=>{
+                            module.save().then(async (data)=>{
+
+                                if(req.files.planFile){
+                                    plan.creator=req.decoded.id;
+                                    plan.module=data._id;
+                                    plan.date=new Date();
+                                    plan.dateLastUpdate=new Date();
+                                    plan.extension=data?.extension;
+                                    plan.nom=data?.plan;
+                                    //plan.chemin=await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);;
+                                    await plan.save();
+                                }
 
                                 res.json({
                                     success: true,
@@ -127,6 +142,8 @@
                     if(aclres){
 
                         let module = await Modules.findOne({_id:req.params.id});
+                        let plan=new Plan();
+
 
                         module.dateLastUpdate=new Date();
                         module.type=req.body.type;
@@ -161,13 +178,26 @@
                                 let extension=on[on.length -1];
                                 module.extension=extension;
                                 module.plan=req.files.planFile[0].filename;
-                                uploadService.deletePlansFirebaseStorage(module.plan);
+                                //uploadService.deletePlansFirebaseStorage(module.plan);
                                 let chemin = await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);
                                 if(chemin){
                                   module.chemin = chemin;
+                                  plan.chemin= chemin;
                                 }
                             }
-                            Modules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
+                            Modules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then(async (module) => {
+
+                                        if(req.files.planFile){
+                                                plan.creator=req.decoded.id;
+                                                plan.module=module._id;
+                                                plan.date=new Date();
+                                                plan.dateLastUpdate=new Date();
+                                                plan.extension=module?.extension;
+                                                plan.nom=module?.plan;
+                                                //plan.chemin=await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);
+                                                await plan.save();
+                                        }
+
                                           //console.log("Module", module);
                                           res.json({
                                             success: true,
@@ -211,9 +241,9 @@
                         if(module.photo){
                             await uploadService.deleteModuleFirebaseStorage(module.nom_photo);
                         }
-                        if(module.chemin){
+                        /*if(module.chemin){
                             await uploadService.deletePlansFirebaseStorage(module.plan);
-                        }
+                        }*/
                         module.deleteOne().then((module)=>{
                             res.json({
                                 success: true,
@@ -444,6 +474,7 @@
 
                     if(aclres){
                         let module = await Modules.findOne({_id:req.params.id});
+                        let plan=new Plan();
                         let nameFile = module.plan;
                         try {
 
@@ -453,18 +484,29 @@
                                 let extension=on[on.length -1];
                                 module.extension=extension;
                                 module.plan=req.file.filename;
-                                uploadService.deletePlansFirebaseStorage(nameFile);
+                                //uploadService.deletePlansFirebaseStorage(nameFile);
                                 let chemin = await uploadService.uploadPlansToFirebaseStorage(req.file.filename);
                                 if(chemin){
                                   module.chemin = chemin;
+                                  plan.chemin= chemin;
                                 }
                             }
                             Modules.findByIdAndUpdate({_id:req.params.id},{
                                 extension: module.extension, // Champ à mettre à jour
                                 plan: module.plan, // Champ à mettre à jour
                                 chemin: module.chemin, // Champ à mettre à jour
-                              },{ new: true }).then((module) => {
+                              },{ new: true }).then(async (module) => {
                                           //console.log("Module", module);
+                                          if(req.file){
+                                                plan.creator=req.decoded.id;
+                                                plan.module=module._id;
+                                                plan.date=new Date();
+                                                plan.dateLastUpdate=new Date();
+                                                plan.extension=module?.extension;
+                                                plan.nom=module?.plan;
+                                               
+                                                await plan.save();
+                                        }
                                           res.json({
                                             success: true,
                                             message: module
@@ -548,6 +590,10 @@
                     if(aclres){
 
                         let module = new ProjetModules();
+                        let dossier = new Dossier();
+                        
+
+
                         module.dateLastUpdate=new Date();
                         module.module=req.params.id;
                         module.projet=req.body.projet;
@@ -560,7 +606,21 @@
                             module.plan = await uploadService.uploadProjetsModulesToFirebaseStorage(req.file.filename);
                         }
                         
-                        module.save().then((data)=>{
+                        module.save().then( async (data)=>{
+
+                            if(req.body.projet){
+
+                                let projet = await Projet.findOne({_id:req.body.projet});
+                                dossier.date=new Date();
+                                dossier.dateLastUpdate=new Date();
+                                dossier.creator=req.decoded.id;
+                                dossier.profondeur=0;
+                                dossier.module=req.params.id;
+                                dossier.nom = projet.projet;
+                                dossier.project = req.body.projet;
+                                dossier.projetmodule = data._id
+                                await dossier.save();
+                            }
 
                             res.json({
                                 success: true,
@@ -588,6 +648,7 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
                      if(aclres){
                           let module = await ProjetModules.findOne({_id:req.params.id});
+                          let dossier = await Dossier.findOne({projetmodule:req.params.id});
                           module.projet = req.body.projet;
                           let plan = module?.plan;
 
@@ -601,7 +662,13 @@
                             module.plan = await uploadService.uploadProjetsModulesToFirebaseStorage(req.file.filename);
                           }
                           
-                          ProjetModules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then((module) => {
+                          ProjetModules.findByIdAndUpdate({_id:req.params.id},module, { new: true }).then( async (module) => {
+                                if(!dossier.project.equals(module.projet)){
+                                    let projet = await Projet.findOne({_id:module.projet});
+                                    dossier.project = projet._id;
+                                    dossier.nom = projet.projet;
+                                    await Dossier.findByIdAndUpdate({_id:dossier._id}, dossier, {new:true});
+                                }
                                 res.json({
                                   success: true,
                                   message: module
@@ -1128,10 +1195,11 @@
                 })
              },
 
-             addModuleProjet:function(req,res){
+            /* addModuleProjet:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
                     if(aclres){
-                        Modules.findByIdAndUpdate({_id:req.params.id},{type:"Site"},{ new: true }).then((module) => {
+                        
+                        Modules.findByIdAndUpdate({_id:req.params.id},{ new: true }).then((module) => {
                             moduleService.addModuleProjet(req.params.id,req.params.projet);
                             res.json({
                                 success: true,
@@ -1152,7 +1220,81 @@
                         });  
                     }
                 })
-             },
+             },*/
+
+             addModuleProjet: function(req, res) {
+                acl.isAllowed(req.decoded.id, 'box', 'create', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: "Erreur ACL : " + err.message 
+                        });
+                    }
+
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "Non autorisé"
+                        });
+                    }
+
+                    try {
+                        const projetId = req.params.projet;
+                        const modulesIds = req.body.modules; // Tableau d'IDs de modules
+                        
+                        if (!Array.isArray(modulesIds) || modulesIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Veuillez sélectionner au moins un module"
+                            });
+                        }
+
+                        const results = [];
+                        
+                        // Boucle for pour ajouter chaque module un par un
+                        for (const moduleId of modulesIds) {
+                            try {
+                                // Utiliser votre service existant pour chaque module
+                                console.log("Module", moduleId);
+                                console.log("Projet", projetId);
+                                const result = await moduleService.addModuleProjet(moduleId, projetId,req.decoded.id);
+                                
+                                results.push({
+                                    moduleId: moduleId,
+                                    success: true,
+                                    data: result
+                                });
+                            } catch (error) {
+                                results.push({
+                                    moduleId: moduleId,
+                                    success: false,
+                                    error: error.message
+                                });
+                            }
+                        }
+
+                        // Compter les réussites et échecs
+                        const successful = results.filter(r => r.success);
+                        const failed = results.filter(r => !r.success);
+
+                        return res.json({
+                            success: true,
+                            message: `${successful.length} module(s) ajouté(s) avec succès${failed.length > 0 ? ', ' + failed.length + ' échec(s)' : ''}`,
+                            data: {
+                                added: successful,
+                                failed: failed
+                            }
+                        });
+
+                    } catch (error) {
+                        console.error(error);
+                        return res.status(500).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
+                });
+            },
 
              createModuleAffecteProjet:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
@@ -1175,9 +1317,10 @@
                            leadingZeros =  totalDigits - numero;
                         }
                         let module = new Modules();
+                        let plan=new Plan();
 
                         module.dateLastUpdate=new Date();
-                        module.type='Site';
+                        module.type='Stock';
                         module.nom=req.body.nom;
                         module.categorie=req.body.categorie;
                         module.position=req.body.position;
@@ -1208,10 +1351,21 @@
                                 let chemin = await uploadService.uploadPlansToFirebaseStorage(req.files.planFile[0].filename);
                                 if(chemin){
                                   module.chemin = chemin;
+                                  plan.chemin= chemin;
+
                                 }
                             }
-                            module.save().then((data)=>{
-                                moduleService.addModuleProjet(data?._id,req.params.id);
+                            module.save().then(async (data)=>{
+                                moduleService.addModuleProjet(data?._id,req.params.id,req.decoded.id);
+                                if(req.files.planFile){
+                                    plan.creator=req.decoded.id;
+                                    plan.module=data._id;
+                                    plan.date=new Date();
+                                    plan.dateLastUpdate=new Date();
+                                    plan.extension=data?.extension;
+                                    plan.nom=data?.plan;
+                                    await plan.save();
+                                }
                                 res.json({
                                     success: true,
                                     message: data

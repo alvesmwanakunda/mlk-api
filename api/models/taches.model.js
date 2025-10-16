@@ -38,6 +38,12 @@
             required:false
         },
 
+        user:{
+            type:Schema.ObjectId,
+            ref:"Users",
+            required:false
+        },
+
         date_debut:{
             type:Date,
             required: false,

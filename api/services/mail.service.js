@@ -2,6 +2,9 @@ var nodemailer = require('nodemailer');
 var ObjectId = require('mongoose').Types.ObjectId;
 var Conge = require('../models/conge.model').CongeModel;
 var Agenda = require ('../models/agenda.model').AgendaModel;
+var Tache = require('../models/taches.model').TacheModel;
+var SubTask = require('../models/sousTache.model').SousTacheModel;
+var TimeTask = require('../models/timesheetTask.model').TimesheetTaskModel;
 
 
 module.exports={
@@ -388,7 +391,7 @@ module.exports={
     },
 
 
-     mailPlanning:(idAgenda)=>{
+    mailPlanning:(idAgenda)=>{
         return new Promise(async(resolve, reject)=>{
             try {
 
@@ -467,5 +470,173 @@ module.exports={
             
         });
     },
+
+    mailTache:(idTask)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+
+                let tache = await Tache.findOne({_id:idTask}).populate('assignes').populate('user').populate('projet');
+
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+
+
+                //console.log("User", user);
+
+                let message = {
+                    to:tache?.assignes?.email,
+                    subject: 'Tâche de travail',
+                    html:'Cher(e) '+tache?.assignes?.nom+' '+tache?.assignes?.prenom+' '+'<br/><br/>'+
+                    '<p>Une tâche "'+tache?.titre+'" du projet "'+tache?.projet?.projet+'" vous est assignée par '+tache?.user?.nom+' '+tache?.user?.prenom+', pour une période du '+new Date(tache?.date_debut).toLocaleDateString('fr-FR')+' au '+new Date(tache?.date_fin).toLocaleDateString('fr-FR')+'. Merci de vous connecter sur la plateforme https://mlka.app/login</p>'+ 
+                    '<p>Merci.</p>'+
+                    '<p>Cordialement.</p>',
+                };
+                transporter.sendMail(message, (error, user)=>{
+                    if(error){
+                        console.log("erreur", error);
+                    }
+                    resolve(user);
+                    transporter.close();
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+
+    },
+
+    mailSousTache:(idSousTask)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+
+                let tache = await TimeTask.findOne({_id:idSousTask}).populate('employee').populate('user').populate({
+                    path: 'tache',
+                    populate: {
+                        path: 'projet',  // Populate le projet dans la tache
+                        select: 'projet'  // Optionnel : seulement le titre
+                    }
+                });
+                console.log("Time tache", tache);
+
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+
+
+                //console.log("User", user);
+
+                let message = {
+                    to:tache?.employee?.email,
+                    subject: 'Sous-Tâche de travail',
+                    html:'Cher(e) '+tache?.employee?.nom+' '+tache?.employee?.prenom+' '+'<br/><br/>'+
+                    '<p>Une sous-tâche "'+tache?.description+'" de la tâche "'+tache?.tache?.titre+'" du projet "'+tache?.tache?.projet?.projet+'" vous est assignée par '+tache?.user?.nom+' '+tache?.user?.prenom+', avec comme deadline le '+new Date(tache?.date).toLocaleDateString('fr-FR')+'. Merci de vous connecter sur la plateforme https://mlka.app/login</p>'+ 
+                    '<p>Merci.</p>'+
+                    '<p>Cordialement.</p>',
+                };
+                transporter.sendMail(message, (error, user)=>{
+                    if(error){
+                        console.log("erreur", error);
+                    }
+                    resolve(user);
+                    transporter.close();
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+    },
+
+    mailUpdateTache:(idTask)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+
+                let tache = await Tache.findOne({_id:idTask}).populate('assignes').populate('user').populate('projet');
+
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure:false,
+                    tls:true,
+                    auth:{
+                        user:process.env.SMTP_USERNAME,
+                        pass:process.env.SMTP_PASSWORD
+                    },
+                    logger: false,
+                    debug: false
+                },{
+                    from: 'MLKA <' + process.env.SMTP_FROM + '>',
+                    headers:{
+                        'X-Laziness-level':1000
+                    }
+                });
+
+
+                //console.log("User", user);
+
+                let message = {
+                    to:tache?.user?.email,
+                    subject: 'Mise à jour de votre tâche',
+                    html:'Cher(e) '+tache?.user?.nom+' '+tache?.user?.prenom+' '+'<br/><br/>'+
+                    '<p>Le statut de votre tâche « '+tache?.titre+' » du projet '+tache?.projet?.projet+' a été modifié.</p>'+
+                    '<p>Nouveau statut : '+tache?.statut+'.</p>'+
+                    '<p>Veuillez consulter les détails pour plus d’informations https://mlka.app/login</p>'+
+                    '<p>Merci.</p>'+
+                    '<p>Cordialement.</p>',
+                };
+                transporter.sendMail(message, (error, user)=>{
+                    if(error){
+                        console.log("erreur", error);
+                    }
+                    resolve(user);
+                    transporter.close();
+                });
+                
+            } catch (error) {
+                console.log("Erreur mail", error);
+                reject(error);
+            }
+
+            
+        });
+
+    },
+
 
 }

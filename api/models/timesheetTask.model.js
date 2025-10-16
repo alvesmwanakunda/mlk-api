@@ -8,7 +8,16 @@
      var timesheetSchema = new Schema({
 
         date: { type: Date, required: true },
-        employee: { type: String, required: true },
+        employee: {
+            type:Schema.ObjectId,
+            ref:"Users",
+            required:true
+        },
+        user:{
+            type:Schema.ObjectId,
+            ref:"Users",
+            required:false
+        },
         description: { type: String },
         hours:{
             type:String,
@@ -21,7 +30,12 @@
             ref:"Taches",
             required:true
         },
-     });
+     }/*{
+            // Assurez-vous que cette option n'est pas désactivée
+            autoCreate: true,
+            autoIndex: true
+    }*/);
+
       module.exports = {
         timesheetSchema: timesheetSchema,
         TimesheetTaskModel: mongoose.model('TimesheetTask',timesheetSchema)

@@ -7,6 +7,13 @@
 
      var sousTacheSchema = new Schema({
 
+
+        user:{
+            type:Schema.ObjectId,
+            ref:"Users",
+            required:false
+        },
+
         assignes:{
             type:Schema.ObjectId,
             ref:"Users",
