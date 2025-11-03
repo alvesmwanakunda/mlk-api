@@ -566,6 +566,46 @@
 
              },
 
+             getAllQrcodeModule:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+
+                        try{
+
+                            const {moduleIds} = req.body;
+
+                            if (!moduleIds || !Array.isArray(moduleIds)) {
+                                return res.status(400).json({
+                                    success: false,
+                                    message: "moduleIds doit être un tableau"
+                                });
+                            }
+
+                            // Générer tous les QR codes
+                            const qrcodes = await qrcodeService.modules_qrcodes(moduleIds, 200);
+                            
+                            res.json({
+                                success: true,
+                                message: qrcodes
+                            });
+                        } catch (error) {
+                            res.status(500).json({
+                                success: false,
+                                message: error.message
+                            });
+                        }
+                
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+             },
+
              getModuleQrCode:async function(req,res){
                         let module = await Modules.findOne({_id:req.params.id}).populate('entreprise');
                         if(module){
@@ -814,7 +854,13 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        ProjetModules.find({projet:req.params.id}).populate("module").then((module)=>{
+                        ProjetModules.find({projet:req.params.id}).populate({
+                            path: 'module',
+                            populate: {
+                            path: 'entreprise',
+                            model: 'Entreprises'
+                            }
+                        }).then((module)=>{
                             res.json({
                                 success: true,
                                 message:module
@@ -837,7 +883,7 @@
 
              // All module by Type
 
-             getAllModuleStock:function(req,res){
+             /*getAllModuleStock:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
@@ -860,8 +906,116 @@
                     }
                 })
 
+             },*/
+             getAllModuleStock: function(req, res) {
+                acl.isAllowed(req.decoded.id, 'box', 'create', async function(err, aclres) {
+                    if(aclres) {
+                        try {
+                            const modules = await Modules.aggregate([
+                                // Filtrer les modules en stock
+                                { $match: { type: "Stock" } },
+                                
+                                // Joindre avec ProjetModules
+                                {
+                                    $lookup: {
+                                        from: "projetmodules",
+                                        localField: "_id",
+                                        foreignField: "module",
+                                        as: "affectations"
+                                    }
+                                },
+                                
+                                // Trier les affectations par date et prendre la plus récente
+                                {
+                                    $addFields: {
+                                        derniereAffectation: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $sortArray: {
+                                                        input: "$affectations",
+                                                        sortBy: { dateLastUpdate: -1 }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    }
+                                },
+                                
+                                // Joindre avec Projets pour récupérer le nom du dernier projet
+                                {
+                                    $lookup: {
+                                        from: "projets",
+                                        localField: "derniereAffectation.projet",
+                                        foreignField: "_id",
+                                        as: "projetInfo"
+                                    }
+                                },
+                                
+                                // Déstructurer projetInfo
+                                {
+                                    $unwind: {
+                                        path: "$projetInfo",
+                                        preserveNullAndEmptyArrays: true
+                                    }
+                                },
+                                
+                                // Restructurer le résultat
+                                {
+                                    $project: {
+                                        nom: 1,
+                                        type: 1,
+                                        position: 1,
+                                        plan: 1,
+                                        photo: 1,
+                                        nom_photo: 1,
+                                        chemin: 1,
+                                        extension: 1,
+                                        hauteur: 1,
+                                        largeur: 1,
+                                        longueur: 1,
+                                        marque: 1,
+                                        categorie: 1,
+                                        numero_serie: 1,
+                                        qrcode: 1,
+                                        dateLastUpdate: 1,
+                                        dateFabrication: 1,
+                                        batiment: 1,
+                                        module_type: 1,
+                                        entreprise: 1,
+                                        isAffected: { 
+                                            $cond: [{ $ifNull: ["$derniereAffectation", false] }, true, false] 
+                                        },
+                                        nombreAffectations: { $size: "$affectations" },
+                                        projetNom: "$projetInfo.projet",
+                                        projetId: "$projetInfo._id",
+                                        /*projetPosition: "$derniereAffectation.position",
+                                        projetPlan: "$derniereAffectation.plan",
+                                        dateAffectation: "$derniereAffectation.dateLastUpdate"*/
+                                    }
+                                }
+                            ]);
+                            
+                            res.json({
+                                success: true,
+                                message: modules
+                            });
+                            
+                        } catch(error) {
+                            return res.status(500).json({
+                                success: false,
+                                message: error.message
+                            });
+                        }
+                    } else {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                });
              },
-             getAllModulePr:function(req,res){
+             /*getAllModulePr:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
@@ -884,8 +1038,114 @@
                     }
                 })
 
+             },*/
+             getAllModulePr: function(req, res) {
+                acl.isAllowed(req.decoded.id, 'box', 'create', async function(err, aclres) {
+                    if(aclres) {
+                        try {
+                            const modules = await Modules.aggregate([
+                                // Filtrer les modules en stock
+                                { $match: { type: "En préparation" } },
+                                
+                                // Joindre avec ProjetModules
+                                {
+                                    $lookup: {
+                                        from: "projetmodules",
+                                        localField: "_id",
+                                        foreignField: "module",
+                                        as: "affectations"
+                                    }
+                                },
+                                
+                                // Trier les affectations par date et prendre la plus récente
+                                {
+                                    $addFields: {
+                                        derniereAffectation: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $sortArray: {
+                                                        input: "$affectations",
+                                                        sortBy: { dateLastUpdate: -1 }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    }
+                                },
+                                
+                                // Joindre avec Projets pour récupérer le nom du dernier projet
+                                {
+                                    $lookup: {
+                                        from: "projets",
+                                        localField: "derniereAffectation.projet",
+                                        foreignField: "_id",
+                                        as: "projetInfo"
+                                    }
+                                },
+                                
+                                // Déstructurer projetInfo
+                                {
+                                    $unwind: {
+                                        path: "$projetInfo",
+                                        preserveNullAndEmptyArrays: true
+                                    }
+                                },
+                                
+                                // Restructurer le résultat
+                                {
+                                    $project: {
+                                        nom: 1,
+                                        type: 1,
+                                        position: 1,
+                                        plan: 1,
+                                        photo: 1,
+                                        nom_photo: 1,
+                                        chemin: 1,
+                                        extension: 1,
+                                        hauteur: 1,
+                                        largeur: 1,
+                                        longueur: 1,
+                                        marque: 1,
+                                        categorie: 1,
+                                        numero_serie: 1,
+                                        qrcode: 1,
+                                        dateLastUpdate: 1,
+                                        dateFabrication: 1,
+                                        batiment: 1,
+                                        module_type: 1,
+                                        entreprise: 1,
+                                        isAffected: { 
+                                            $cond: [{ $ifNull: ["$derniereAffectation", false] }, true, false] 
+                                        },
+                                        nombreAffectations: { $size: "$affectations" },
+                                        projetNom: "$projetInfo.projet",
+                                        projetId: "$projetInfo._id",
+                                        
+                                    }
+                                }
+                            ]);
+                            
+                            res.json({
+                                success: true,
+                                message: modules
+                            });
+                            
+                        } catch(error) {
+                            return res.status(500).json({
+                                success: false,
+                                message: error.message
+                            });
+                        }
+                    } else {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                });
              },
-             getAllModulePp:function(req,res){
+             /*getAllModulePp:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
@@ -908,8 +1168,113 @@
                     }
                 })
 
+             },*/
+             getAllModulePp: function(req, res) {
+                acl.isAllowed(req.decoded.id, 'box', 'create', async function(err, aclres) {
+                    if(aclres) {
+                        try {
+                            const modules = await Modules.aggregate([
+                                // Filtrer les modules en stock
+                                { $match: { type: "Prêt à partir" } },
+                                
+                                // Joindre avec ProjetModules
+                                {
+                                    $lookup: {
+                                        from: "projetmodules",
+                                        localField: "_id",
+                                        foreignField: "module",
+                                        as: "affectations"
+                                    }
+                                },
+                                
+                                // Trier les affectations par date et prendre la plus récente
+                                {
+                                    $addFields: {
+                                        derniereAffectation: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $sortArray: {
+                                                        input: "$affectations",
+                                                        sortBy: { dateLastUpdate: -1 }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    }
+                                },
+                                
+                                // Joindre avec Projets pour récupérer le nom du dernier projet
+                                {
+                                    $lookup: {
+                                        from: "projets",
+                                        localField: "derniereAffectation.projet",
+                                        foreignField: "_id",
+                                        as: "projetInfo"
+                                    }
+                                },
+                                
+                                // Déstructurer projetInfo
+                                {
+                                    $unwind: {
+                                        path: "$projetInfo",
+                                        preserveNullAndEmptyArrays: true
+                                    }
+                                },
+                                
+                                // Restructurer le résultat
+                                {
+                                    $project: {
+                                        nom: 1,
+                                        type: 1,
+                                        position: 1,
+                                        plan: 1,
+                                        photo: 1,
+                                        nom_photo: 1,
+                                        chemin: 1,
+                                        extension: 1,
+                                        hauteur: 1,
+                                        largeur: 1,
+                                        longueur: 1,
+                                        marque: 1,
+                                        categorie: 1,
+                                        numero_serie: 1,
+                                        qrcode: 1,
+                                        dateLastUpdate: 1,
+                                        dateFabrication: 1,
+                                        batiment: 1,
+                                        module_type: 1,
+                                        entreprise: 1,
+                                        isAffected: { 
+                                            $cond: [{ $ifNull: ["$derniereAffectation", false] }, true, false] 
+                                        },
+                                        nombreAffectations: { $size: "$affectations" },
+                                        projetNom: "$projetInfo.projet",
+                                        projetId: "$projetInfo._id",
+                                    }
+                                }
+                            ]);
+                            
+                            res.json({
+                                success: true,
+                                message: modules
+                            });
+                            
+                        } catch(error) {
+                            return res.status(500).json({
+                                success: false,
+                                message: error.message
+                            });
+                        }
+                    } else {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                });
              },
-             getAllModuleSite:function(req,res){
+             /*getAllModuleSite:function(req,res){
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
@@ -932,7 +1297,113 @@
                     }
                 })
 
-             },
+             },*/
+
+             getAllModuleSite: function(req, res) {
+                acl.isAllowed(req.decoded.id, 'box', 'create', async function(err, aclres) {
+                    if(aclres) {
+                        try {
+                            const modules = await Modules.aggregate([
+                                // Filtrer les modules en stock
+                                { $match: { type: "Site" } },
+                                
+                                // Joindre avec ProjetModules
+                                {
+                                    $lookup: {
+                                        from: "projetmodules",
+                                        localField: "_id",
+                                        foreignField: "module",
+                                        as: "affectations"
+                                    }
+                                },
+                                
+                                // Trier les affectations par date et prendre la plus récente
+                                {
+                                    $addFields: {
+                                        derniereAffectation: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $sortArray: {
+                                                        input: "$affectations",
+                                                        sortBy: { dateLastUpdate: -1 }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    }
+                                },
+                                
+                                // Joindre avec Projets pour récupérer le nom du dernier projet
+                                {
+                                    $lookup: {
+                                        from: "projets",
+                                        localField: "derniereAffectation.projet",
+                                        foreignField: "_id",
+                                        as: "projetInfo"
+                                    }
+                                },
+                                
+                                // Déstructurer projetInfo
+                                {
+                                    $unwind: {
+                                        path: "$projetInfo",
+                                        preserveNullAndEmptyArrays: true
+                                    }
+                                },
+                                
+                                // Restructurer le résultat
+                                {
+                                    $project: {
+                                        nom: 1,
+                                        type: 1,
+                                        position: 1,
+                                        plan: 1,
+                                        photo: 1,
+                                        nom_photo: 1,
+                                        chemin: 1,
+                                        extension: 1,
+                                        hauteur: 1,
+                                        largeur: 1,
+                                        longueur: 1,
+                                        marque: 1,
+                                        categorie: 1,
+                                        numero_serie: 1,
+                                        qrcode: 1,
+                                        dateLastUpdate: 1,
+                                        dateFabrication: 1,
+                                        batiment: 1,
+                                        module_type: 1,
+                                        entreprise: 1,
+                                        isAffected: { 
+                                            $cond: [{ $ifNull: ["$derniereAffectation", false] }, true, false] 
+                                        },
+                                        nombreAffectations: { $size: "$affectations" },
+                                        projetNom: "$projetInfo.projet",
+                                        projetId: "$projetInfo._id",
+                                    }
+                                }
+                            ]);
+                            
+                            res.json({
+                                success: true,
+                                message: modules
+                            });
+                            
+                        } catch(error) {
+                            return res.status(500).json({
+                                success: false,
+                                message: error.message
+                            });
+                        }
+                    } else {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                });
+            },
 
 
              // All module by Type and by Entreprise

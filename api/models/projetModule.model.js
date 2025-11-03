@@ -34,6 +34,8 @@
             type: String,
             required:false
         }
+    },{
+      collection: 'projetmodules'  // ← Spécifier explicitement le nom
     });
 
     // Middleware pour modifier le champ "photo" après avoir récupéré un ou plusieurs documents

@@ -18,6 +18,9 @@
         app.route('/module/qrcode/infos/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getModuleQrCode)
 
+        app.route('/module/batch-qrcodes')
+           .post(Ctrl.getAllQrcodeModule)
+
         app.route('/modules')
            .get(Ctrl.getAllModule)
 
