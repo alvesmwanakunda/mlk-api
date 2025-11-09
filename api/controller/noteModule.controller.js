@@ -4,6 +4,8 @@
      var NoteModule = require('../models/noteModule.model').NoteModuleModel
      var uploadService = require('../services/upload.service');
      const bucket = require("../../firebase-config").bucket;
+     var ObjectId = require('mongoose').Types.ObjectId;
+
 
      module.exports=function(acl){
 
@@ -27,9 +29,9 @@
 
                     try {
                         const note = new NoteModule({
-                        createdBy: req.decoded.id,
+                        createdBy: new ObjectId(req.decoded.id),
                         dateLastUpdate: new Date(),
-                        module: req.params.id,
+                        module: new ObjectId(req.params.id),
                         text: req.body.text || '',
                         type: req.body.type || 'mixed',
                         });
