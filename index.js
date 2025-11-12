@@ -11,6 +11,8 @@ const Encryption = require('./utils/Encryption');
 const config = require('./config');
 var path = require('path');
 const cors = require('cors');
+const { WebSocketServer } = require('ws');
+const speech = require('@google-cloud/speech');
 // Dépendences pour Google Authentication : passport passport-google-oauth20 express-session
 // const passport = require('passport');
 // const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -48,6 +50,53 @@ mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
     console.log(`MongoBD connection error: ${error}`);
     process.exit(1);
   });
+
+// Client Google Speech
+const client = new speech.SpeechClient({
+  keyFilename: 'mlka-547cf-6b3c1ebbeba0.json',
+});
+
+// Serveur WebSocket
+const wss = new WebSocketServer({ port: 8080 });
+wss.on('connection', (ws) => {
+  console.log('🎙️ Client connecté');
+  let recognizeStream = null;
+
+  function startRecognitionStream() {
+    recognizeStream = client
+      .streamingRecognize({
+        config: {
+          encoding: 'LINEAR16',
+          sampleRateHertz: 44100,
+          languageCode: 'fr-FR',
+          enableAutomaticPunctuation: true,
+        },
+        interimResults: true,
+      })
+      .on('error', (err) => console.error('❌ Erreur Google Speech:', err))
+      .on('data', (data) => {
+        const transcript = data.results[0]?.alternatives[0]?.transcript;
+        if (transcript) {
+          ws.send(JSON.stringify({
+            transcript,
+            isFinal: data.results[0].isFinal
+          }));
+        }
+      });
+  }
+
+  startRecognitionStream();
+
+  ws.on('message', (msg) => {
+    if (recognizeStream) recognizeStream.write(msg);
+  });
+
+  ws.on('close', () => {
+    console.log('🔌 Client déconnecté');
+    if (recognizeStream) recognizeStream.end();
+    recognizeStream = null;
+  });
+});
 
 function initApp(){
     app.use(
