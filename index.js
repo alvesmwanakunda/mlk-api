@@ -13,6 +13,10 @@ var path = require('path');
 const cors = require('cors');
 const { WebSocketServer } = require('ws');
 const speech = require('@google-cloud/speech');
+const http = require('http');
+
+
+
 // Dépendences pour Google Authentication : passport passport-google-oauth20 express-session
 // const passport = require('passport');
 // const GoogleStrategy = require('passport-google-oauth20').Strategy;
@@ -53,7 +57,7 @@ mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
 
 // Client Google Speech
 const client = new speech.SpeechClient({
-  keyFilename: 'mlka-547cf-6b3c1ebbeba0.json',
+  keyFilename: 'mlka-speech-to-text-service.json',
 });
 
 // Serveur WebSocket
@@ -73,7 +77,10 @@ wss.on('connection', (ws) => {
         },
         interimResults: true,
       })
-      .on('error', (err) => console.error('❌ Erreur Google Speech:', err))
+      .on('error', (err) => {
+        console.error('❌ Erreur Google Speech:', err);
+        stopRecognitionStream();
+      })
       .on('data', (data) => {
         const transcript = data.results[0]?.alternatives[0]?.transcript;
         if (transcript) {
@@ -85,16 +92,30 @@ wss.on('connection', (ws) => {
       });
   }
 
+  function stopRecognitionStream() {
+    if (recognizeStream && !recognizeStream.destroyed) {
+      recognizeStream.end();
+      recognizeStream = null;
+    }
+  }
+
   startRecognitionStream();
 
   ws.on('message', (msg) => {
-    if (recognizeStream) recognizeStream.write(msg);
+    // ✅ Vérifie que le flux existe et n’est pas détruit
+    if (recognizeStream && !recognizeStream.destroyed) {
+      recognizeStream.write(msg);
+    }
   });
 
   ws.on('close', () => {
     console.log('🔌 Client déconnecté');
-    if (recognizeStream) recognizeStream.end();
-    recognizeStream = null;
+    stopRecognitionStream();
+  });
+
+  ws.on('error', (err) => {
+    console.error('❌ WS error:', err);
+    stopRecognitionStream();
   });
 });
 

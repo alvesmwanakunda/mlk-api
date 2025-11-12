@@ -12,6 +12,7 @@ npm-debug.log
 yarn-error.log
 serviceAccountKey.json
 mlka-547cf-6b3c1ebbeba0.json
+mlka-speech-to-text-service.json
 
 # IDEs and editors
 .idea/
@@ -45,3 +46,4 @@ Thumbs.db
 
 *.json
 mlka-547cf-6b3c1ebbeba0.json
+mlka-speech-to-text-service.json
