@@ -37,25 +37,25 @@
     });
 
     noteModulesSchema.post('find', async function (docs, next) {
-        //console.log('📝 Post-find hook executé');
-        //console.log('📝 Nombre de documents:', docs.length);
+        console.log('📝 Post-find hook executé');
+        console.log('📝 Nombre de documents:', docs.length);
         
         try {
             for (const doc of docs) {
-            //console.log('📝 Traitement document:', doc._id);
-            //console.log('📝 Doc audio:', doc.audio ? 'PRÉSENT' : 'ABSENT');
-            //console.log('📝 Doc image:', doc.image ? 'PRÉSENT' : 'ABSENT');
+            console.log('📝 Traitement document:', doc._id);
+            console.log('📝 Doc audio:', doc.audio ? 'PRÉSENT' : 'ABSENT');
+            console.log('📝 Doc image:', doc.image ? 'PRÉSENT' : 'ABSENT');
             
             if (doc.audio && doc.audio.url) {
-                //console.log('🎵 Génération URL signée pour audio');
+                console.log('🎵 Génération URL signée pour audio');
                 doc.audio.url = await uploadService.getSignedUrl(doc.audio.url);
-                //console.log('🎵 URL audio mise à jour');
+                console.log('🎵 URL audio mise à jour');
             }
             
             if (doc.image && doc.image.url) {
-                //console.log('🖼️ Génération URL signée pour image');
+                console.log('🖼️ Génération URL signée pour image');
                 doc.image.url = await uploadService.getSignedUrl(doc.image.url);
-                //console.log('🖼️ URL image mise à jour');
+                console.log('🖼️ URL image mise à jour');
             }
             }
             next();

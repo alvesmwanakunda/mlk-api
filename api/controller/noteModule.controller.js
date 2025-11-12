@@ -162,9 +162,9 @@
                     if(aclres){
 
                         let note = await NoteModule.findOne({_id:req.params.id});
-                        if(note.image && note.image.url){
+                        if(note.image){
                             await uploadService.deleteNotesModulesFirebaseStorage(note.image.url);
-                        }else if(note.audio && note.audio.url){
+                        }else if(note.audio){
                             await uploadService.deleteNotesModulesFirebaseStorage(note.audio.url);
                         }
                         
@@ -196,7 +196,7 @@
                 if (!allowed) return res.status(401).json({ success: false, message: 'Non autorisé' });
 
                 try {
-                    const note = await NoteModule.findById(req.params.id);
+                    const note = await NoteModule.findById(req.params.noteId);
                     if (!note) return res.status(404).json({ success: false, message: 'Note introuvable' });
 
                     note.text = req.body.text ?? note.text;
