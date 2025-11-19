@@ -8,7 +8,11 @@
 
 
     var noteModulesSchema = new Schema({
-        //projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+        project: { 
+            type: Schema.ObjectId, 
+            ref: 'Projets', 
+            required: false 
+        },
         type: { type: String, enum: ['text','audio','image','mixed'], default: 'mixed' },
         text: { type: String },
         audio: {

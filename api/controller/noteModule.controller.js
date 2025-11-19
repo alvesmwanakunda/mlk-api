@@ -5,6 +5,7 @@
      var uploadService = require('../services/upload.service');
      const bucket = require("../../firebase-config").bucket;
      var ObjectId = require('mongoose').Types.ObjectId;
+     var ProjetModule = require('../models/projetModule.model').ProjetModulesModel
 
 
      module.exports=function(acl){
@@ -28,13 +29,31 @@
                     }
 
                     try {
-                        const note = new NoteModule({
+
+                        let projet = await ProjetModule.findOne({module:req.params.id}).sort({ _id: -1 });
+
+                        /*const note = new NoteModule({
                         createdBy: new ObjectId(req.decoded.id),
                         dateLastUpdate: new Date(),
                         module: new ObjectId(req.params.id),
                         text: req.body.text || '',
                         type: req.body.type || 'mixed',
-                        });
+                        });*/
+
+                        const noteData = {
+                            createdBy: new ObjectId(req.decoded.id),
+                            dateLastUpdate: new Date(),
+                            module: new ObjectId(req.params.id),
+                            text: req.body.text || '',
+                            type: req.body.type || 'mixed',
+                        };
+
+                        if (projet) {
+                           noteData.project = projet.projet;
+                        }
+
+                        const note = new NoteModule(noteData);
+
 
                         if (req.body.annotationJSON) {
                         try {
@@ -111,6 +130,31 @@
 
                     if(aclres){
                         NoteModule.find({module:req.params.id}).populate('createdBy', 'nom prenom email').sort({ dateLastUpdate: -1 }).then((notes)=>{
+                            res.json({
+                                success: true,
+                                message:notes
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });  
+                    }
+                })
+
+            },
+
+            getAllNoteModuleProjet:function(req,res){
+                acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
+
+                    if(aclres){
+                        NoteModule.find({project:req.params.id}).populate('createdBy', 'nom prenom email').sort({ dateLastUpdate: -1 }).then((notes)=>{
                             res.json({
                                 success: true,
                                 message:notes
