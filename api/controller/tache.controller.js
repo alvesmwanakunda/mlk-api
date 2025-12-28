@@ -8,6 +8,8 @@
     var User = require("../models/users.model").UserModel;
     var Projet = require("../models/projets.model").ProjetModel;
     var MailService = require('../services/mail.service');
+    var uploadService = require('../services/upload.service');
+
 
 
 
@@ -30,6 +32,24 @@
                        
                         tache.projet = req.params.id;
                         tache.user = req.decoded.id;
+
+                        if (req.files?.image?.[0]) {
+                            const imageFile = req.files.image[0];
+                            try {
+                                const imageUrl = await uploadService.uploadTachesToFirebaseStorage(imageFile.filename);
+                                tache.image = {
+                                url: imageUrl,
+                                width: req.body.imageWidth || null,
+                                height: req.body.imageHeight || null,
+                                };
+                            } catch (err) {
+                                console.error('Erreur upload image:', err);
+                                return res.status(500).json({
+                                success: false,
+                                message: 'Erreur lors de l’upload de l’image',
+                                });
+                            }
+                        }
                         tache.save().then(async (tache)=>{
                             if(tache.assignes){
                                 MailService.mailTache(tache?._id);
@@ -72,8 +92,28 @@
                     if(aclres){
                         let task = await Tache.findOne({_id:req.params.id});
 
-                        Tache.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then(async (tache)=>{
-                            if(task.statut!=tache?.statut){
+                        const updatePayload = { ...req.body };
+
+                        if (req.files?.image?.[0]) {
+                            const imageFile = req.files.image[0];
+                            try {
+                                const imageUrl = await uploadService.uploadTachesToFirebaseStorage(imageFile.filename);
+                                updatePayload.image = {
+                                url: imageUrl,
+                                width: req.body.imageWidth || null,
+                                height: req.body.imageHeight || null,
+                                };
+                            } catch (err) {
+                                console.error('Erreur upload image:', err);
+                                return res.status(500).json({
+                                success: false,
+                                message: 'Erreur lors de l’upload de l’image',
+                                });
+                            }
+                        }
+
+                        Tache.findOneAndUpdate({_id:req.params.id},updatePayload,{new:true}).then(async (tache)=>{
+                            if(task.statut!=tache?.statut && tache.assignes){
                                 MailService.mailUpdateTache(tache?._id);
                             }
                             if(tache.assignes){
@@ -117,6 +157,9 @@
                     if(aclres){
 
                         let tache = await Tache.findOne({_id:req.params.id});
+                        if(tache.image && tache.image.url){
+                            await uploadService.deleteTachesFirebaseStorage(tache.image.url);
+                        }
                         tache.deleteOne().then((tache)=>{
                             res.json({
                                 success: true,
@@ -385,6 +428,7 @@
                     try {
                     let times = req.body; // Peut être un objet ou un tableau
                     const tacheId = req.params.id;
+
                     
 
 

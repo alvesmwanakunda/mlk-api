@@ -26,6 +26,12 @@
             required:true
         },
 
+        image: {
+            url: String,       
+            width: Number,
+            height: Number
+        },
+
         date_creation: { type: Date, default: Date.now },
 
         description:{

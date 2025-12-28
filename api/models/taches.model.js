@@ -6,6 +6,8 @@
     var Schema = mongoose.Schema;
     var Time = require('../models/timesheetTask.model').TimesheetTaskModel;
     var SubTask = require('../models/sousTache.model').SousTacheModel;
+    var uploadService = require('../services/upload.service');
+
 
      var tacheSchema = new Schema({
 
@@ -65,10 +67,43 @@
             default: 'A Faire'
         },
 
+        image: {
+            url: String,       
+            width: Number,
+            height: Number
+        },
+
         date_creation: { type: Date, default: Date.now }
 
      });
-      tacheSchema.pre('deleteOne',{ document: true }, async function (next) {
+    tacheSchema.post('find', async function (docs, next) { 
+        try {
+            for (const doc of docs) {
+            if (doc.image && doc.image.url) {
+                doc.image.url = await uploadService.getSignedUrl(doc.image.url);
+            }
+            }
+            next();
+        } catch (error) {
+            console.error('❌ Erreur dans post-find hook:', error);
+            next(error);
+        }
+    }); 
+
+      // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
+    tacheSchema.post('findById', async function (doc, next) {
+        if (doc && doc.image) {
+        doc.image.url = await uploadService.getSignedUrl(doc.image.url);
+        }
+        next();
+    });
+    tacheSchema.post('findOne', async function (doc, next) {
+        if (doc && doc.image.url) {
+         doc.image.url = await uploadService.getSignedUrl(doc.image.url);
+        }
+        next();
+    });
+    tacheSchema.pre('deleteOne',{ document: true }, async function (next) {
         console.log("remove",this._id);
         try {
             // Supprimer les devis associés
@@ -81,7 +116,7 @@
             next(error);
         }
     });
-      module.exports = {
+    module.exports = {
         tacheSchema: tacheSchema,
         TacheModel: mongoose.model('Taches',tacheSchema)
      }

@@ -2,13 +2,19 @@
     'use strict';
     module.exports = function(app,acl){
         var Ctrl = require('../controller/tache.controller')(acl);
+        var upload = require("../../middlewares/upload")
+
 
         app.route('/taches/projet/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllTacheByProjet)
 
+       app.post('/taches/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'image' }]), Ctrl.addTache);
+       app.put('/taches/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'image' }]), Ctrl.updateTache);
+
+
         app.route('/taches/:id([a-fA-F\\d]{24})')
-           .post(Ctrl.addTache)
-           .put(Ctrl.updateTache)
+           //.post(Ctrl.addTache)
+           //.put(Ctrl.updateTache)
            .delete(Ctrl.deleteTache)
            .get(Ctrl.getTache)
 
