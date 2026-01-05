@@ -255,20 +255,33 @@
                         times = [times];
                     }
 
-                    const savedTimesheets = [];
+                    let imagePayload = null;
+                    if (req.files?.image?.[0]) {
+                            const imageFile = req.files.image[0];
+                            try {
+                                const imageUrl = await uploadService.uploadTachesToFirebaseStorage(imageFile.filename);
+                                imagePayload = {
+                                    url: imageUrl,
+                                    width: req.body.imageWidth || null,
+                                    height: req.body.imageHeight || null,
+                                };
+                            } catch (err) {
+                                console.error('Erreur upload image:', err);
+                                return res.status(500).json({
+                                success: false,
+                                message: 'Erreur lors de l’upload de l’image',
+                                });
+                            }
+                    }
 
-                    // Ajouter l'ID de la tâche à chaque élément
-                    /*const timesToInsert = times.map(t => ({
-                        ...t,
-                        tache: tacheId,
-                        user: req.decoded.id
-                    }));*/
+                    const savedTimesheets = [];
 
                     for (const timeData of times) {
                         const time = new Timesheet({
                             ...timeData,
                             tache: tacheId,
-                            user: req.decoded.id
+                            user: req.decoded.id,
+                            ...(imagePayload ? {image: imagePayload}:{}),
                         });
                         
                         const savedDoc = await time.save();
@@ -280,21 +293,6 @@
                                 console.error('Erreur email:', emailError);
                             });
                     }
-
-                    /*const result = await Timesheet.insertMany(timesToInsert);
-                    console.log("result", result);
-                    const insertedIds = Object.values(result.insertedIds);
-                    const insertedDocuments = await Timesheet.find({ 
-                            _id: { $in: insertedIds } 
-                    });
-
-                        // Envoyer les emails
-                    insertedDocuments.forEach(timesheet => {
-                        console.log("resultat", timesheet);
-                        MailService.mailSousTache(timesheet._id).catch(emailError => {
-                            console.error(`Erreur envoi email pour timesheet ${timesheet._id}:`, emailError);
-                        });
-                    });*/
                     
                     return res.json({
                         success: true,
@@ -313,7 +311,29 @@
             updateTime(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                     if(aclres){
-                        Timesheet.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((time)=>{
+
+                        const updatePayload = { ...req.body };
+
+                        if (req.files?.image?.[0]) {
+                            const imageFile = req.files.image[0];
+                            try {
+                                const imageUrl = await uploadService.uploadTachesToFirebaseStorage(imageFile.filename);
+                                updatePayload.image = {
+                                url: imageUrl,
+                                width: req.body.imageWidth || null,
+                                height: req.body.imageHeight || null,
+                                };
+                            } catch (err) {
+                                console.error('Erreur upload image:', err);
+                                return res.status(500).json({
+                                success: false,
+                                message: 'Erreur lors de l’upload de l’image',
+                                });
+                            }
+                        }
+
+
+                        Timesheet.findOneAndUpdate({_id:req.params.id},updatePayload,{new:true}).then((time)=>{
                             res.json({
                                 success:true,
                                 message:time
