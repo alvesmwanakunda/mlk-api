@@ -361,6 +361,48 @@ async function deleteTachesFirebaseStorage(filename){
   }
 }
 
+async function uploadPVToFirebaseStorage(filename) {
+
+  const path = `./public/${filename}`;
+  const destination = `pvreception/${filename}`
+
+  try {
+    await bucket.upload(path, {
+      destination: destination
+    });
+
+    /*const [url] = await bucket.file(`projetmodules/${filename}`).getSignedUrl({
+      action: "read",
+      expires: "03-17-2025"
+    });*/
+
+    fs.unlink(path, (err) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+    });
+    return destination;
+  } catch (error) {
+    //throw error;
+    console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
+    // Vous pouvez choisir d'arrêter l'application ici si vous le souhaitez
+     //process.exit(1);
+  }
+}
+async function deletePVFirebaseStorage(filename){
+
+  try {
+    await bucket.file(`pvreception/${filename}`).delete();
+
+  } catch (error) {
+     //throw error;
+     console.error("Une erreur s'est produite lors de la suppression du fichier :", error);
+    // Vous pouvez choisir d'arrêter l'application ici si vous le souhaitez
+     //process.exit(1);
+  }
+}
+
 
 async function getSignedUrl(filePath) {
   try {
@@ -416,5 +458,7 @@ module.exports = {
   uploadNotesModulesToFirebaseStorage,
   deleteNotesModulesFirebaseStorage,
   uploadTachesToFirebaseStorage,
-  deleteTachesFirebaseStorage
+  deleteTachesFirebaseStorage,
+  uploadPVToFirebaseStorage,
+  deletePVFirebaseStorage
 };

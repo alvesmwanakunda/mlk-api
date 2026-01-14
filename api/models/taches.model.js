@@ -89,8 +89,7 @@
             next(error);
         }
     }); 
-
-      // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
+    // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
     tacheSchema.post('findById', async function (doc, next) {
         if (doc && doc.image) {
         doc.image.url = await uploadService.getSignedUrl(doc.image.url);
