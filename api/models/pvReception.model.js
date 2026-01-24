@@ -13,12 +13,20 @@
         signatureUrl: { type: String }, 
     }, { _id: false });
 
+   
+    const PersonnePresentSchema = new mongoose.Schema({
+       nom:{type:String},
+       prenom:{type:String},
+    },{_id:false});
+
     const ReserveItemSchema = new mongoose.Schema({
         index: { type: Number }, // #
         nature: { type: String, required: true },           // "Nature des réserves"
         travauxAExecuter: { type: String, required: true }, // "Travaux à exécuter"
         photoUrl: { type: String },                         // "Photo"
-        etat: { type: String, enum: ['Non levée', 'Levée','Observation'], default: 'Non levée' } // "Etat réserve"
+        etat: { type: String, enum: ['Non levée', 'Levée','Observation'], default: 'Non levée' }, // "Etat réserve"
+        leveeDate: { type: Date },
+        photoLevee: { type: String }, 
     }, { _id: true, timestamps: true });
 
     var pvReceptionSchema = new Schema({
@@ -43,6 +51,7 @@
         // Cas WITH_RESERVES
         nextReceptionDate: { type: Date },             // "Date prochaine réception"
         reserves: { type: [ReserveItemSchema], default: [] }, // Tableau état des réserves
+        personnesPresent:{type:[PersonnePresentSchema], default:[]},
         reservesExecutionDelayDays: { type: Number },  // "Dans un délai de (en jours)"
         reservesFromDate: { type: Date },              // "À compter du"
         allReservesLifted: { type: Boolean, default: false }, // "Les réserves ... ont toutes été levées"
@@ -59,14 +68,34 @@
             default: 'DRAFT' 
         },
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+        isLeve: { type: Boolean },
+        parentPvId: { type: mongoose.Schema.Types.ObjectId, ref: 'PvReception', default: null },
+        version: { type: Number, default: 1 },
     },{ timestamps: true });
+    pvReceptionSchema.index({ projet: 1, createdAt: -1 });
+    pvReceptionSchema.index({ parentPvId: 1, version: 1 });
     // Validation conditionnelle (serveur)
+   
     pvReceptionSchema.pre('validate', function(next) {
         const pv = this;
+
+         if (pv.declaration === 'WITH_RESERVES') {
+            console.log("WITH_RESERVES détecté");
+            const allLeve =
+            Array.isArray(pv.reserves) &&
+            pv.reserves.length > 0 &&
+            pv.reserves.every(r => r.etat === 'Levée');
+
+            console.log("Toutes levées?", allLeve);
+            pv.isLeve = allLeve; // true ou false
+        } else {
+            // Champ absent si pas WITH_RESERVES
+            console.log("Pas WITH_RESERVES - isLeve = undefined");
+            pv.isLeve = undefined;
+        }
+
         const hasCompanySig = !!pv.signatures?.companyRep?.signatureUrl;
         const hasClientSig = !!pv.signatures?.client?.signatureUrl;
-
- 
 
         // Commun
         if (!pv.effectiveDate) return next(new Error("effectiveDate est obligatoire"));
@@ -74,6 +103,7 @@
         if (!hasCompanySig || !hasClientSig) {
         return next(new Error("Les deux signatures sont obligatoires"));
         };
+
                 
         // Par type
         if (pv.declaration === PV_DECLARATION.REFUSED) {
@@ -103,6 +133,9 @@
                   if (reserve && reserve.photoUrl) {
                     reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
                   }
+                  if (reserve && reserve.photoLevee) {
+                    reserve.photoLevee = await uploadService.getSignedUrl(reserve.photoLevee);
+                  }
                 } 
             }
             next();
@@ -117,6 +150,9 @@
             if (reserve && reserve.photoUrl) {
                 reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
             }
+            if (reserve && reserve.photoLevee) {
+                reserve.photoLevee = await uploadService.getSignedUrl(reserve.photoLevee);
+            }
         } 
         next();
     });
@@ -124,6 +160,9 @@
         for(const reserve of doc.reserves){
             if (reserve && reserve.photoUrl) {
                 reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
+            }
+            if (reserve && reserve.photoLevee) {
+                reserve.photoLevee = await uploadService.getSignedUrl(reserve.photoLevee);
             }
         } 
         next();
