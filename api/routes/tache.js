@@ -8,8 +8,10 @@
         app.route('/taches/projet/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllTacheByProjet)
 
-       app.post('/taches/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'image' }]), Ctrl.addTache);
-       app.put('/taches/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'image' }]), Ctrl.updateTache);
+       app.post('/taches/:id([a-fA-F\\d]{24})', upload.array("image",5), Ctrl.addTache);
+       app.put('/taches/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'image', maxCount: 20 }]), Ctrl.updateTache);
+       app.put('/taches/:id([a-fA-F\\d]{24})/images', upload.fields([{ name: 'image', maxCount: 20 }]), Ctrl.updateTacheImages);
+       app.delete('/taches/:id([a-fA-F\\d]{24})/images', Ctrl.deleteTacheImages);
 
 
         app.route('/taches/:id([a-fA-F\\d]{24})')
@@ -17,6 +19,10 @@
            //.put(Ctrl.updateTache)
            .delete(Ctrl.deleteTache)
            .get(Ctrl.getTache)
+
+         // Historique
+
+         app.get('/historiques/tache/:id([a-fA-F\\d]{24})', Ctrl.getAllHistoriqueByTask)
 
         // Time Sheet
 

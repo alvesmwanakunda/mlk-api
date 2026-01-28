@@ -10,11 +10,11 @@
      var timesheetSchema = new Schema({
 
         date: { type: Date, required: true },
-        employee: {
+        employee: [{
             type:Schema.ObjectId,
             ref:"Users",
             required:true
-        },
+        }],
         user:{
             type:Schema.ObjectId,
             ref:"Users",
@@ -36,6 +36,11 @@
             url: String,       
             width: Number,
             height: Number
+        },
+        statut: {
+            type: String,
+            enum: ['A Faire', 'En Cours', 'Terminer'],
+            default: 'A Faire'
         },
      });
         timesheetSchema.post('find', async function (docs, next) { 

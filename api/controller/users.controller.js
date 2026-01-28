@@ -863,7 +863,7 @@
             allEmploye(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
-                        User.find({role:"agent"}).then((contact)=>{
+                        User.find({role:"agent", valid:true}).then((contact)=>{
                             res.json({
                                 success:true,
                                 message:contact
