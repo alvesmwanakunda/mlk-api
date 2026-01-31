@@ -9,6 +9,65 @@
     var fs = require("fs");
     var codes = require('voucher-code-generator');
     var uploadService = require('../services/upload.service');
+    function extractFileName(fullUrl) {
+        if (!fullUrl) return null;
+        try {
+            // Décoder l'URL jusqu'à ce qu'il n'y ait plus d'encodage
+            let decoded = fullUrl;
+            while (decoded.includes('%')) {
+                const temp = decodeURIComponent(decoded);
+                if (temp === decoded) break;
+                decoded = temp;
+            }
+            
+            // Chercher le pattern "projets/nomfichier.ext"
+            const match = decoded.match(/projets\/[^?&]+/);
+            
+            if (match) {
+                return match[0]; // Retourne "projets/calendar-dashboard-app-design.png"
+            }
+            
+            return null;
+        } catch (error) {
+            console.error("Erreur extraction pour suppression:", error);
+            return null;
+        }
+    };
+    function extractFileNameDelete(fullUrl) {
+        if (!fullUrl) return null;
+
+        // Vérifier si c'est une URL Firebase Storage
+        if (fullUrl.includes('projets/')) {
+            // Trouver le début de "pvreception/"
+            const startIndex = fullUrl.indexOf('projets/');
+            
+            // Trouver la fin (soit '?', soit fin de string)
+            const endIndex = fullUrl.indexOf('?', startIndex);
+            
+            if (startIndex !== -1) {
+            let path = '';
+            
+            if (endIndex !== -1) {
+                // Extraire de "pvreception/" jusqu'à "?"
+                path = fullUrl.substring(startIndex, endIndex);
+            } else {
+                // Pas de paramètres, prendre jusqu'à la fin
+                path = fullUrl.substring(startIndex);
+            }
+            
+            // Maintenant extraire seulement le nom du fichier
+            // "pvreception/calendar-dashboard-app-design.png" → "calendar-dashboard-app-design.png"
+            const parts = path.split('/');
+            if (parts.length > 1) {
+                return parts[parts.length - 1]; // Dernière partie = nom du fichier
+            }
+            return path;
+            }
+        }
+
+        // Si ce n'est pas une URL Firebase, retourner l'URL complète
+        return fullUrl;
+    };
 
 
 
@@ -169,6 +228,7 @@
                     if(aclres){
 
                         let projet = await Projet.findOne({_id:req.params.id});
+                        //console.log("Body", req.body);
                         projet.projet=req.body.projet;
                         projet.entreprise=req.body.entreprise;
                         projet.service=req.body.service;
@@ -193,11 +253,42 @@
                         projet.longitude=req.body.longitude;
                         projet.coordonnees = req.body.coordonnees;
 
-                        if(req.file){
-                            if(projet.photo){
-                                uploadService.deleteProjetsFirebaseStorage(projet.photo);
-                              }
-                              projet.photo = await uploadService.uploadProjetsToFirebaseStorage(req.file.filename);
+                        if (req.file) {
+                            //console.log("Nouveau fichier reçu");
+                            
+                            // Supprimer l'ancienne photo si elle existe
+                            if (projet.photo) {
+                                try {
+                                    // Extraire le chemin pour suppression
+                                     //console.log("Photo:", projet.photo);
+                                    const filePath = extractFileNameDelete(projet.photo);
+                                    //console.log("Chemin à supprimer:", filePath);
+                                    
+                                    if (filePath) {
+                                        await uploadService.deleteProjetsFirebaseStorage(filePath);
+                                    }
+                                } catch (error) {
+                                    console.error("Erreur suppression ancienne photo:", error);
+                                }
+                            }
+                            
+                            // Uploader la nouvelle photo
+                            try {
+                                projet.photo = await uploadService.uploadProjetsToFirebaseStorage(req.file.filename);
+                                //console.log("Nouvelle photo URL:", projet.photo);
+                            } catch (error) {
+                                console.error("Erreur upload nouvelle photo:", error);
+                            }
+                        }else{
+                            //console.log("Photo u", projet.photo);
+                            try {
+                                const filePath = extractFileName(projet.photo);
+                                //console.log("Chemin à supprimer:", filePath);
+                                projet.photo = filePath;
+                                //console.log("Nouvelle photo URL:", projet.photo);
+                            } catch (error) {
+                                console.error("Erreur upload nouvelle photo:", error);
+                            }
                         }
 
                         Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
@@ -273,6 +364,9 @@
                     if(aclres){
                         try {
                             let projet = await Projet.findOne({_id:req.params.id});
+                            if(projet.photo){
+                                uploadService.deleteProjetsFirebaseStorage(extractFileNameDelete(projet.photo));
+                            }
                             projet.photo=""; 
                             Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{  
                                     res.json({
@@ -313,6 +407,9 @@
                         try {
 
                             let projet = await Projet.findOne({_id:req.params.id});
+                            if(projet.photo){
+                                uploadService.deleteProjetsFirebaseStorage(extractFileNameDelete(projet.photo));
+                            }
                             await projet.deleteOne();
 
                             res.json({

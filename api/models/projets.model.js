@@ -170,20 +170,6 @@
         next();
     });
 
-    projetSchema.post('findOneAndUpdate', async function (doc, next) {
-        if (doc.photo) {
-            doc.photo = await uploadService.getSignedUrl(doc.photo);
-        }
-        next();
-    });
-
-    projetSchema.post('findByIdAndUpdate', async function (doc, next) {
-        if (doc.photo) {
-            doc.photo = await uploadService.getSignedUrl(doc.photo);
-        }
-        next();
-    });
-    
     // Middleware pour modifier le champ "photo" après avoir récupéré un seul document
     projetSchema.post('findOne', async function (doc, next) {
         if (doc && doc.photo) {

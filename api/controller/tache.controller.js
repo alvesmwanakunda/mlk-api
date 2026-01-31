@@ -622,6 +622,8 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                     if(aclres){
 
+                        let task = await Timesheet({_id:req.params.id});
+
                         const updatePayload = { ...req.body };
 
                         let employeesRaw = req.body.employee;   // <-- let (pas const)
@@ -661,9 +663,12 @@
                                 });
                             }
                         }
-
+                       
 
                         Timesheet.findOneAndUpdate({_id:req.params.id},updatePayload,{new:true}).then((time)=>{
+                            if (task.statut !== updatePayload?.statut) {
+                               HistoriqueService.createSous(task?._id, req.decoded.id);
+                            }
                             res.json({
                                 success:true,
                                 message:time
