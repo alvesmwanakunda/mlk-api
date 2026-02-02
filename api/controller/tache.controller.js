@@ -235,12 +235,17 @@
                     //   - recommandé: supprimer par url/filename (stable)
                     //   - imagesToDelete peut contenir url, filename ou index
                     // -----------------------------
-                    let pullCondition = null;
+                    //let pullCondition = null;
                     let removedUrls = [];
                     const updateDoc = { $set: setData };
 
-                    if (pullCondition) {
-                        updateDoc.$pull = { image: pullCondition };
+                    // if (pullCondition) {
+                    //     updateDoc.$pull = { image: pullCondition };
+                    // }
+
+                    // Ajouter les nouvelles images SI elles existent
+                    if (newImages.length > 0) {
+                        updateDoc.$push = { image: { $each: newImages } };
                     }
 
                     if (req.body.removedUrls) {
