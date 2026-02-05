@@ -9,6 +9,8 @@
     var fs = require("fs");
     var codes = require('voucher-code-generator');
     var uploadService = require('../services/upload.service');
+    const mongoose = require('mongoose');
+
     function extractFileName(fullUrl) {
         if (!fullUrl) return null;
         try {
@@ -223,6 +225,123 @@
                     }
                 })
             },
+
+            updateProjetStatut(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
+                    if(aclres){
+                        //console.log("Body", req.body);
+                        Projet.findOneAndUpdate({_id:req.params.id},{statut:req.body.statut},{new:true}).then((projet)=>{
+                            res.json({
+                                success:true,
+                                message:projet
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+
+            },
+
+            updateMultipleProjetStatut(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'update', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: 'ACL error', 
+                            error: err.message 
+                        });
+                    }
+                    
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    try {
+                        const { projetIds, statut } = req.body;
+                        //console.log("body", req.body);
+                        //console.log("projetIds", projetIds);
+
+                        
+                        // Validation des données
+                        if (!projetIds || !Array.isArray(projetIds) || projetIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Veuillez fournir un tableau d'IDs de projets"
+                            });
+                        }
+                        
+                        if (!statut || statut.trim() === '') {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Le statut est requis"
+                            });
+                        }
+
+                        // Filtrer les IDs valides
+                        const validIds = projetIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+                        
+                        if (validIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Aucun ID de projet valide fourni"
+                            });
+                        }
+
+                        // Vérifier que le statut est valide (selon vos valeurs possibles)
+                        const statutsValides = ['En Cours', 'Archiver', 'Clôturer']; // À adapter selon vos besoins
+                        if (!statutsValides.includes(statut)) {
+                            return res.status(400).json({
+                                success: false,
+                                message: `Statut invalide. Valeurs acceptées: ${statutsValides.join(', ')}`
+                            });
+                        }
+
+                        // Mettre à jour les projets
+                        const updateResult = await Projet.updateMany(
+                            { _id: { $in: validIds } },
+                            { 
+                                $set: { 
+                                    statut: statut,
+                                    updatedAt: new Date() // Optionnel: ajouter un timestamp de mise à jour
+                                } 
+                            }
+                        );
+
+                        // Récupérer les projets mis à jour
+                        const projetsUpdated = await Projet.find({
+                            _id: { $in: validIds }
+                        });
+
+                        return res.json({
+                            success: true,
+                            message: `${updateResult.modifiedCount} projet(s) mis à jour avec succès`,
+                            modifiedCount: updateResult.modifiedCount,
+                            matchedCount: updateResult.matchedCount,
+                            projets: projetsUpdated // Optionnel: retourner les projets mis à jour
+                        });
+
+                    } catch (error) {
+                        console.error("Erreur lors de la mise à jour multiple:", error);
+                        return res.status(500).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
+                });
+            },
+
             updateProjet(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
                     if(aclres){
@@ -311,6 +430,7 @@
                 })
 
             },
+
             updateProjetFile(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
                     if(aclres){
@@ -359,6 +479,7 @@
                 })
 
             },
+
             deletePhoto(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
                     if(aclres){
@@ -399,6 +520,7 @@
                 })
 
             },
+
             deleteProjet(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'delete', async function(err,aclres){
 
@@ -445,6 +567,86 @@
                     }
                 })
             },
+
+            deleteMultipleProjets(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'delete', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: 'ACL error', 
+                            error: err.message 
+                        });
+                    }
+                    
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    try {
+                        // Récupérer les IDs des projets à supprimer
+                        const { projetIds } = req.body;
+                        
+                        // Vérifier que projetIds est fourni et est un tableau
+                        if (!projetIds || !Array.isArray(projetIds) || projetIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Veuillez fournir un tableau d'IDs de projets à supprimer"
+                            });
+                        }
+
+                        // Filtrer les IDs valides
+                        const validIds = projetIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+                        
+                        if (validIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Aucun ID de projet valide fourni"
+                            });
+                        }
+
+                        // Récupérer les projets pour obtenir leurs photos
+                        const projets = await Projet.find({
+                            _id: { $in: validIds }
+                        });
+
+                        // Supprimer les photos Firebase des projets
+                        for (const projet of projets) {
+                            if (projet.photo) {
+                                try {
+                                    await uploadService.deleteProjetsFirebaseStorage(
+                                        extractFileNameDelete(projet.photo)
+                                    );
+                                } catch (firebaseError) {
+                                    console.error(`Erreur lors de la suppression de la photo du projet ${projet._id}:`, firebaseError.message);
+                                    // Continuer même si une photo ne peut pas être supprimée
+                                }
+                            }
+                        }
+
+                        // Supprimer les projets de la base de données
+                        const deleteResult = await Projet.deleteMany({
+                            _id: { $in: validIds }
+                        });
+
+                        return res.json({
+                            success: true,
+                            message: `${deleteResult.deletedCount} projet(s) supprimé(s) avec succès`,
+                            deletedCount: deleteResult.deletedCount
+                        });
+
+                    } catch (error) {
+                        console.error("Erreur lors de la suppression multiple:", error);
+                        return res.status(500).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
+                });
+            },
+
             getAllProjet(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'retreive', async function(err,aclres){
 
@@ -469,6 +671,7 @@
                     }
                 })
             },
+
             getProjet(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'retreive', async function(err,aclres){
 
@@ -493,6 +696,7 @@
                     }
                 })
             },
+
             getProjetByEntreprise(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'retreive', async function(err,aclres){
 
@@ -517,6 +721,7 @@
                     }
                 })
             }, 
+
             // Add Projet by user entreprise
             addProjetEntreprise(req,res,next){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){

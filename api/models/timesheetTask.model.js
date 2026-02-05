@@ -9,7 +9,8 @@
 
      var timesheetSchema = new Schema({
 
-        date: { type: Date, required: true },
+        date: { type: Date, required: false},
+        date_fin:{type:Date, required: false},
         employee: [{
             type:Schema.ObjectId,
             ref:"Users",

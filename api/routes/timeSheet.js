@@ -3,6 +3,9 @@
     module.exports = function(app,acl){
         var Ctrl = require('../controller/timeSheet.controller')(acl);
 
+        app.route('/timesheet/today')
+           .get(Ctrl.getAllTimeToDay)
+
         app.route('/timesheet')
            .get(Ctrl.getAllTimeSheet)
            //.post(Ctrl.addTimeSheet)

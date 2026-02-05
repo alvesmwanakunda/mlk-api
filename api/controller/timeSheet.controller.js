@@ -1,3 +1,4 @@
+
 (function(){
    "use strict";
    var TimeSheet = require('../models/timesheet.model').TimeSheetModel;
@@ -594,6 +595,37 @@
                         success: false,
                         message: "401"
                     }); 
+                }
+            })
+        },
+
+        getAllTimeToDay(req,res){
+            acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
+
+                if(aclres){
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    // Construire la requête
+                    const query = {
+                        createdAt: {
+                            $gte: today,
+                            $lt: tomorrow
+                        }
+                    };
+                    // Récupérer les timesheets avec population des relations
+                   const timesheets = await TimeSheet.find(query).populate('user', 'nom prenom') .populate('projet', 'projet entreprise').sort({ createdAt: -1 });
+                   return res.status(200).json({
+                        success: true,
+                        message: timesheets,
+                   });
+                }else{
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
                 }
             })
         },
