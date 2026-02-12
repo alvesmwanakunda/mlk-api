@@ -29,6 +29,10 @@
         app.put('/entreprise/file/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateEntrepriseFile)
 
         app.put('/entreprise/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateEntreprise)
+
+        app.put('/entreprise/statut/:id([a-fA-F\\d]{24})', Ctrl.updateEntrepriseStatut);
+        app.put('/entreprise/statut/multiple', Ctrl.updateMultipleEntrepriseStatut);
+        app.post('/entreprise/delete/multiple', Ctrl.deleteMultipleEntreprises);
     }
 
 })();

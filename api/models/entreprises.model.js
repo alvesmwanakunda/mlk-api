@@ -133,7 +133,12 @@
     categorie_societe:{
         type:String,
         required: false
-    }
+    },
+     statut: {
+        type: String,
+        enum: ['Non archiver', 'Archiver'],
+        default: 'Non archiver'
+    },
    });
 
    entrepriseSchema.pre('deleteOne',{ document: true }, async function (next) {

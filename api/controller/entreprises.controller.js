@@ -4,6 +4,8 @@
     var odooService = require('../services/odoo.service');
     var fs = require('fs');
     const axios = require('axios');
+    const mongoose = require('mongoose');
+
 
 
     module.exports = function(acl){
@@ -452,7 +454,198 @@
                         });
                     }
                 })
-            }
+            },
+            updateEntrepriseStatut(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
+                    if(aclres){
+                        //console.log("Body", req.body);
+                        Entreprise.findOneAndUpdate({_id:req.params.id},{statut:req.body.statut},{new:true}).then((projet)=>{
+                            res.json({
+                                success:true,
+                                message:projet
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+
+            },
+
+            updateMultipleEntrepriseStatut(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'update', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: 'ACL error', 
+                            error: err.message 
+                        });
+                    }
+                    
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    try {
+                        const { entrepriseIds, statut } = req.body;
+                        
+
+                        
+                        // Validation des données
+                        if (!entrepriseIds || !Array.isArray(entrepriseIds) || entrepriseIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Veuillez fournir un tableau d'IDs de projets"
+                            });
+                        }
+                        
+                        if (!statut || statut.trim() === '') {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Le statut est requis"
+                            });
+                        }
+
+                        // Filtrer les IDs valides
+                        const validIds = entrepriseIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+                        
+                        if (validIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Aucun ID entreprise valide fourni"
+                            });
+                        }
+
+                        // Vérifier que le statut est valide (selon vos valeurs possibles)
+                        const statutsValides = ['Non archiver', 'Archiver']; // À adapter selon vos besoins
+                        if (!statutsValides.includes(statut)) {
+                            return res.status(400).json({
+                                success: false,
+                                message: `Statut invalide. Valeurs acceptées: ${statutsValides.join(', ')}`
+                            });
+                        }
+
+                        // Mettre à jour les projets
+                        const updateResult = await Entreprise.updateMany(
+                            { _id: { $in: validIds } },
+                            { 
+                                $set: { 
+                                    statut: statut,
+                                } 
+                            }
+                        );
+
+                        // Récupérer les projets mis à jour
+                        const projetsUpdated = await Entreprise.find({
+                            _id: { $in: validIds }
+                        });
+
+                        return res.json({
+                            success: true,
+                            message: `${updateResult.modifiedCount} entreprise(s) mis à jour avec succès`,
+                            modifiedCount: updateResult.modifiedCount,
+                            matchedCount: updateResult.matchedCount,
+                            projets: projetsUpdated // Optionnel: retourner les projets mis à jour
+                        });
+
+                    } catch (error) {
+                        console.error("Erreur lors de la mise à jour multiple:", error);
+                        return res.status(500).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
+                });
+            },
+             deleteMultipleEntreprises(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'delete', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ 
+                            success: false, 
+                            message: 'ACL error', 
+                            error: err.message 
+                        });
+                    }
+                    
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    try {
+                        // Récupérer les IDs des projets à supprimer
+                        const { entrepriseIds } = req.body;
+                        
+                        // Vérifier que projetIds est fourni et est un tableau
+                        if (!entrepriseIds || !Array.isArray(entrepriseIds) || entrepriseIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Veuillez fournir un tableau d'IDs de projets à supprimer"
+                            });
+                        }
+
+                        // Filtrer les IDs valides
+                        const validIds = entrepriseIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+                        
+                        if (validIds.length === 0) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Aucun ID de projet valide fourni"
+                            });
+                        }
+
+                        // Récupérer les projets pour obtenir leurs photos
+                        const entreprises = await Entreprise.find({
+                            _id: { $in: validIds }
+                        });
+
+                        // Supprimer les photos Firebase des projets
+                        // for (const entreprise of entreprises) {
+                        //     if (projet.photo) {
+                        //         try {
+                        //             await uploadService.deleteProjetsFirebaseStorage(
+                        //                 extractFileNameDelete(projet.photo)
+                        //             );
+                        //         } catch (firebaseError) {
+                        //             console.error(`Erreur lors de la suppression de la photo du projet ${projet._id}:`, firebaseError.message);
+                        //             // Continuer même si une photo ne peut pas être supprimée
+                        //         }
+                        //     }
+                        // }
+
+                        // Supprimer les projets de la base de données
+                        const deleteResult = await Entreprise.deleteMany({
+                            _id: { $in: validIds }
+                        });
+
+                        return res.json({
+                            success: true,
+                            message: `${deleteResult.deletedCount} entreprise(s) supprimé(s) avec succès`,
+                            deletedCount: deleteResult.deletedCount
+                        });
+
+                    } catch (error) {
+                        console.error("Erreur lors de la suppression multiple:", error);
+                        return res.status(500).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
+                });
+            },
         }
     }
 
