@@ -9,6 +9,69 @@
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
 
+    // Fonction utilitaire pour calculer les statistiques
+    function calculerStatistiques(timesheets) {
+        const stats = {
+            totalTimesheets: timesheets.length,
+            totalHeures: 0,
+            totalMinutes: 0,
+            parUtilisateur: {},
+            parProjet: {},
+            parStatus: {},
+            parPresence: {}
+        };
+
+        timesheets.forEach(ts => {
+            // Totaux
+            if (ts.heure) stats.totalHeures += ts.heure;
+            if (ts.minute) stats.totalMinutes += ts.minute;
+
+            // Par statut
+            const status = ts.status || 'Non défini';
+            stats.parStatus[status] = (stats.parStatus[status] || 0) + 1;
+
+            // Par présence
+            const presence = ts.presence || 'Non défini';
+            stats.parPresence[presence] = (stats.parPresence[presence] || 0) + 1;
+
+            // Par utilisateur
+            if (ts.user && ts.user._id) {
+                const userId = ts.user._id.toString();
+                const userName = `${ts.user.prenom || ''} ${ts.user.nom || ''}`.trim();
+                if (!stats.parUtilisateur[userId]) {
+                    stats.parUtilisateur[userId] = {
+                        nom: userName,
+                        count: 0,
+                        heures: 0,
+                        minutes: 0
+                    };
+                }
+                stats.parUtilisateur[userId].count++;
+                if (ts.heure) stats.parUtilisateur[userId].heures += ts.heure;
+                if (ts.minute) stats.parUtilisateur[userId].minutes += ts.minute;
+            }
+
+            // Par projet
+            if (ts.projet && ts.projet._id) {
+                const projetId = ts.projet._id.toString();
+                const projetNom = ts.projet.projet || 'Sans nom';
+                if (!stats.parProjet[projetId]) {
+                    stats.parProjet[projetId] = {
+                        nom: projetNom,
+                        count: 0,
+                        heures: 0,
+                        minutes: 0
+                    };
+                }
+                stats.parProjet[projetId].count++;
+                if (ts.heure) stats.parProjet[projetId].heures += ts.heure;
+                if (ts.minute) stats.parProjet[projetId].minutes += ts.minute;
+            }
+        });
+
+        return stats;
+    }
+
    module.exports = function(acl){
     return{
         addTimeSheet(req,res){
@@ -629,6 +692,450 @@
                 }
             })
         },
+
+        // ==================== FILTRES TEMPORELS ====================
+
+        // 1. Filtrer par mois (YYYY-MM)
+        getTimesheetsByMonth(req, res) {
+            acl.isAllowed(req.decoded.id, 'agenda', 'retreive', async function(err, aclres) {
+                if (err) {
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: 'ACL error', 
+                        error: err.message 
+                    });
+                }
+                
+                if (!aclres) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+
+                try {
+                    const { month } = req.params; // Format: 2024-02
+                    
+                    if (!month || !month.match(/^\d{4}-\d{2}$/)) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Format de mois invalide. Utilisez YYYY-MM (ex: 2024-02)"
+                        });
+                    }
+
+                    const [year, monthNum] = month.split('-');
+                    
+                    // Premier jour du mois
+                    const startOfMonth = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+                    startOfMonth.setHours(0, 0, 0, 0);
+                    
+                    // Dernier jour du mois
+                    const endOfMonth = new Date(parseInt(year), parseInt(monthNum), 1);
+                    endOfMonth.setHours(0, 0, 0, 0);
+
+                    const timesheets = await TimeSheet.find({
+                        createdAt: {
+                            $gte: startOfMonth,
+                            $lt: endOfMonth
+                        }
+                    })
+                    .populate('user', 'nom prenom email')
+                    .populate('projet', 'projet entreprise')
+                    .sort({ createdAt: -1 });
+
+                    // Statistiques du mois
+                    const stats = calculerStatistiques(timesheets);
+
+                    return res.status(200).json({
+                        success: true,
+                        message: `Timesheets du mois ${month} récupérés avec succès`,
+                        data: {
+                            periode: {
+                                type: 'mois',
+                                mois: month,
+                                debut: startOfMonth,
+                                fin: endOfMonth
+                            },
+                            count: timesheets.length,
+                            timesheets: timesheets,
+                            statistiques: stats
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            });
+        },
+
+        // 2. Filtrer par jour spécifique (YYYY-MM-DD)
+        getTimesheetsByDay(req, res) {
+            acl.isAllowed(req.decoded.id, 'agenda', 'retreive', async function(err, aclres) {
+                if (err) {
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: 'ACL error', 
+                        error: err.message 
+                    });
+                }
+                
+                if (!aclres) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+
+                try {
+                    const { date } = req.params; // Format: 2024-02-15
+                    
+                    if (!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Format de date invalide. Utilisez YYYY-MM-DD (ex: 2024-02-15)"
+                        });
+                    }
+
+                    const targetDate = new Date(date);
+                    if (isNaN(targetDate.getTime())) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Date invalide"
+                        });
+                    }
+
+                    const startOfDay = new Date(targetDate);
+                    startOfDay.setHours(0, 0, 0, 0);
+                    
+                    const endOfDay = new Date(targetDate);
+                    endOfDay.setDate(endOfDay.getDate() + 1);
+                    endOfDay.setHours(0, 0, 0, 0);
+
+                    const timesheets = await TimeSheet.find({
+                        createdAt: {
+                            $gte: startOfDay,
+                            $lt: endOfDay
+                        }
+                    })
+                    .populate('user', 'nom prenom')
+                    .populate('projet', 'projet')
+                    .sort({ createdAt: -1 });
+
+                    return res.status(200).json({
+                        success: true,
+                        message: `Timesheets du ${date} récupérés avec succès`,
+                        data: {
+                            periode: {
+                                type: 'jour',
+                                date: date
+                            },
+                            count: timesheets.length,
+                            timesheets: timesheets
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            });
+        },
+
+        // 3. Filtrer par période (date de début - date de fin)
+        getTimesheetsByPeriod(req, res) {
+            acl.isAllowed(req.decoded.id, 'agenda', 'retreive', async function(err, aclres) {
+                if (err) {
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: 'ACL error', 
+                        error: err.message 
+                    });
+                }
+                
+                if (!aclres) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+
+                try {
+                    const { startDate, endDate } = req.query; // Format: startDate=2024-02-01&endDate=2024-02-15
+                    
+                    if (!startDate || !endDate) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Les paramètres startDate et endDate sont requis (format: YYYY-MM-DD)"
+                        });
+                    }
+
+                    // Valider les dates
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    
+                    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Dates invalides"
+                        });
+                    }
+
+                    // Définir le début et fin de période
+                    start.setHours(0, 0, 0, 0);
+                    end.setDate(end.getDate() + 1);
+                    end.setHours(0, 0, 0, 0);
+
+                    const timesheets = await TimeSheet.find({
+                        createdAt: {
+                            $gte: start,
+                            $lt: end
+                        }
+                    })
+                    .populate('user', 'nom prenom')
+                    .populate('projet', 'projet entreprise')
+                    .sort({ createdAt: -1 });
+
+                    // Statistiques de la période
+                    const stats = calculerStatistiques(timesheets);
+
+                    // Grouper par jour
+                    const groupedByDay = {};
+                    timesheets.forEach(ts => {
+                        const day = ts.createdAt.toISOString().split('T')[0];
+                        if (!groupedByDay[day]) {
+                            groupedByDay[day] = {
+                                date: day,
+                                count: 0,
+                                timesheets: [],
+                                heures: 0,
+                                minutes: 0
+                            };
+                        }
+                        groupedByDay[day].count++;
+                        groupedByDay[day].timesheets.push(ts);
+                        if (ts.heure) groupedByDay[day].heures += ts.heure;
+                        if (ts.minute) groupedByDay[day].minutes += ts.minute;
+                    });
+
+                    return res.status(200).json({
+                        success: true,
+                        message: `Timesheets du ${startDate} au ${endDate} récupérés`,
+                        data: {
+                            periode: {
+                                type: 'periode',
+                                debut: startDate,
+                                fin: endDate
+                            },
+                            total: timesheets.length,
+                            statistiques: stats,
+                            parJour: groupedByDay,
+                            timesheets: timesheets
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            });
+        },
+
+        // 4. Filtrer par semaine (numéro de semaine)
+        getTimesheetsByWeek(req, res) {
+            acl.isAllowed(req.decoded.id, 'agenda', 'retreive', async function(err, aclres) {
+                if (err) {
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: 'ACL error', 
+                        error: err.message 
+                    });
+                }
+                
+                if (!aclres) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+
+                try {
+                    const { year, week } = req.params; // Format: /2024/8 pour semaine 8 de 2024
+                    
+                    if (!year || !week) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "L'année et le numéro de semaine sont requis"
+                        });
+                    }
+
+                    // Calculer le début et fin de semaine
+                    const firstDayOfYear = new Date(year, 0, 1);
+                    const daysOffset = (week - 1) * 7;
+                    const startOfWeek = new Date(firstDayOfYear);
+                    startOfWeek.setDate(firstDayOfYear.getDate() + daysOffset);
+                    
+                    // Ajuster pour commencer le lundi
+                    const dayOfWeek = startOfWeek.getDay(); // 0 = dimanche
+                    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    startOfWeek.setDate(startOfWeek.getDate() - diff);
+                    startOfWeek.setHours(0, 0, 0, 0);
+                    
+                    const endOfWeek = new Date(startOfWeek);
+                    endOfWeek.setDate(endOfWeek.getDate() + 7);
+                    endOfWeek.setHours(0, 0, 0, 0);
+
+                    const timesheets = await TimeSheet.find({
+                        createdAt: {
+                            $gte: startOfWeek,
+                            $lt: endOfWeek
+                        }
+                    })
+                    .populate('user', 'nom prenom')
+                    .populate('projet', 'projet')
+                    .sort({ createdAt: -1 });
+
+                    return res.status(200).json({
+                        success: true,
+                        message: `Timesheets de la semaine ${week}/${year}`,
+                        data: {
+                            periode: {
+                                type: 'semaine',
+                                annee: year,
+                                semaine: week,
+                                debut: startOfWeek,
+                                fin: endOfWeek
+                            },
+                            count: timesheets.length,
+                            timesheets: timesheets
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            });
+        },
+
+        // 5. Filtrer avec options avancées (filtres multiples)
+        getTimesheetsAdvanced(req, res) {
+            acl.isAllowed(req.decoded.id, 'agenda', 'retreive', async function(err, aclres) {
+                if (err) {
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: 'ACL error', 
+                        error: err.message 
+                    });
+                }
+                
+                if (!aclres) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+
+                try {
+                    const { 
+                        startDate, endDate, 
+                        userId, projetId, 
+                        status, 
+                        presence,
+                        page = 1, 
+                        limit = 20 
+                    } = req.query;
+
+                    // Construire la requête dynamique
+                    let query = {};
+
+                    // Filtre par période
+                    if (startDate || endDate) {
+                        query.createdAt = {};
+                        if (startDate) {
+                            const start = new Date(startDate);
+                            start.setHours(0, 0, 0, 0);
+                            query.createdAt.$gte = start;
+                        }
+                        if (endDate) {
+                            const end = new Date(endDate);
+                            end.setDate(end.getDate() + 1);
+                            end.setHours(0, 0, 0, 0);
+                            query.createdAt.$lt = end;
+                        }
+                    }
+
+                    // Filtre par utilisateur
+                    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+                        query.user = userId;
+                    }
+
+                    // Filtre par projet
+                    if (projetId && mongoose.Types.ObjectId.isValid(projetId)) {
+                        query.projet = projetId;
+                    }
+
+                    // Filtre par statut
+                    if (status) {
+                        query.status = status;
+                    }
+
+                    // Filtre par présence
+                    if (presence) {
+                        query.presence = presence;
+                    }
+
+                    // Pagination
+                    const skip = (parseInt(page) - 1) * parseInt(limit);
+                    
+                    // Exécuter la requête
+                    const timesheets = await TimeSheet.find(query)
+                        .populate('user', 'nom prenom email')
+                        .populate('projet', 'projet entreprise')
+                        .populate('responsable', 'nom prenom')
+                        .sort({ createdAt: -1 })
+                        .skip(skip)
+                        .limit(parseInt(limit));
+
+                    // Compter le total pour la pagination
+                    const total = await TimeSheet.countDocuments(query);
+
+                    return res.status(200).json({
+                        success: true,
+                        message: "Filtrage avancé réussi",
+                        data: {
+                            pagination: {
+                                page: parseInt(page),
+                                limit: parseInt(limit),
+                                total: total,
+                                pages: Math.ceil(total / limit)
+                            },
+                            filters: req.query,
+                            timesheets: timesheets
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            });
+        }
 
        
     }

@@ -33,6 +33,8 @@
          app.put('/projet/statut/:id([a-fA-F\\d]{24})', Ctrl.updateProjetStatut);
          app.put('/projet/statut/multiple', Ctrl.updateMultipleProjetStatut);
          app.post('/projet/delete/multiple', Ctrl.deleteMultipleProjets);
+         app.get("/geo/address/suggest",Ctrl.adresseProjet);
+         app.get("/geo/address/detail",Ctrl.adresseDetail);
 
 
     }

@@ -10,6 +10,8 @@
     var codes = require('voucher-code-generator');
     var uploadService = require('../services/upload.service');
     const mongoose = require('mongoose');
+    const axios = require('axios');
+    const GOOGLE_API_KEY = process.env.GOOGLE_PLACE_ID;
 
     function extractFileName(fullUrl) {
         if (!fullUrl) return null;
@@ -371,6 +373,7 @@
                         projet.latitude=req.body.latitude;
                         projet.longitude=req.body.longitude;
                         projet.coordonnees = req.body.coordonnees;
+                        projet.addressSearch = req.body.addressSearch;
 
                         if (req.file) {
                             //console.log("Nouveau fichier reçu");
@@ -841,6 +844,7 @@
                         projet.latitude=req.body.latitude;
                         projet.longitude=req.body.longitude;
                         projet.coordonnees = req.body.coordonnees;
+                        projet.addressSearch = req.body.addressSearch;
 
 
                         if(req.file){
@@ -905,6 +909,111 @@
                 })
 
             },
+
+            // Adresse
+
+            adresseProjet: async function(req,res){
+
+                try {
+                    const { country, q } = req.query;
+
+                    if (!country || !q || q.length < 3) {
+                    return res.json([]);
+                    }
+
+                    // 
+                    const response = await axios.get(
+                        "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+                        {
+                            params: {
+                            input: q,
+                            components: `country:${country}`,
+                            types: "address",
+                            key: GOOGLE_API_KEY
+                            }
+                        }
+                    );
+
+                    console.log("response", response.data)
+                    const suggestions = response.data.predictions.map(pred => ({
+                    description: pred.description,
+                    place_id: pred.place_id
+                    }));
+
+                    res.json(suggestions);
+                    // const components = response.data.result.address_components;
+
+                    // const get = (type) =>
+                    // components.find(c => c.types.includes(type))?.long_name || "";
+
+                    // res.json({
+                    // numero: get("street_number"),
+                    // rue: get("route"),
+                    // postal: get("postal_code"),
+                    // ville: get("locality"),
+                    // lat: response.data.result.geometry.location.lat,
+                    // lon: response.data.result.geometry.location.lng
+                    // });
+
+                    // const suggestions = response.data.map((item) => ({
+                    // label: item.display_name,
+                    // lat: item.lat,
+                    // lon: item.lon,
+                    // components: {
+                    //     numero: item.address?.house_number || "",
+                    //     rue: item.address?.road || "",
+                    //     codePostal: item.address?.postcode || "",
+                    //     ville:
+                    //     item.address?.city ||
+                    //     item.address?.town ||
+                    //     item.address?.village ||
+                    //     ""
+                    // }
+                    // }));
+
+                    //res.json(suggestions);
+
+                } catch (error) {
+                    console.error(error);
+                    res.status(500).json({ message: "Geo error" });
+                }
+               
+            },
+
+            adresseDetail: async function(req, res){
+                try {
+                    const { place_id } = req.query;
+
+                    const response = await axios.get(
+                    "https://maps.googleapis.com/maps/api/place/details/json",
+                    {
+                        params: {
+                        place_id,
+                        fields: "address_component,geometry",
+                        key: GOOGLE_API_KEY
+                        }
+                    }
+                    );
+                    console.log("response detail", response.data)
+                    const components = response.data.result.address_components;
+
+                    const get = (type) =>
+                    components.find(c => c.types.includes(type))?.long_name || "";
+
+                    res.json({
+                    numero: get("street_number"),
+                    rue: get("route"),
+                    postal: get("postal_code"),
+                    ville: get("locality"),
+                    lat: response.data.result.geometry.location.lat,
+                    lon: response.data.result.geometry.location.lng
+                    });
+
+                } catch (error) {
+                    console.error(error.response?.data || error);
+                    res.status(500).json({ message: "Google Details error" });
+                }
+            }
         }
     }
 })();

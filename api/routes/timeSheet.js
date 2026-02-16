@@ -3,8 +3,14 @@
     module.exports = function(app,acl){
         var Ctrl = require('../controller/timeSheet.controller')(acl);
 
-        app.route('/timesheet/today')
-           .get(Ctrl.getAllTimeToDay)
+       app.route('/timesheet/today').get(Ctrl.getAllTimeToDay)
+       app.route('/timesheet/month/:month').get(Ctrl.getTimesheetsByMonth)
+       app.route('/timesheet/day/:date').get(Ctrl.getTimesheetsByDay)
+       app.route('/timesheet/period').get(Ctrl.getTimesheetsByPeriod)
+       app.route('/timesheet/week/:year/:week').get(Ctrl.getTimesheetsByWeek)
+       app.route('/timesheet/advanced').get(Ctrl.getTimesheetsAdvanced)
+        // Nouvelles routes de filtrage
+
 
         app.route('/timesheet')
            .get(Ctrl.getAllTimeSheet)
@@ -35,8 +41,7 @@
         app.route('/timesheet/agent')
            .get(Ctrl.getAllTimeSheetByAgent)
 
-        app.route('/timesheet/agent/:month/:year')
-           .get(Ctrl.getAllTimeSheetAgentByDate)
+        app.route('/timesheet/agent/:month/:year').get(Ctrl.getAllTimeSheetAgentByDate)
 
       
 

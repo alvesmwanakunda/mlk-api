@@ -134,6 +134,10 @@
         type:String,
         required: false
     },
+    addressSearch:{
+        type:String,
+        required: false,
+    },
     statut: {
         type: String,
         enum: ['En Cours', 'Archiver', 'Clôturer'],
