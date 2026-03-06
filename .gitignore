@@ -47,3 +47,7 @@ Thumbs.db
 *.json
 mlka-547cf-6b3c1ebbeba0.json
 mlka-speech-to-text-service.json
+
+.env
+.env.local
+.env.*

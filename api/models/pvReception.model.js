@@ -17,6 +17,9 @@
     const PersonnePresentSchema = new mongoose.Schema({
        nom:{type:String},
        prenom:{type:String},
+       email: {type: String, required: false},
+       telephone: {type: String, required: false},
+       profession: {type: String, required: false}
     },{_id:false});
 
     const ReserveItemSchema = new mongoose.Schema({
@@ -29,7 +32,31 @@
         photoLevee: { type: String }, 
     }, { _id: true, timestamps: true });
 
+
     var pvReceptionSchema = new Schema({
+        titre: {type: String, required: false}, //! Le titre du pv 
+        entreprise:{
+            nom : {type: String, required: true},
+            adresse: {type: String, required: true },
+            representant: {type: PersonnePresentSchema, default: {}}
+        },
+        societeCliente:{
+            nom : {type: String, required: true},
+            adresse: {type: String, required: true },
+            maitreOuvrage: {type: PersonnePresentSchema, default: {}}
+        },
+        chantier:{
+            adresse: {type: String, required: true},
+            longitude: {type: Number, required: false},
+            latitude: {type: Number, required: false}
+        },
+        travaux: {
+            dateExecution: { type: Date },
+            projet: {type: String, required: false },
+            objet: {type: String},
+            planUrl: { type: String },
+        },
+      
 
         projet: { type: mongoose.Schema.Types.ObjectId, ref: 'Projets', required: false },
         number: { type: String, unique: true, index: true },
@@ -38,6 +65,7 @@
             enum: Object.values(PV_DECLARATION), 
             required: true 
         },
+
         // Champs communs visibles dans toutes les captures
         effectiveDate: { type: Date, required: true }, // "Avec effet à la date du"
         place: { type: String, required: true },       // "Fait à"
@@ -72,6 +100,7 @@
         parentPvId: { type: mongoose.Schema.Types.ObjectId, ref: 'PvReception', default: null },
         version: { type: Number, default: 1 },
     },{ timestamps: true });
+    
     pvReceptionSchema.index({ projet: 1, createdAt: -1 });
     pvReceptionSchema.index({ parentPvId: 1, version: 1 });
     // Validation conditionnelle (serveur)
@@ -100,8 +129,8 @@
         // Commun
         if (!pv.effectiveDate) return next(new Error("effectiveDate est obligatoire"));
         if (!pv.place) return next(new Error("place (Fait à) est obligatoire"));
-        if (!hasCompanySig || !hasClientSig) {
-        return next(new Error("Les deux signatures sont obligatoires"));
+        if (!hasCompanySig) {
+            return next(new Error("La signature du représentant de l'entreprise est obligatoire"));
         };
 
                 
@@ -128,7 +157,11 @@
     });
     pvReceptionSchema.post('find', async function (docs, next) { 
         try {
+            // Recuperer l'utl signée du plan travaux et des photos de réserves
             for (const doc of docs) {
+                if (doc.travaux && doc.travaux.planUrl) {
+                    doc.travaux.planUrl = await uploadService.getSignedUrl(doc.travaux.planUrl);
+                }
                 for(const reserve of doc.reserves){
                   if (reserve && reserve.photoUrl) {
                     reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
@@ -146,6 +179,9 @@
     }); 
     // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
     pvReceptionSchema.post('findById', async function (doc, next) {
+        if (doc.travaux && doc.travaux.planUrl) {
+            doc.travaux.planUrl = await uploadService.getSignedUrl(doc.travaux.planUrl);
+        }
         for(const reserve of doc.reserves){
             if (reserve && reserve.photoUrl) {
                 reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
@@ -157,6 +193,9 @@
         next();
     });
     pvReceptionSchema.post('findOne', async function (doc, next) {
+        if (doc.travaux && doc.travaux.planUrl) {
+            doc.travaux.planUrl = await uploadService.getSignedUrl(doc.travaux.planUrl);
+        }
         for(const reserve of doc.reserves){
             if (reserve && reserve.photoUrl) {
                 reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);

@@ -26,12 +26,11 @@
 
         // Time Sheet
 
-         app.route('/time/tache/:id([a-fA-F\\d]{24})')
-           .get(Ctrl.getAllTimeByTask)
+         app.route('/time/tache/:id([a-fA-F\\d]{24})').get(Ctrl.getAllTimeByTask)
 
           
-         app.post('/time/taches/:id([a-fA-F\\d]{24})',upload.fields([{ name: 'image' }]), Ctrl.addTime);
-         app.put('/time/taches/:id([a-fA-F\\d]{24})',upload.fields([{ name: 'image' }]), Ctrl.updateTime);
+         app.post('/time/taches/:id([a-fA-F\\d]{24})',upload.fields([{ name: 'image', maxCount: 5 }]), Ctrl.addTime);
+         app.put('/time/taches/:id([a-fA-F\\d]{24})',upload.fields([{ name: 'image', maxCount: 5 }]), Ctrl.updateTime);
 
 
          app.route('/time/taches/:id([a-fA-F\\d]{24})')

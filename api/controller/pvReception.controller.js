@@ -1,3 +1,4 @@
+
 (function(){
     "use strict";
     var pvReception = require("../models/pvReception.model").PVReceptionModel;
@@ -82,37 +83,57 @@
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
                         const payload = req.body;
+                        // Vue que c'est une requête multipart, on va parser les {} contenus dans le body
+                        if (payload.entreprise && typeof payload.entreprise === 'string') {
+                            payload.entreprise = JSON.parse(payload.entreprise);
+                        }
+                        if (payload.societeCliente && typeof payload.societeCliente === 'string') {
+                            payload.societeCliente = JSON.parse(payload.societeCliente);
+                        }
+                        if (payload.chantier && typeof payload.chantier === 'string') {
+                            payload.chantier = JSON.parse(payload.chantier);
+                        }
+                        if (payload.travaux && typeof payload.travaux === 'string') {
+                            payload.travaux = JSON.parse(payload.travaux);
+                        }
                         if (payload.reserves && typeof payload.reserves === 'string') {
-                            try {
                             payload.reserves = JSON.parse(payload.reserves);
+                        }
+                    
+                        //console.log("Files", req.files);
+                        if(req.files?.planTravaux[0]?.filename){
+                            try {
+                                const url = await uploadService.uploadPVToFirebaseStorage(req.files.planTravaux[0].filename);
+                                if (url) payload.travaux.planUrl = url;
                             } catch (e) {
-                            return res.status(400).json({
+                                console.error('Erreur upload plan travaux:', e);
+                                return res.status(500).json({
                                 success: false,
-                                message: "reserves doit être un JSON valide (tableau)."
-                            });
+                                message: "Erreur lors de l’upload du plan des travaux",
+                                });
                             }
                         }
-                        //console.log("Files", req.files);
+
                         if (!Array.isArray(payload.reserves)) payload.reserves = [];
                         const reserveFiles = req.files?.reservePhotos || []; // ex: [{filename...}, ...]
                         const reserveLevee = req.files?.reserveLevee || [];
                         if (reserveFiles.length > 0) {
                             // On upload chaque photo, puis on affecte par index
                             for (let i = 0; i < reserveFiles.length; i++) {
-                            // Si la réserve n'existe pas à cet index, on ignore
-                            if (!payload.reserves[i]) continue;
+                                // Si la réserve n'existe pas à cet index, on ignore
+                                if (!payload.reserves[i]) continue;
 
-                            const f = reserveFiles[i];
-                            try {
-                                const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-                                payload.reserves[i].photoUrl = url;
-                            } catch (e) {
-                                console.error('Erreur upload reserve photo:', e);
-                                return res.status(500).json({
-                                success: false,
-                                message: "Erreur lors de l’upload d’une photo de réserve",
-                                });
-                            }
+                                const f = reserveFiles[i];
+                                try {
+                                    const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
+                                    if (url) payload.reserves[i].photoUrl = url;
+                                } catch (e) {
+                                    console.error('Erreur upload reserve photo:', e);
+                                    return res.status(500).json({
+                                    success: false,
+                                    message: "Erreur lors de l’upload d’une photo de réserve",
+                                    });
+                                }
                             }
                         }
                         if (reserveLevee.length > 0) {
@@ -122,9 +143,10 @@
                             if (!payload.reserves[i]) continue;
 
                             const f = reserveLevee[i];
+                            if (!f?.filename) continue;
                             try {
                                 const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-                                payload.reserves[i].photoLevee = url;
+                                if (url) payload.reserves[i].photoLevee = url;
                             } catch (e) {
                                 console.error('Erreur upload reserve photo:', e);
                                 return res.status(500).json({
@@ -244,6 +266,7 @@
 
                    
             },
+            
             getPV(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
@@ -338,15 +361,17 @@
                                     //console.log(`Photo ${i} -> Réserve index ${targetIndex}`);
                                     
                                     // Vérifier que la réserve existe
-                                    if (payload.reserves[targetIndex]) {
+                                    if (payload.reserves[targetIndex] && file?.filename) {
                                         try {
                                             const url = await uploadService.uploadPVToFirebaseStorage(file.filename);
-                                            payload.reserves[targetIndex].photoUrl = url;
-                                            console.log(`✓ Photo uploadée pour réserve ${targetIndex}`);
+                                            if (url) {
+                                                payload.reserves[targetIndex].photoUrl = url;
+                                                console.log(`✓ Photo uploadée pour réserve ${targetIndex}`);
+                                            }
                                         } catch (e) {
                                             console.error('Erreur upload photo:', e);
                                         }
-                                    } else {
+                                    } else if (!payload.reserves[targetIndex]) {
                                         console.warn(`Réserve ${targetIndex} n'existe pas pour la photo ${i}`);
                                     }
                                 } else {
@@ -364,15 +389,17 @@
                                     console.log(`Levée ${i} -> Réserve index ${targetIndex}`);
                                     
                                     // Vérifier que la réserve existe
-                                    if (payload.reserves[targetIndex]) {
+                                    if (payload.reserves[targetIndex] && file?.filename) {
                                         try {
                                             const url = await uploadService.uploadPVToFirebaseStorage(file.filename);
-                                            payload.reserves[targetIndex].photoLevee = url;
-                                            console.log(`✓ Levée uploadée pour réserve ${targetIndex}`);
+                                            if (url) {
+                                                payload.reserves[targetIndex].photoLevee = url;
+                                                console.log(`✓ Levée uploadée pour réserve ${targetIndex}`);
+                                            }
                                         } catch (e) {
                                             console.error('Erreur upload levée:', e);
                                         }
-                                    } else {
+                                    } else if (!payload.reserves[targetIndex]) {
                                         console.warn(`Réserve ${targetIndex} n'existe pas pour la levée ${i}`);
                                     }
                                 } else {
@@ -625,9 +652,14 @@
                         if(pv?.reserves){
                         for(const reserve of pv.reserves){
                             if (reserve && reserve.photoUrl) {
-                                   await uploadService.deletePVFirebaseStorage(extractFileName(reserve.photoUrl));
-                                }
-                            } 
+                                const fileName = extractFileName(reserve.photoUrl);
+                                if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+                            }
+                            if (reserve && reserve.photoLevee) {
+                                const fileName = extractFileName(reserve.photoLevee);
+                                if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+                            }
+                        } 
                         }
                         pv.deleteOne().then((pv)=>{
                             res.json({
@@ -938,11 +970,13 @@
                                 if (reserveIndexes[i] !== undefined) {
                                     const targetIndex = reserveIndexes[i];
                                     
-                                    if (payload.reserves[targetIndex]) {
+                                    if (payload.reserves[targetIndex] && file?.filename) {
                                         try {
                                             const url = await uploadService.uploadPVToFirebaseStorage(file.filename);
-                                            payload.reserves[targetIndex].photoUrl = url;
-                                            console.log(`✓ Photo uploadée pour réserve ${targetIndex}`);
+                                            if (url) {
+                                                payload.reserves[targetIndex].photoUrl = url;
+                                                console.log(`✓ Photo uploadée pour réserve ${targetIndex}`);
+                                            }
                                         } catch (e) {
                                             console.error('Erreur upload photo:', e);
                                         }
@@ -957,11 +991,13 @@
                                 if (reserveLeveeIndexes[i] !== undefined) {
                                     const targetIndex = reserveLeveeIndexes[i];
                                     
-                                    if (payload.reserves[targetIndex]) {
+                                    if (payload.reserves[targetIndex] && file?.filename) {
                                         try {
                                             const url = await uploadService.uploadPVToFirebaseStorage(file.filename);
-                                            payload.reserves[targetIndex].photoLevee = url;
-                                            console.log(`✓ Levée uploadée pour réserve ${targetIndex}`);
+                                            if (url) {
+                                                payload.reserves[targetIndex].photoLevee = url;
+                                                console.log(`✓ Levée uploadée pour réserve ${targetIndex}`);
+                                            }
                                         } catch (e) {
                                             console.error('Erreur upload levée:', e);
                                         }

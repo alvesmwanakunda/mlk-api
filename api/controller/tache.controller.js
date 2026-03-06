@@ -569,24 +569,23 @@
                         times = [times];
                     }
 
-                    let imagePayload = null;
-                    if (req.files?.image?.[0]) {
-                            const imageFile = req.files.image[0];
-                            try {
-                                const imageUrl = await uploadService.uploadTachesToFirebaseStorage(imageFile.filename);
-                                imagePayload = {
-                                    url: imageUrl,
-                                    width: req.body.imageWidth || null,
-                                    height: req.body.imageHeight || null,
-                                };
-                            } catch (err) {
-                                console.error('Erreur upload image:', err);
-                                return res.status(500).json({
-                                success: false,
-                                message: 'Erreur lors de l’upload de l’image',
-                                });
-                            }
-                    }
+                    // ✅ Uploader toutes les images, puis save 1 seule fois
+                    const files = Array.isArray(req.files?.image) ? req.files?.image : [];
+                    const imageWidths  = req.body.imageWidths;
+                    const imageHeights = req.body.imageHeights;
+
+                    const uploadedImages = await Promise.all(
+                        files.map(async (imageFile, index) => {
+                        const imageUrl = await uploadService.uploadTachesToFirebaseStorage(imageFile.filename);
+                        return {
+                            url: imageUrl,
+                            width: imageWidths ? (imageWidths[index] ?? null) : null,
+                            height: imageHeights ? (imageHeights[index] ?? null) : null,
+                            filename: imageFile.originalname || `image_${Date.now()}_${index}`,
+                            uploadedAt: new Date()
+                        };
+                        })
+                    );
 
                     const savedTimesheets = [];
 
@@ -596,7 +595,7 @@
                             tache: tacheId,
                             employee:employees,
                             user: req.decoded.id,
-                            ...(imagePayload ? {image: imagePayload}:{}),
+                            ...(uploadedImages ? {image: uploadedImages}:{}),
                         });
                         
                         const savedDoc = await time.save();
@@ -623,77 +622,149 @@
                 });
             },
 
-            updateTime(req,res){
-                acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
-                    if(aclres){
+            async updateTime(req, res) {
+                try {
 
-                        let task = await Timesheet({_id:req.params.id});
+                    const taskId = req.params.id;
 
-                        const updatePayload = { ...req.body };
+                    const aclres = await new Promise((resolve, reject) => {
+                        acl.isAllowed(req.decoded.id, 'agenda', 'create', (err, resAcl) => {
+                            if (err) reject(err);
+                            resolve(resAcl);
+                        });
+                    });
 
-                        let employeesRaw = req.body.employee;   // <-- let (pas const)
-                        let employees = [];
-
-                        if (employeesRaw === undefined || employeesRaw === null || employeesRaw === '') {
-                            employees = [];
-                        } else if (typeof employeesRaw === 'string') {
-                            // souvent JSON string
-                            try {
-                            employees = JSON.parse(employeesRaw);
-                            } catch {
-                            employees = [employeesRaw];
-                            }
-                        } else if (Array.isArray(employeesRaw)) {
-                            employees = employeesRaw;
-                        } else {
-                            employees = [employeesRaw];
-                        }
-
-                        updatePayload.employee = employees;
-
-                        if (req.files?.image?.[0]) {
-                            const imageFile = req.files.image[0];
-                            try {
-                                const imageUrl = await uploadService.uploadTachesToFirebaseStorage(imageFile.filename);
-                                updatePayload.image = {
-                                url: imageUrl,
-                                width: req.body.imageWidth || null,
-                                height: req.body.imageHeight || null,
-                                };
-                            } catch (err) {
-                                console.error('Erreur upload image:', err);
-                                return res.status(500).json({
-                                success: false,
-                                message: 'Erreur lors de l’upload de l’image',
-                                });
-                            }
-                        }
-                       
-
-                        Timesheet.findOneAndUpdate({_id:req.params.id},updatePayload,{new:true}).then((time)=>{
-                            if (task.statut !== updatePayload?.statut) {
-                               HistoriqueService.createSous(task?._id, req.decoded.id);
-                            }
-                            res.json({
-                                success:true,
-                                message:time
-                            });
-                        }).catch((error)=>{
-                            return res.status(500).json({
-                                success:false,
-                                message:error.message
-                            })
-                        })
-                    }else{
+                    if (!aclres) {
                         return res.status(401).json({
                             success: false,
                             message: "401"
-                        }); 
+                        });
                     }
-            })
-            },
 
-             deleteTime(req,res){
+                    const task = await Timesheet.findById(taskId);
+
+                    if (!task) {
+                        return res.status(404).json({
+                            success: false,
+                            message: "Tâche introuvable"
+                        });
+                    }
+
+                    
+                    let employeesRaw = req.body.employee;
+                    let employees = [];
+
+                    if (!employeesRaw) {
+                    employees = [];
+                    } else if (typeof employeesRaw === 'string') {
+                    try {
+                        employees = JSON.parse(employeesRaw);
+                    } catch {
+                        employees = [employeesRaw];
+                    }
+                    } else if (Array.isArray(employeesRaw)) {
+                    employees = employeesRaw;
+                    } else {
+                    employees = [employeesRaw];
+                    }
+
+
+                    const files = req.files?.image || [];
+                    let newImages = [];
+
+                    if (files.length) {
+
+                        const uploaded = await Promise.all(
+                            files.map(async (file, index) => {
+
+                                const path = await uploadService.uploadTachesToFirebaseStorage(file.filename);
+
+                                return {
+                                    url: path,
+                                    filename: file.filename,
+                                    width: req.body.imageWidths ? (req.body.imageWidths[index] ?? null) : null,
+                                    height: req.body.imageHeights ? (req.body.imageHeights[index] ?? null) : null,
+                                    uploadedAt: new Date()
+                                };
+                            })
+                        );
+
+                        newImages = uploaded.filter(Boolean);
+                    }
+
+
+                    // Images à supprimer
+                    let removedUrls = [];
+
+                    if (req.body.removedUrls) {
+                        try {
+                            removedUrls = JSON.parse(req.body.removedUrls);
+                        } catch {
+                            removedUrls = [];
+                        }
+                    }
+
+                    if (!Array.isArray(removedUrls)) removedUrls = [];
+
+                    const removedPaths = removedUrls .map(url => extractFilePath(url)).filter(Boolean);
+
+                    //Suppression Firebase
+                    for (const url of removedUrls) {
+                        try {
+                            const filename = extractFileName(url);
+                            await uploadService.deleteTachesFirebaseStorage(filename);
+                            console.log('[updateTime] deleted cloud file =', filename);
+                        } catch (err) {
+                            console.error('[updateTime] Firebase delete error:', err.message);
+                        }
+                    }
+
+                    // Suppression images 
+                    if (removedPaths.length) {
+                        await Timesheet.updateOne(
+                            { _id: taskId },
+                            { $pull: { image: { url: { $in: removedPaths } } } }
+                        );
+                    }
+
+                    const updateQuery = {
+                        $set: {
+                            date: req.body.date,
+                            date_fin: req.body.date_fin,
+                            description: req.body.description,
+                            statut: req.body.statut,
+                            employee: employees
+                        }
+                    };
+
+                    if (newImages.length) {
+                        updateQuery.$push = {
+                            image: { $each: newImages }
+                        };
+                    }
+
+                    const time = await Timesheet.findOneAndUpdate({ _id: taskId }, updateQuery,{ new: true });
+
+                    // Historique si statut change
+                    if (task.statut !== req.body.statut) {
+                        await HistoriqueService.createSous(task._id, req.decoded.id);
+                    }
+
+                    return res.json({
+                        success: true,
+                        message: time
+                    });
+
+                } catch (error) {
+                    console.error('[updateTime] ERROR:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            },
+            
+            deleteTime(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'delete', async function(err,aclres){
 
                     if(aclres){

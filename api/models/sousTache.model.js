@@ -1,12 +1,11 @@
 (function(){
 
-     "use strict";
+    "use strict";
  
     var mongoose = require("mongoose");
     var Schema = mongoose.Schema;
 
      var sousTacheSchema = new Schema({
-
 
         user:{
             type:Schema.ObjectId,
@@ -38,10 +37,10 @@
             type:String,
             required: false
         },
-     });
+    });
       module.exports = {
         sousTacheSchema: sousTacheSchema,
         SousTacheModel: mongoose.model('SousTache',sousTacheSchema)
-     }
+    }
 
 })();
