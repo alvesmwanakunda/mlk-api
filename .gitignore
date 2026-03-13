@@ -51,3 +51,6 @@ mlka-speech-to-text-service.json
 .env
 .env.local
 .env.*
+
+serviceAccountKey.json
+mlka-speech-to-text-service.json
