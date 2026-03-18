@@ -25,9 +25,9 @@
     const ReserveItemSchema = new mongoose.Schema({
         index: { type: Number }, // #
         nature: { type: String, required: true },           // "Nature des réserves"
-        travauxAExecuter: { type: String, required: true }, // "Travaux à exécuter"
+        travauxAExecuter: { type: String, required: false }, // "Travaux à exécuter"
         photoUrl: { type: String },                         // "Photo"
-        etat: { type: String, enum: ['Non levée', 'Levée','Observation'], default: 'Non levée' }, // "Etat réserve"
+        etat: { type: String, enum: ['A Faire', 'Fait','Observation'], default: 'A Faire' }, // "Etat réserve"
         leveeDate: { type: Date },
         photoLevee: { type: String }, 
     }, { _id: true, timestamps: true });
@@ -35,6 +35,11 @@
 
     var pvReceptionSchema = new Schema({
         titre: {type: String, required: false}, //! Le titre du pv 
+        entrepriseCode: { 
+            type: String, 
+            enum: ['MLKA', 'INNOV'], 
+            default: 'MLKA' 
+        },
         entreprise:{
             nom : {type: String, required: true},
             adresse: {type: String, required: true },
@@ -74,7 +79,7 @@
         refusalReason: { type: String },               // "Précisez les motifs du refus..."
 
         // Cas WITHOUT_RESERVE_WITH_OBSERVATION
-        observation: { type: String },
+        // observation: { type: String },
 
         // Cas WITH_RESERVES
         nextReceptionDate: { type: Date },             // "Date prochaine réception"
@@ -108,15 +113,15 @@
     pvReceptionSchema.pre('validate', function(next) {
         const pv = this;
 
-         if (pv.declaration === 'WITH_RESERVES') {
+        if (pv.declaration === 'WITH_RESERVES') {
             console.log("WITH_RESERVES détecté");
-            const allLeve =
+            const allFait =
             Array.isArray(pv.reserves) &&
             pv.reserves.length > 0 &&
-            pv.reserves.every(r => r.etat === 'Levée');
+            pv.reserves.every(r => r.etat === 'Fait');
 
-            console.log("Toutes levées?", allLeve);
-            pv.isLeve = allLeve; // true ou false
+            console.log("Toutes réserves faites?", allFait);
+            pv.isLeve = allFait; // true ou false
         } else {
             // Champ absent si pas WITH_RESERVES
             console.log("Pas WITH_RESERVES - isLeve = undefined");

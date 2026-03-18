@@ -3,10 +3,16 @@
     "use strict";
     var pvReception = require("../models/pvReception.model").PVReceptionModel;
     var uploadService = require('../services/upload.service');
+    var MailService = require('../services/mail.service');
+    var fs = require("fs");
+
+
+
     function generatePvNumber(){
         const y = new Date().getFullYear();
         return `PV-${y}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`;
     };
+    
     function extractFilePath(fullUrl) {
         if (!fullUrl) return null;
 
@@ -17,22 +23,24 @@
 
             // Trouver la fin (soit '?', soit fin de string)
             const endIndex = fullUrl.indexOf('?', startIndex);
-
+            let path;
             if (startIndex !== -1) {
-            if (endIndex !== -1) {
-                // Extraire de "pvreception/" jusqu'à "?"
-                return fullUrl.substring(startIndex, endIndex);
-            } else {
-                // Pas de paramètres, prendre jusqu'à la fin
-                return fullUrl.substring(startIndex);
+                if (endIndex !== -1) {
+                    // Extraire de "pvreception/" jusqu'à "?"
+                    path = fullUrl.substring(startIndex, endIndex);
+                } else {
+                    // Pas de paramètres, prendre jusqu'à la fin
+                    path = fullUrl.substring(startIndex);
+                }
             }
-            }
+            return decodeURIComponent(path);
         }
 
         // Si ce n'est pas une URL Firebase, retourner telle quelle
         // (pour les data URLs ou autres formats)
         return fullUrl;
     };
+
     function extractFileName(fullUrl) {
         if (!fullUrl) return null;
 
@@ -73,6 +81,11 @@
         const allLeve = Array.isArray(reserves) && reserves.length > 0 && reserves.every(r => r.etat === 'Levée');
         return allLeve;
     }
+
+    function isValidEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    }
     
 
     module.exports = function(acl){
@@ -99,17 +112,23 @@
                         if (payload.reserves && typeof payload.reserves === 'string') {
                             payload.reserves = JSON.parse(payload.reserves);
                         }
+                        if (payload.reserveIndexes && typeof payload.reserveIndexes === 'string') {
+                            payload.reserveIndexes = JSON.parse(payload.reserveIndexes);
+                        }
+                        if (payload.reserveLeveeIndexes && typeof payload.reserveLeveeIndexes === 'string') {
+                            payload.reserveLeveeIndexes = JSON.parse(payload.reserveLeveeIndexes);
+                        }
                     
                         //console.log("Files", req.files);
-                        if(req.files?.planTravaux[0]?.filename){
+                        if(req.files?.planTravaux && req.files.planTravaux.length > 0){
                             try {
                                 const url = await uploadService.uploadPVToFirebaseStorage(req.files.planTravaux[0].filename);
                                 if (url) payload.travaux.planUrl = url;
                             } catch (e) {
                                 console.error('Erreur upload plan travaux:', e);
                                 return res.status(500).json({
-                                success: false,
-                                message: "Erreur lors de l’upload du plan des travaux",
+                                    success: false,
+                                    message: "Erreur lors de l’upload du plan des travaux",
                                 });
                             }
                         }
@@ -117,43 +136,48 @@
                         if (!Array.isArray(payload.reserves)) payload.reserves = [];
                         const reserveFiles = req.files?.reservePhotos || []; // ex: [{filename...}, ...]
                         const reserveLevee = req.files?.reserveLevee || [];
-                        if (reserveFiles.length > 0) {
+                        const reserveIndexes = payload.reserveIndexes || [];
+                        const reserveLeveeIndexes = payload.reserveLeveeIndexes || [];
+                        if (reserveFiles.length > 0 && reserveIndexes.length > 0) {
                             // On upload chaque photo, puis on affecte par index
                             for (let i = 0; i < reserveFiles.length; i++) {
                                 // Si la réserve n'existe pas à cet index, on ignore
-                                if (!payload.reserves[i]) continue;
+                                const index = reserveIndexes[i];
+                                if (Number.isNaN(index) || !payload.reserves[index]) continue;
 
                                 const f = reserveFiles[i];
+                                if (!f?.filename) continue;
                                 try {
                                     const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-                                    if (url) payload.reserves[i].photoUrl = url;
+                                    if (url) payload.reserves[index].photoUrl = url;
                                 } catch (e) {
                                     console.error('Erreur upload reserve photo:', e);
                                     return res.status(500).json({
-                                    success: false,
-                                    message: "Erreur lors de l’upload d’une photo de réserve",
+                                        success: false,
+                                        message: "Erreur lors de l’upload d’une photo de réserve",
                                     });
                                 }
                             }
                         }
-                        if (reserveLevee.length > 0) {
+                        if (reserveLevee.length > 0 && reserveLeveeIndexes.length > 0) {
                             // On upload chaque photo, puis on affecte par index
                             for (let i = 0; i < reserveLevee.length; i++) {
-                            // Si la réserve n'existe pas à cet index, on ignore
-                            if (!payload.reserves[i]) continue;
+                                // Si la réserve n'existe pas à cet index, on ignore
+                                const index = reserveLeveeIndexes[i];
+                                if (Number.isNaN(index) || !payload.reserves[index]) continue;
 
-                            const f = reserveLevee[i];
-                            if (!f?.filename) continue;
-                            try {
-                                const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-                                if (url) payload.reserves[i].photoLevee = url;
-                            } catch (e) {
-                                console.error('Erreur upload reserve photo:', e);
-                                return res.status(500).json({
-                                success: false,
-                                message: "Erreur lors de l’upload d’une photo de réserve",
-                                });
-                            }
+                                const f = reserveLevee[i];
+                                if (!f?.filename) continue;
+                                try {
+                                    const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
+                                    if (url) payload.reserves[index].photoLevee = url;
+                                } catch (e) {
+                                    console.error('Erreur upload reserve photo:', e);
+                                    return res.status(500).json({
+                                        success: false,
+                                        message: "Erreur lors de l’upload d’une photo de réserve",
+                                    });
+                                }
                             }
                         }
                         // signatures (OBLIGATOIRE)
@@ -224,44 +248,6 @@
                             message: "401"
                         });
                     }
-
-                // if (!aclres) {
-                //     return res.status(401).json({
-                //         success: false,
-                //         message: "401"
-                //     });
-                //     }
-
-                //     try {
-                //     const pvList = await pvReception.find({ projet: req.params.id }).sort({ createdBy: 1, createdAt: -1 }).lean();
-
-                //     const result = pvList.map(pv => {
-                //         // On ajoute isLeve uniquement pour WITH_RESERVES
-                //         if (pv.declaration === 'WITH_RESERVES') {
-                //         const allLeve = Array.isArray(pv.reserves) &&
-                //             pv.reserves.length > 0 &&
-                //             pv.reserves.every(r => r.etat === 'Levée');
-
-                //         return {
-                //             ...pv,
-                //             isLeve: allLeve
-                //         };
-                //         }
-
-                //         return pv;
-                //     });
-
-                //     return res.json({
-                //         success: true,
-                //         message: result
-                //     });
-
-                //     } catch (error) {
-                //     return res.status(500).json({
-                //         success: false,
-                //         message: error.message
-                //     });
-                //     }
                 });
 
                    
@@ -297,21 +283,22 @@
                     if (aclres) {
                         try {
                             const payload = { ...req.body };
-                            
-                            // 1. Parser les réserves
-                            if (payload.reserves && typeof payload.reserves === 'string') {
-                                try {
-                                    payload.reserves = JSON.parse(payload.reserves);
-                                } catch (e) {
-                                    return res.status(400).json({
-                                        success: false,
-                                        message: "reserves doit être un JSON valide (tableau)."
-                                    });
-                                }
+                            if (payload.entreprise && typeof payload.entreprise === 'string') {
+                                payload.entreprise = JSON.parse(payload.entreprise);
                             }
-
-                            if (!Array.isArray(payload.reserves)) payload.reserves = [];
-
+                            if (payload.societeCliente && typeof payload.societeCliente === 'string') {
+                                payload.societeCliente = JSON.parse(payload.societeCliente);
+                            }
+                            if (payload.chantier && typeof payload.chantier === 'string') {
+                                payload.chantier = JSON.parse(payload.chantier);
+                            }
+                            if (payload.travaux && typeof payload.travaux === 'string') {
+                                payload.travaux = JSON.parse(payload.travaux);
+                            }
+                            if (payload.reserves && typeof payload.reserves === 'string') {
+                                payload.reserves = JSON.parse(payload.reserves);
+                            }
+                            
                             // 2. Récupérer le document existant
                             const existingDoc = await pvReception.findById(req.params.id);
                             if (!existingDoc) {
@@ -319,6 +306,25 @@
                                     success: false,
                                     message: "Document non trouvé"
                                 });
+                            }
+
+                            //console.log("Files", req.files);
+                            if(req.files?.planTravaux && req.files.planTravaux.length > 0){
+                                try {
+                                    const url = await uploadService.uploadPVToFirebaseStorage(req.files.planTravaux[0].filename);
+                                    if (url) payload.travaux.planUrl = url;
+                                } catch (e) {
+                                    console.error('Erreur upload plan travaux:', e);
+                                    return res.status(500).json({
+                                        success: false,
+                                        message: "Erreur lors de l’upload du plan des travaux",
+                                    });
+                                }
+                            }else{
+                                // Si pas de nouveau plan, garder l'ancien
+                                if(existingDoc.travaux?.planUrl){
+                                    payload.travaux.planUrl = extractFilePath(existingDoc.travaux.planUrl);
+                                }
                             }
 
                             // 3. Parser les index des fichiers
@@ -649,17 +655,22 @@
                     if(aclres){
 
                         let pv = await pvReception.findOne({_id:req.params.id});
+                        
                         if(pv?.reserves){
-                        for(const reserve of pv.reserves){
-                            if (reserve && reserve.photoUrl) {
-                                const fileName = extractFileName(reserve.photoUrl);
-                                if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
-                            }
-                            if (reserve && reserve.photoLevee) {
-                                const fileName = extractFileName(reserve.photoLevee);
-                                if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
-                            }
-                        } 
+                            for(const reserve of pv.reserves){
+                                if (reserve && reserve.photoUrl) {
+                                    const fileName = extractFileName(reserve.photoUrl);
+                                    if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+                                }
+                                if (reserve && reserve.photoLevee) {
+                                    const fileName = extractFileName(reserve.photoLevee);
+                                    if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+                                }
+                            } 
+                        }
+                        if(pv?.travaux?.planUrl){
+                            const fileName = extractFileName(pv.travaux.planUrl);
+                            if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
                         }
                         pv.deleteOne().then((pv)=>{
                             res.json({
@@ -892,6 +903,7 @@
             //     })
 
             // },
+            
             leveeReserve(req, res) {
                 acl.isAllowed(req.decoded.id, 'agenda', 'delete', async function(err, aclres) {
                     if (aclres) {
@@ -1010,11 +1022,11 @@
                             payload.reserves.forEach((reserve, index) => {
                                 // Si la résource source a une photo et que la nouvelle n'en a pas
                                 if (source.reserves && source.reserves[index]) {
-                                    if (!reserve.photoUrl && source.reserves[index].photoUrl) {
+                                    if ((!reserve.photoUrl && source.reserves[index].photoUrl) || (reserve.photoUrl && reserve.photoUrl.includes('storage.googleapis.com'))) {
                                         payload.reserves[index].photoUrl = extractFilePath(source.reserves[index].photoUrl);
                                     }
                                     
-                                    if (!reserve.photoLevee && source.reserves[index].photoLevee) {
+                                    if ((!reserve.photoLevee && source.reserves[index].photoLevee) || (reserve.photoLevee && reserve.photoLevee.includes('storage.googleapis.com'))) {
                                         payload.reserves[index].photoLevee = extractFilePath(source.reserves[index].photoLevee);
                                     }
                                 }
@@ -1053,20 +1065,26 @@
                                 
                                 return Array.isArray(reserves) && 
                                     reserves.length > 0 && 
-                                    reserves.every(r => r.etat === 'Levée');
+                                    reserves.every(r => r.etat === 'Fait');
                             };
-
-                            // 10. Construire le nouveau document (version levée)
+                            
+                            const travaux = { ...source.travaux };
+                            if (travaux?.planUrl){
+                                travaux.planUrl = extractFilePath(travaux.planUrl);
+                            }
+                            
                             const clone = {
                                 projet: source.projet,
                                 number: generatePvNumber(), // Assurez-vous d'avoir cette fonction
                                 declaration: source.declaration,
+                                titre: source.titre,
+                                entreprise: source.entreprise,
+                                societeCliente: source.societeCliente,
+                                chantier: source.chantier,
+                                travaux: travaux,
                                 effectiveDate: source.effectiveDate,
                                 place: source.place,
-
                                 refusalReason: source.refusalReason,
-                                observation: source.observation,
-
                                 nextReceptionDate: source.nextReceptionDate,
                                 reservesExecutionDelayDays: source.reservesExecutionDelayDays,
                                 reservesFromDate: source.reservesFromDate,
@@ -1088,7 +1106,7 @@
 
                                 parentPvId: rootId,
                                 version: nextVersion,
-                                revisionReason: payload.revisionReason || 'Levée de réserves'
+                                // revisionReason: payload.revisionReason || 'Levée de réserves'
                             };
 
                             //console.log("Clone", clone);
@@ -1140,78 +1158,168 @@
             },
 
             //
-            submitPV(req,res){
-                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
-                    if(aclres){
+            // submitPV(req,res){
+            //     acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+            //         if(aclres){
 
-                        let pv = await pvReception.findById(req.params.id);
-                        if(!pv) return res.json({success:true,message:"PV introuvables"});
+            //             let pv = await pvReception.findById(req.params.id);
+            //             if(!pv) return res.json({success:true,message:"PV introuvables"});
 
-                        pv.status = 'SUBMITTED';
+            //             pv.status = 'SUBMITTED';
 
-                        pv.save().then(async (tache)=>{
-                                res.json({
-                                    success:true,
-                                    message:tache
-                                });
-                        }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                        })
-                    }else{
-                       return res.status(401).json({
-                            success: false,
-                            message: "401"
-                        }); 
-                    }
-                })
-            },
+            //             pv.save().then(async (tache)=>{
+            //                     res.json({
+            //                         success:true,
+            //                         message:tache
+            //                     });
+            //             }).catch((error)=>{
+            //                     return res.status(500).json({
+            //                         success:false,
+            //                         message:error.message
+            //                     })
+            //             })
+            //         }else{
+            //            return res.status(401).json({
+            //                 success: false,
+            //                 message: "401"
+            //             }); 
+            //         }
+            //     })
+            // },
 
-            signaturePV(req,res){
-                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
-                    if(aclres){
+            // signaturePV(req,res){
+            //     acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+            //         if(aclres){
 
-                        let {role, signerName, signerRoler, signatureUrl } = req.body;
-                        if (!['companyRep', 'client'].includes(role)) {
-                            return res.status(400).json({ message: "role invalide" });
-                        }
-                        let pv = await pvReception.findById(req.params.id);
-                        if (!pv) return res.status(404).json({ message: "PV introuvable" });
+            //             let {role, signerName, signerRoler, signatureUrl } = req.body;
+            //             if (!['companyRep', 'client'].includes(role)) {
+            //                 return res.status(400).json({ message: "role invalide" });
+            //             }
+            //             let pv = await pvReception.findById(req.params.id);
+            //             if (!pv) return res.status(404).json({ message: "PV introuvable" });
 
                     
-                        pv.signatures[role] = {
-                            signerName,
-                            signerRole,
-                            signatureUrl,
-                            signedAt: new Date()
-                        };
+            //             pv.signatures[role] = {
+            //                 signerName,
+            //                 signerRole,
+            //                 signatureUrl,
+            //                 signedAt: new Date()
+            //             };
 
-                        const hasCompany = !!pv.signatures.companyRep?.signedAt;
-                        const hasClient = !!pv.signatures.client?.signedAt;
-                        if (hasCompany && hasClient) pv.status = 'SIGNED';
+            //             const hasCompany = !!pv.signatures.companyRep?.signedAt;
+            //             const hasClient = !!pv.signatures.client?.signedAt;
+            //             if (hasCompany && hasClient) pv.status = 'SIGNED';
 
-                        pv.save().then(async (tache)=>{
-                                res.json({
-                                    success:true,
-                                    message:tache
+            //             pv.save().then(async (tache)=>{
+            //                     res.json({
+            //                         success:true,
+            //                         message:tache
+            //                     });
+            //             }).catch((error)=>{
+            //                     return res.status(500).json({
+            //                         success:false,
+            //                         message:error.message
+            //                     })
+            //             })
+            //         }else{
+            //            return res.status(401).json({
+            //                 success: false,
+            //                 message: "401"
+            //             }); 
+            //         }
+            //     })
+            // },
+              
+            sendPvByMail(req,res){
+                acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
+                    if(aclres){
+                        let pv = await pvReception.findById(req.params.id);
+                        if(!pv) {
+                            return res.status(404).json({ 
+                                success: false, 
+                                message: "PV introuvable" 
+                            });
+                        }
+
+                        let destinataires = [
+                            {
+                                email: pv.entreprise.representant.email || 'm.minthe@mlka.fr',
+                                nom: pv.entreprise.representant.nom,
+                                prenom: pv.entreprise.representant.prenom
+                            },
+                        ];
+
+                        const payload = req.body;
+                        if(payload.destinataires && typeof payload.destinataires === 'string') {
+                            payload.destinataires = JSON.parse(payload.destinataires);
+                            for (const personne of payload.destinataires) {
+                                destinataires.push({
+                                    email: personne.email || 'm.minthe@mlka.fr',
+                                    nom: personne.nom,
+                                    prenom: personne.prenom
                                 });
-                        }).catch((error)=>{
+                                
+                            }
+                        }else{
+                            return res.status(400).json({
+                                success: false,
+                                message: "Destinataires non trouvés"
+                            });
+                        }
+
+                        
+                        if(req.files?.pvReception && req.files.pvReception.length > 0){
+                            try {
+                                // Convertir le fichier en buffer
+                                const fileName = req.files.pvReception[0].filename;
+
+                                const file = req.files.pvReception[0];
+
+                                const buffer = fs.readFileSync(file.path);
+                            
+                                // Envoyer le mail
+                                for (const personne of destinataires) {
+                                    if (
+                                        personne.email &&
+                                        personne.email.trim() !== '' &&
+                                        isValidEmail(personne.email)
+                                    ) {
+                                        await MailService.mailPvReception({
+                                            projet: pv.travaux?.projet || '',
+                                            nomComplet: personne.prenom + ' ' + personne.nom,
+                                            email: personne.email,
+                                            pvBuffer: buffer,
+                                            fileName: fileName
+                                        });
+                                    }
+                                }
+                                
+                                return res.json({
+                                    success: true,
+                                    message: "PV envoyé aux personnes présentes"
+                                });
+                            } catch (error) {
                                 return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                        })
+                                    success: false,
+                                    message: error.message
+                                });
+                            }
+                        }else{
+                            return res.status(400).json({
+                                success: false,
+                                message: "Fichier pv reception à envoyer non trouvé"
+                            });
+                        }
+
+                        
                     }else{
-                       return res.status(401).json({
+                        return res.status(401).json({
                             success: false,
                             message: "401"
-                        }); 
+                        });
                     }
-                })
+                });
             },
-
 
         }
     }

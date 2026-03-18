@@ -623,8 +623,10 @@
                                 pause:hPause,
                                 heure:nbrHeure,
                                 minute:nbrMin,
-                                projet: req.body.projet
                             };
+                            if (req.body.projet){
+                                body.projet = req.body.projet;
+                            }
                             TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
                                 res.json({
                                     success:true,
@@ -644,8 +646,10 @@
                                 localisation:req.body.position,
                                 responsable:req.decoded.id,
                                 presence:"Présent",
-                                projet: req.body.projet
                                });
+                               if (req.body.projet){
+                                timeSheet.projet = req.body.projet;
+                               }
                                await timeSheet.save();
                                res.json({
                                 success:true,

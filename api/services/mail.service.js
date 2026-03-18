@@ -727,5 +727,67 @@ module.exports={
 
     },
 
+    mailPvReception: ({projet, nomComplet, email, pvBuffer, fileName }) => {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+            let transporter = nodemailer.createTransport({
+                host: process.env.SMTP_SERVER,
+                port: process.env.SMTP_PORT,
+                secure: false,
+                auth: {
+                user: process.env.SMTP_USERNAME,
+                pass: process.env.SMTP_PASSWORD
+                }
+            });
+
+            let message = {
+                from: `MLKA <${process.env.SMTP_FROM}>`,
+                to: email,
+                subject: "PV de réception MLKA",
+                html: `
+                <p>Bonjour ${nomComplet},</p>
+
+                <p>
+                    Veuillez trouver ci-joint le <strong>Procès-Verbal de réception des travaux ${projet}</strong>.
+                </p>
+
+                <p>
+                    Nous vous invitons à consulter le document en pièce jointe.
+                </p>
+
+                <p>
+                    Pour toute information complémentaire, veuillez nous contacter par email à l'adresse <a href="mailto:contact@mlka.fr">contact@mlka.fr</a>.
+                </p>
+
+\               <p>Cordialement,</p>
+                <p><strong>L'équipe MLKA</strong></p>
+                `,
+
+                attachments: [
+                {
+                    filename: fileName || "pv_reception_mlka.pdf",
+                    content: pvBuffer
+                }
+                ]
+            };
+
+            transporter.sendMail(message, (error, info) => {
+                if (error) {
+                console.log("Erreur mail :", error);
+                return reject(error);
+                }
+
+                resolve(info);
+                transporter.close();
+            });
+
+            } catch (error) {
+            console.log("Erreur mail", error);
+            reject(error);
+            }
+        });
+    }
+
 
 }

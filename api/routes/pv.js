@@ -5,7 +5,7 @@
      var upload = require("../../middlewares/upload")
 
     app.post('/pv/create/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'reservePhotos' },{ name: 'reserveLevee' },{name: 'planTravaux'}]), Ctrl.createPV);
-    app.put('/pv/update/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'reservePhotos' },{ name: 'reserveLevee' }]), Ctrl.updatePV);
+    app.put('/pv/update/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'reservePhotos' },{ name: 'reserveLevee' },{name: 'planTravaux'}]), Ctrl.updatePV);
     app.post('/pv-receptions/:id/revision', upload.fields([{ name: 'reservePhotos'},{ name: 'reserveLevee' }]),Ctrl.leveeReserve);
     app.route('/pv/:id([a-fA-F\\d]{24})')
         .get(Ctrl.getPV)
@@ -13,6 +13,10 @@
 
     app.route('/pv/all/:id([a-fA-F\\d]{24})')
         .get(Ctrl.getAllPVProjet)
+
+    
+  app.post('/pv/send-mail/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'pvReception' }]), Ctrl.sendPvByMail);
+
 
 
   }
