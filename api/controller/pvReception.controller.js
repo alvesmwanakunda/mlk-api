@@ -1254,7 +1254,7 @@
                             payload.destinataires = JSON.parse(payload.destinataires);
                             for (const personne of payload.destinataires) {
                                 destinataires.push({
-                                    email: personne.email || 'm.minthe@mlka.fr',
+                                    email: personne.email,
                                     nom: personne.nom,
                                     prenom: personne.prenom
                                 });

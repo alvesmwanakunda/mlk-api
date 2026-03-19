@@ -757,7 +757,7 @@ module.exports={
                 </p>
 
                 <p>
-                    Pour toute information complémentaire, veuillez nous contacter par email à l'adresse <a href="mailto:contact@mlka.fr">contact@mlka.fr</a>.
+                    Pour toute information complémentaire, veuillez nous contacter par mail à l'adresse <a href="mailto:contact@mlka.fr">contact@mlka.fr</a> ou adressez-vous directement au responsable du projet.
                 </p>
 
 \               <p>Cordialement,</p>

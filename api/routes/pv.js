@@ -18,6 +18,5 @@
   app.post('/pv/send-mail/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'pvReception' }]), Ctrl.sendPvByMail);
 
 
-
   }
 })();

@@ -15,8 +15,8 @@
     var projetSchema = new Schema({
  
      projet:{
-         type:String,
-         required: false
+        type:String,
+        required: false
      },
      entreprise:{
         type:Schema.ObjectId,
@@ -32,11 +32,11 @@
          type:String,
          required: false
      },
-     nom:{
+    nom:{
          type:String,
          required: false
-     },
-     prenom:{
+    },
+    prenom:{
         type:String,
         required: false
     },
@@ -142,6 +142,14 @@
         type: String,
         enum: ['En Cours', 'Archiver', 'Clôturer'],
         default: 'En Cours'
+    },
+    
+    //* Si c'est MLKA ou INNOV qui administre le projet
+    societeResponsableCode:{
+        type: String,
+        enum: ['MLKA', 'INNOV'],
+        default: 'MLKA',
+        required:false
     },
 
     });

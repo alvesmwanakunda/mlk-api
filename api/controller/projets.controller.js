@@ -98,7 +98,6 @@
                                 entreprise.indicatif = req.body.entreprise.indicatif;
                                 entreprise.telephone = req.body.entreprise.phone;
                                 entreprise.email = req.body.entreprise.email;
-                                
                                 entreprise.save().then((result)=>{
                                    entreprise = result;
                                 }).catch((error)=>{
@@ -374,6 +373,8 @@
                         projet.longitude=req.body.longitude;
                         projet.coordonnees = req.body.coordonnees;
                         projet.addressSearch = req.body.addressSearch;
+                        
+                        projet.societeResponsableCode = req.body.societeResponsableCode || 'MLKA';
 
                         if (req.file) {
                             //console.log("Nouveau fichier reçu");
@@ -845,6 +846,8 @@
                         projet.longitude=req.body.longitude;
                         projet.coordonnees = req.body.coordonnees;
                         projet.addressSearch = req.body.addressSearch;
+
+                        projet.societeResponsableCode = req.body.societeResponsableCode || 'MLKA';
 
 
                         if(req.file){
