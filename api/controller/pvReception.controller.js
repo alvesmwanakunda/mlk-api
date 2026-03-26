@@ -655,22 +655,34 @@
                     if(aclres){
 
                         let pv = await pvReception.findOne({_id:req.params.id});
-                        
-                        if(pv?.reserves){
-                            for(const reserve of pv.reserves){
-                                if (reserve && reserve.photoUrl) {
-                                    const fileName = extractFileName(reserve.photoUrl);
-                                    if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
-                                }
-                                if (reserve && reserve.photoLevee) {
-                                    const fileName = extractFileName(reserve.photoLevee);
-                                    if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
-                                }
-                            } 
+                        if(!pv){
+                            return res.status(404).json({
+                                success: false,
+                                message: "PV introuvable"
+                            });
                         }
-                        if(pv?.travaux?.planUrl){
-                            const fileName = extractFileName(pv.travaux.planUrl);
-                            if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+
+                        const hasChildren = await pvReception.exists({ parentPvId: pv._id });
+                        
+                        if(!hasChildren){
+                            if(pv?.reserves){
+                                for(const reserve of pv.reserves){
+                                    if (reserve && reserve.photoUrl) {
+                                        const fileName = extractFileName(reserve.photoUrl);
+                                        if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+                                    }
+                                    if (reserve && reserve.photoLevee) {
+                                        const fileName = extractFileName(reserve.photoLevee);
+                                        if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+                                    }
+                                }
+                            }
+                            if(pv?.travaux?.planUrl){
+                                const fileName = extractFileName(pv.travaux.planUrl);
+                                if (fileName) await uploadService.deletePVFirebaseStorage(fileName);
+                            }
+                        }else{
+                            console.log(`Suppression Firebase ignorée: le PV ${pv._id} est parent d'autres versions.`);
                         }
                         pv.deleteOne().then((pv)=>{
                             res.json({
@@ -918,6 +930,22 @@
                             }
 
                             const payload = { ...req.body };
+                            //console.log("Payload", req.body);
+                            const tryParseJSON = (value) => {
+                                if (typeof value !== 'string') return value;
+                                const trimmed = value.trim();
+                                if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return undefined;
+                                try {
+                                    return JSON.parse(trimmed);
+                                } catch (e) {
+                                    return value;
+                                }
+                            };
+
+                            payload.entreprise = tryParseJSON(payload.entreprise);
+                            payload.societeCliente = tryParseJSON(payload.societeCliente);
+                            payload.personnesPresent = tryParseJSON(payload.personnesPresent);
+                            payload.signatures = tryParseJSON(payload.signatures);
 
                             // 2. Parser les réserves
                             if (payload.reserves && typeof payload.reserves === 'string') {
@@ -1037,11 +1065,6 @@
                                 }
                             });
 
-                            // 7. Parser personnes présentes
-                            if (payload.personnesPresent && typeof payload.personnesPresent === 'string') {
-                                payload.personnesPresent = JSON.parse(payload.personnesPresent);
-                            }
-
                             // 8. Trouver la dernière version
                             const last = await pvReception
                                 .find({ 
@@ -1077,17 +1100,17 @@
                                 projet: source.projet,
                                 number: generatePvNumber(), // Assurez-vous d'avoir cette fonction
                                 declaration: source.declaration,
-                                titre: source.titre,
-                                entreprise: source.entreprise,
-                                societeCliente: source.societeCliente,
+                                titre: payload.titre ?? source.titre,
+                                entreprise: payload.entreprise ?? source.entreprise,
+                                societeCliente: payload.societeCliente ?? source.societeCliente,
                                 chantier: source.chantier,
                                 travaux: travaux,
-                                effectiveDate: source.effectiveDate,
-                                place: source.place,
+                                effectiveDate: payload.effectiveDate ?? source.effectiveDate,
+                                place: payload.place ?? source.place,
                                 refusalReason: source.refusalReason,
-                                nextReceptionDate: source.nextReceptionDate,
-                                reservesExecutionDelayDays: source.reservesExecutionDelayDays,
-                                reservesFromDate: source.reservesFromDate,
+                                nextReceptionDate: payload.nextReceptionDate ?? source.nextReceptionDate,
+                                reservesExecutionDelayDays: payload.reservesExecutionDelayDays ?? source.reservesExecutionDelayDays,
+                                reservesFromDate: payload.reservesFromDate ?? source.reservesFromDate,
 
                                 // Réserves mises à jour (avec photos)
                                 reserves: payload.reserves,
@@ -1097,8 +1120,8 @@
 
                                 // Signatures: réinitialiser pour re-signature
                                 signatures: { 
-                                    companyRep: source.signatures.companyRep, 
-                                    client: source.signatures.client
+                                    companyRep: payload.signatures?.companyRep ?? {}, 
+                                    client: payload.signatures?.client ?? {}
                                 },
 
                                 status: 'DRAFT',
@@ -1113,12 +1136,16 @@
 
                             // 11. Calculer si toutes les réserves sont levées
                             const isLeve = computeIsLeve(clone.declaration, clone.reserves);
+                            const allReservesFait = Array.isArray(clone.reserves) &&
+                                clone.reserves.length > 0 &&
+                                clone.reserves.every(r => r.etat === 'Fait');
                             if (clone.declaration === 'WITH_RESERVES') {
                                 clone.isLeve = isLeve;
                                 clone.allReservesLifted = isLeve;
                             } else {
                                 delete clone.isLeve;
                             }
+                            clone.status = allReservesFait ? 'ARCHIVED' : 'DRAFT';
 
                             // console.log("=== CREATION NOUVEAU PV ===");
                             // console.log("Nouveau numéro:", clone.number);
@@ -1323,4 +1350,4 @@
 
         }
     }
-})();            // updatePV(req,res){
+})();          

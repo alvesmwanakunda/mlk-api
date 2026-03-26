@@ -79,7 +79,7 @@
         refusalReason: { type: String },               // "Précisez les motifs du refus..."
 
         // Cas WITHOUT_RESERVE_WITH_OBSERVATION
-        // observation: { type: String },
+        //observation: { type: String },
 
         // Cas WITH_RESERVES
         nextReceptionDate: { type: Date },             // "Date prochaine réception"
@@ -97,7 +97,7 @@
 
         status: { 
             type: String, 
-            enum: ['DRAFT', 'SUBMITTED', 'SIGNED'], 
+            enum: ['DRAFT', 'SUBMITTED', 'SIGNED','ARCHIVED'], 
             default: 'DRAFT' 
         },
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
@@ -160,21 +160,30 @@
 
         next();
     });
+    async function hydrateSignedUrls(doc) {
+        if (!doc) return;
+
+        if (doc.travaux && doc.travaux.planUrl) {
+            doc.travaux.planUrl = await uploadService.getSignedUrl(doc.travaux.planUrl);
+        }
+
+        if (Array.isArray(doc.reserves)) {
+            for (const reserve of doc.reserves) {
+                if (reserve && reserve.photoUrl) {
+                    reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
+                }
+                if (reserve && reserve.photoLevee) {
+                    reserve.photoLevee = await uploadService.getSignedUrl(reserve.photoLevee);
+                }
+            }
+        }
+    }
+
     pvReceptionSchema.post('find', async function (docs, next) { 
         try {
             // Recuperer l'utl signée du plan travaux et des photos de réserves
             for (const doc of docs) {
-                if (doc.travaux && doc.travaux.planUrl) {
-                    doc.travaux.planUrl = await uploadService.getSignedUrl(doc.travaux.planUrl);
-                }
-                for(const reserve of doc.reserves){
-                  if (reserve && reserve.photoUrl) {
-                    reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
-                  }
-                  if (reserve && reserve.photoLevee) {
-                    reserve.photoLevee = await uploadService.getSignedUrl(reserve.photoLevee);
-                  }
-                } 
+                await hydrateSignedUrls(doc);
             }
             next();
         } catch (error) {
@@ -182,34 +191,24 @@
             next(error);
         }
     }); 
+
     // Middleware pour modifier le champ "photo" après avoir récupéré un document par son ID
     pvReceptionSchema.post('findById', async function (doc, next) {
-        if (doc.travaux && doc.travaux.planUrl) {
-            doc.travaux.planUrl = await uploadService.getSignedUrl(doc.travaux.planUrl);
+        try {
+            await hydrateSignedUrls(doc);
+            next();
+        } catch (error) {
+            next(error);
         }
-        for(const reserve of doc.reserves){
-            if (reserve && reserve.photoUrl) {
-                reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
-            }
-            if (reserve && reserve.photoLevee) {
-                reserve.photoLevee = await uploadService.getSignedUrl(reserve.photoLevee);
-            }
-        } 
-        next();
     });
+
     pvReceptionSchema.post('findOne', async function (doc, next) {
-        if (doc.travaux && doc.travaux.planUrl) {
-            doc.travaux.planUrl = await uploadService.getSignedUrl(doc.travaux.planUrl);
+        try {
+            await hydrateSignedUrls(doc);
+            next();
+        } catch (error) {
+            next(error);
         }
-        for(const reserve of doc.reserves){
-            if (reserve && reserve.photoUrl) {
-                reserve.photoUrl = await uploadService.getSignedUrl(reserve.photoUrl);
-            }
-            if (reserve && reserve.photoLevee) {
-                reserve.photoLevee = await uploadService.getSignedUrl(reserve.photoLevee);
-            }
-        } 
-        next();
     });
 module.exports = {
     pvReceptionSchema: pvReceptionSchema,

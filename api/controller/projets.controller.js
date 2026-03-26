@@ -937,7 +937,7 @@
                         }
                     );
 
-                    console.log("response", response.data)
+                    //console.log("response", response.data)
                     const suggestions = response.data.predictions.map(pred => ({
                     description: pred.description,
                     place_id: pred.place_id
@@ -997,7 +997,7 @@
                         }
                     }
                     );
-                    console.log("response detail", response.data)
+                    //console.log("response detail", response.data)
                     const components = response.data.result.address_components;
 
                     const get = (type) =>
