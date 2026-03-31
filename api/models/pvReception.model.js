@@ -42,12 +42,12 @@
         },
         entreprise:{
             nom : {type: String, required: true},
-            adresse: {type: String, required: true },
+            adresse: {type: String, required: false },
             representant: {type: PersonnePresentSchema, default: {}}
         },
         societeCliente:{
             nom : {type: String, required: true},
-            adresse: {type: String, required: true },
+            adresse: {type: String, required: false },
             maitreOuvrage: {type: PersonnePresentSchema, default: {}}
         },
         chantier:{

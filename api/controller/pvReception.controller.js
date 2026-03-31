@@ -182,15 +182,15 @@
                         }
                         // signatures (OBLIGATOIRE)
                         if (payload.signatures && typeof payload.signatures === 'string') {
-                        payload.signatures = JSON.parse(payload.signatures);
+                            payload.signatures = JSON.parse(payload.signatures);
                         }
 
                         // convertir signedAt si besoin (ISO string -> Date)
                         if (payload.signatures?.companyRep?.signedAt) {
-                        payload.signatures.companyRep.signedAt = new Date(payload.signatures.companyRep.signedAt);
+                            payload.signatures.companyRep.signedAt = new Date(payload.signatures.companyRep.signedAt);
                         }
                         if (payload.signatures?.client?.signedAt) {
-                        payload.signatures.client.signedAt = new Date(payload.signatures.client.signedAt);
+                            payload.signatures.client.signedAt = new Date(payload.signatures.client.signedAt);
                         }
 
                         //console.log('SIGNATURES (raw):', req.body.signatures);
