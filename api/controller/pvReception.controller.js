@@ -464,191 +464,7 @@
                 });
             },
 
-            // updatePV(req, res) {
-            //     acl.isAllowed(req.decoded.id, 'agenda', 'create', async function(err, aclres) {
-            //         if (aclres) {
-            //         try {
-            //             const payload = { ...req.body };
-            //             //console.log("Payload Start", payload);
-
-            //             // 1. Parser les réserves
-            //             if (payload.reserves && typeof payload.reserves === 'string') {
-            //             try {
-            //                 payload.reserves = JSON.parse(payload.reserves);
-            //             } catch (e) {
-            //                 return res.status(400).json({
-            //                 success: false,
-            //                 message: "reserves doit être un JSON valide (tableau)."
-            //                 });
-            //             }
-            //             }
-
-            //             if (!Array.isArray(payload.reserves)) payload.reserves = [];
-
-            //             // 2. Récupérer le document existant
-            //             const existingDoc = await pvReception.findById(req.params.id);
-            //             if (!existingDoc) {
-            //             return res.status(404).json({
-            //                 success: false,
-            //                 message: "Document non trouvé"
-            //             });
-            //             }
-
-            //             // 3. Parser les index des réserves à modifier
-            //             let reserveIndexes = [];
-            //             if (payload.reserveIndexes && typeof payload.reserveIndexes === 'string') {
-            //             try {
-            //                 reserveIndexes = JSON.parse(payload.reserveIndexes);
-            //             } catch (e) {
-            //                 console.log('Erreur parsing reserveIndexes:', e);
-            //             }
-            //             }
-
-            //             let reserveLeveeIndexes = [];
-            //             if (payload.reserveLeveeIndexes && typeof payload.reserveLeveeIndexes === 'string') {
-            //             try {
-            //                 reserveLeveeIndexes = JSON.parse(payload.reserveLeveeIndexes);
-            //             } catch (e) {
-            //                 console.log('Erreur parsing reserveIndexes:', e);
-            //             }
-            //             }
-
-            //             //console.log("Reserves", payload.reserves);
-            //             //console.log("index payload", payload.reserveIndexes)
-
-            //             // 4. Gérer les fichiers uploadés
-            //             const reserveFiles = req.files?.reservePhotos || [];
-            //             const reserveLeveeFiles = req.files?.reserveLevee || [];
-            //             //console.log("Reserve Files",reserveFiles);
-            //             console.log("Reserve Levée Files",reserveLeveeFiles);
-                        
-            //             if (reserveFiles.length > 0) {
-            //                 for (let i = 0; i < reserveFiles.length; i++) {
-            //                     const f = reserveFiles[i];
-                                
-            //                     // Déterminer quel index de réserve ce fichier modifie
-            //                     let targetReserveIndex = i; // Par défaut
-            //                     //console.log("Index", i);
-                                
-            //                     // Si on a une liste d'index, l'utiliser
-            //                     if (reserveIndexes[i] !== undefined) {
-            //                     targetReserveIndex = reserveIndexes[i];
-            //                     } else {
-            //                     // Sinon, chercher dans les réserves celle qui a _index
-            //                     // ou utiliser l'ordre d'arrivée des fichiers
-            //                     }
-                                
-            //                     // Vérifier que la réserve existe à cet index
-            //                     if (payload.reserves[targetReserveIndex]) {
-            //                     try {
-            //                         const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-            //                         payload.reserves[targetReserveIndex].photoUrl = url;
-            //                         console.log(`Photo uploadée pour réserve index ${targetReserveIndex}`);
-            //                     } catch (e) {
-            //                         console.error('Erreur upload reserve photo:', e);
-            //                     }
-            //                     }
-            //                 }
-            //             }
-            //             if (reserveLeveeFiles.length > 0) {
-            //                 for (let i = 0; i < reserveLeveeFiles.length; i++) {
-            //                     const f = reserveLeveeFiles[i];
-                                
-            //                     // Déterminer quel index de réserve ce fichier modifie
-            //                     let targetReserveIndex = i; // Par défaut
-            //                     //console.log("Index", i);
-                                
-            //                     // Si on a une liste d'index, l'utiliser
-            //                     if (reserveLeveeIndexes[i] !== undefined) {
-            //                     targetReserveIndex = reserveLeveeIndexes[i];
-            //                     } else {
-            //                     // Sinon, chercher dans les réserves celle qui a _index
-            //                     // ou utiliser l'ordre d'arrivée des fichiers
-            //                     }
-                                
-            //                     // Vérifier que la réserve existe à cet index
-            //                     if (payload.reserves[targetReserveIndex]) {
-            //                     try {
-            //                         const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-            //                         payload.reserves[targetReserveIndex].photoLevee = url;
-            //                         console.log(`Photo Levée uploadée pour réserve index ${targetReserveIndex}`);
-            //                     } catch (e) {
-            //                         console.error('Erreur upload reserve photo:', e);
-            //                     }
-            //                     }
-            //                 }
-            //             }
-
-            //             // 5. Pour les réserves SANS nouvelle photo, garder l'ancienne
-            //             payload.reserves.forEach((reserve, index) => {
-            //             // Chercher l'index réel de la réserve (si _index existe)
-            //             const reserveRealIndex = reserve._index !== undefined ? reserve._index : index;
-                        
-            //             // Si pas de nouvelle photo mais ancienne photo existante
-            //             if (!reserve.photoUrl && 
-            //                 existingDoc.reserves[reserveRealIndex] && 
-            //                 existingDoc.reserves[reserveRealIndex].photoUrl) {
-            //                 payload.reserves[index].photoUrl = extractFilePath(existingDoc.reserves[reserveRealIndex].photoUrl);
-            //             }
-            //             if (!reserve.photoLevee && 
-            //                 existingDoc.reserves[reserveRealIndex] && 
-            //                 existingDoc.reserves[reserveRealIndex].photoLevee) {
-            //                 payload.reserves[index].photoLevee = extractFilePath(existingDoc.reserves[reserveRealIndex].photoLevee);
-            //             }
-                        
-            //             // Nettoyer le champ _index
-            //             delete payload.reserves[index]._index;
-            //             });
-
-            //              // signatures (OBLIGATOIRE)
-            //             if (payload.signatures && typeof payload.signatures === 'string') {
-            //               payload.signatures = JSON.parse(payload.signatures);
-            //             }
-            //             // convertir signedAt si besoin (ISO string -> Date)
-            //             if (payload.signatures?.companyRep?.signedAt) {
-            //             payload.signatures.companyRep.signedAt = new Date(payload.signatures.companyRep.signedAt);
-            //             }
-            //             if (payload.signatures?.client?.signedAt) {
-            //             payload.signatures.client.signedAt = new Date(payload.signatures.client.signedAt);
-            //             }
-
-            //             if (payload.personnesPresent && typeof payload.personnesPresent === 'string') {
-            //                 payload.personnesPresent = JSON.parse(payload.personnesPresent);
-            //             }
-
-
-            //             // pvReception.findOneAndUpdate(
-            //             // { _id: req.params.id },
-            //             // payload,
-            //             // { new: true }
-            //             // ).then(async (pv) => {
-            //             // res.json({
-            //             //     success: true,
-            //             //     message: pv
-            //             // });
-            //             // }).catch((error) => {
-            //             // return res.status(500).json({
-            //             //     success: false,
-            //             //     message: error.message
-            //             // });
-            //             //});
-
-            //         } catch (error) {
-            //             console.error('Erreur générale:', error);
-            //             return res.status(500).json({
-            //             success: false,
-            //             message: error.message
-            //             });
-            //         }
-            //         } else {
-            //         return res.status(401).json({
-            //             success: false,
-            //             message: "401"
-            //         }); 
-            //         }
-            //     });
-            // },
-          
+            
             deletePV(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'delete', async function(err,aclres){
 
@@ -662,9 +478,9 @@
                             });
                         }
 
-                        const hasChildren = await pvReception.exists({ parentPvId: pv._id });
-                        
-                        if(!hasChildren){
+                        // const hasChildren = await pvReception.exists({ parentPvId: pv._id });
+                        const isFirstVersion = pv.version === 1;
+                        if(isFirstVersion){
                             if(pv?.reserves){
                                 for(const reserve of pv.reserves){
                                     if (reserve && reserve.photoUrl) {
@@ -704,217 +520,6 @@
                     }
                 })
             },
-
-            // Levée les réserves
-
-            // leveeReserve(req,res){
-            //     acl.isAllowed(req.decoded.id,'agenda', 'delete', async function(err,aclres){
-
-            //         if(aclres){
-  
-            //             try {
-            //                 const source = await pvReception.findById(req.params.id).lean();
-            //                 if(!source) return res.status(404).json({ success: false, message: "PV introuvable" });
-            //                 const payload = {...req.body};
-
-            //                 // 1. Parser les réserves
-            //             if (payload.reserves && typeof payload.reserves === 'string') {
-            //             try {
-            //                 payload.reserves = JSON.parse(payload.reserves);
-            //             } catch (e) {
-            //                 return res.status(400).json({
-            //                 success: false,
-            //                 message: "reserves doit être un JSON valide (tableau)."
-            //                 });
-            //             }
-            //             }
-
-            //             if (!Array.isArray(payload.reserves)) payload.reserves = [];
-
-            //             // 2. Récupérer le document existant
-            //             const existingDoc = await pvReception.findById(req.params.id);
-            //             if (!existingDoc) {
-            //             return res.status(404).json({
-            //                 success: false,
-            //                 message: "Document non trouvé"
-            //             });
-            //             }
-
-            //             // 3. Parser les index des réserves à modifier
-            //             let reserveIndexes = [];
-            //             if (payload.reserveIndexes && typeof payload.reserveIndexes === 'string') {
-            //             try {
-            //                 reserveIndexes = JSON.parse(payload.reserveIndexes);
-            //             } catch (e) {
-            //                 console.log('Erreur parsing reserveIndexes:', e);
-            //             }
-            //             }
-
-            //             let reserveLeveeIndexes = [];
-            //             if (payload.reserveLeveeIndexes && typeof payload.reserveLeveeIndexes === 'string') {
-            //             try {
-            //                 reserveLeveeIndexes = JSON.parse(payload.reserveLeveeIndexes);
-            //             } catch (e) {
-            //                 console.log('Erreur parsing reserveIndexes:', e);
-            //             }
-            //             }
-
-            //             //console.log("Reserves", payload.reserves);
-            //             //console.log("index payload", payload.reserveIndexes)
-
-            //             // 4. Gérer les fichiers uploadés
-            //             const reserveFiles = req.files?.reservePhotos || [];
-            //             const reserveLeveeFiles = req.files?.reserveLevee || [];
-            //             //console.log("Reserve Files",reserveFiles);
-                        
-            //             if (reserveFiles.length > 0) {
-            //                 for (let i = 0; i < reserveFiles.length; i++) {
-            //                     const f = reserveFiles[i];
-                                
-            //                     // Déterminer quel index de réserve ce fichier modifie
-            //                     let targetReserveIndex = i; // Par défaut
-            //                     //console.log("Index", i);
-                                
-            //                     // Si on a une liste d'index, l'utiliser
-            //                     if (reserveIndexes[i] !== undefined) {
-            //                     targetReserveIndex = reserveIndexes[i];
-            //                     } else {
-            //                     // Sinon, chercher dans les réserves celle qui a _index
-            //                     // ou utiliser l'ordre d'arrivée des fichiers
-            //                     }
-                                
-            //                     // Vérifier que la réserve existe à cet index
-            //                     if (payload.reserves[targetReserveIndex]) {
-            //                     try {
-            //                         const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-            //                         payload.reserves[targetReserveIndex].photoUrl = url;
-            //                         console.log(`Photo uploadée pour réserve index ${targetReserveIndex}`);
-            //                     } catch (e) {
-            //                         console.error('Erreur upload reserve photo:', e);
-            //                     }
-            //                     }
-            //                 }
-            //             }
-            //             if (reserveLeveeFiles.length > 0) {
-            //                 for (let i = 0; i < reserveLeveeFiles.length; i++) {
-            //                     const f = reserveLeveeFiles[i];
-                                
-            //                     // Déterminer quel index de réserve ce fichier modifie
-            //                     let targetReserveIndex = i; // Par défaut
-            //                     //console.log("Index", i);
-                                
-            //                     // Si on a une liste d'index, l'utiliser
-            //                     if (reserveLeveeIndexes[i] !== undefined) {
-            //                     targetReserveIndex = reserveLeveeIndexes[i];
-            //                     } else {
-            //                     // Sinon, chercher dans les réserves celle qui a _index
-            //                     // ou utiliser l'ordre d'arrivée des fichiers
-            //                     }
-                                
-            //                     // Vérifier que la réserve existe à cet index
-            //                     if (payload.reserves[targetReserveIndex]) {
-            //                     try {
-            //                         const url = await uploadService.uploadPVToFirebaseStorage(f.filename);
-            //                         payload.reserves[targetReserveIndex].photoLevee = url;
-            //                         console.log(`Photo Levée uploadée pour réserve index ${targetReserveIndex}`);
-            //                     } catch (e) {
-            //                         console.error('Erreur upload reserve photo:', e);
-            //                     }
-            //                     }
-            //                     }
-            //                 }
-
-            //                 // 5. Pour les réserves SANS nouvelle photo, garder l'ancienne
-            //                 payload.reserves.forEach((reserve, index) => {
-            //                 // Chercher l'index réel de la réserve (si _index existe)
-            //                 const reserveRealIndex = reserve._index !== undefined ? reserve._index : index;
-                            
-            //                 // Si pas de nouvelle photo mais ancienne photo existante
-            //                 if (!reserve.photoUrl && 
-            //                     existingDoc.reserves[reserveRealIndex] && 
-            //                     existingDoc.reserves[reserveRealIndex].photoUrl) {
-            //                     payload.reserves[index].photoUrl = extractFilePath(existingDoc.reserves[reserveRealIndex].photoUrl);
-            //                 }
-            //                 if (!reserve.photoLevee && 
-            //                     existingDoc.reserves[reserveRealIndex] && 
-            //                     existingDoc.reserves[reserveRealIndex].photoLevee) {
-            //                     payload.reserves[index].photoLevee = extractFilePath(existingDoc.reserves[reserveRealIndex].photoLevee);
-            //                 }
-                            
-            //                 // Nettoyer le champ _index
-            //                 delete payload.reserves[index]._index;
-            //                 });
-
-
-
-            //                 if (payload.personnesPresent && typeof payload.personnesPresent === 'string') {
-            //                     payload.personnesPresent = JSON.parse(payload.personnesPresent);
-            //                 }
-
-            //                 const last = await pvReception
-            //                 .find({ $or: [{ _id: source._id }, { parentPvId: source._id }] })
-            //                 .sort({ version: -1 })
-            //                 .limit(1)
-            //                 .lean();
-
-            //                 const nextVersion = (last?.[0]?.version || source.version || 1) + 1;
-            //                 const rootId = source.parentPvId ? source.parentPvId : source._id;
-
-            //                 // Construire le clone
-            //                 const clone = {
-            //                     projet: source.projet,
-            //                     number: generatePvNumber(),
-            //                     declaration: source.declaration,
-            //                     effectiveDate: source.effectiveDate,
-            //                     place: source.place,
-
-            //                     refusalReason: source.refusalReason,
-            //                     observation: source.observation,
-
-            //                     nextReceptionDate: source.nextReceptionDate,
-            //                     reservesExecutionDelayDays: source.reservesExecutionDelayDays,
-            //                     reservesFromDate: source.reservesFromDate,
-            //                     //allReservesLifted: source.allReservesLifted,
-
-            //                     // IMPORTANT: on prend les réserves envoyées (qui incluent les photoUrl existants)
-            //                     reserves: payload.reserves,
-
-            //                     // Signatures: recommandé de réinitialiser pour re-signature
-            //                     signatures: { companyRep: {}, client: {} },
-
-            //                     status: 'DRAFT',
-            //                     createdBy: req.decoded?.id,
-
-            //                     parentPvId: rootId,
-            //                     version: nextVersion,
-            //                     revisionReason: payload.revisionReason || 'Levée de réserves'
-            //                 };
-
-            //                 // Calcul isLeve (seulement si WITH_RESERVES)
-            //                 const isLeve = await computeIsLeve(clone.declaration, clone.reserves);
-            //                 if (clone.declaration === 'WITH_RESERVES'){
-            //                     clone.isLeve = isLeve;
-            //                     clone.allReservesLifted = isLeve;
-            //                 } 
-            //                 else delete clone.isLeve;
-
-            //                 const created = await pvReception.create(clone);
-
-            //                 return res.json({ success: true, message: created });
-                                
-            //             } catch (error) {
-            //                 return res.status(500).json({ success: false, message: error.message });
-            //             }
-
-            //         }else{
-            //             return res.status(401).json({
-            //                 success: false,
-            //                 message: "401"
-            //             });
-            //         }
-            //     })
-
-            // },
             
             leveeReserve(req, res) {
                 acl.isAllowed(req.decoded.id, 'agenda', 'delete', async function(err, aclres) {
@@ -991,17 +596,9 @@
                                 }
                             }
 
-                            // console.log("=== LEVEE RESERVE DEBUG ===");
-                            // console.log("Nombre de réserves:", payload.reserves.length);
-                            // console.log("Index photos:", reserveIndexes);
-                            // console.log("Index levées:", reserveLeveeIndexes);
-
                             // 5. Gérer les fichiers uploadés
                             const reserveFiles = req.files?.reservePhotos || [];
                             const reserveLeveeFiles = req.files?.reserveLevee || [];
-
-                            // console.log(`Fichiers photo: ${reserveFiles.length}`);
-                            // console.log(`Fichiers levée: ${reserveLeveeFiles.length}`);
 
                             // Upload des nouvelles photos de réserve
                             for (let i = 0; i < reserveFiles.length; i++) {
@@ -1120,7 +717,7 @@
 
                                 // Signatures: réinitialiser pour re-signature
                                 signatures: { 
-                                    companyRep: payload.signatures?.companyRep ?? {}, 
+                                    companyRep: payload.signatures?.companyRep ?? source.signatures?.companyRep, 
                                     client: payload.signatures?.client ?? {}
                                 },
 
@@ -1131,8 +728,6 @@
                                 version: nextVersion,
                                 // revisionReason: payload.revisionReason || 'Levée de réserves'
                             };
-
-                            //console.log("Clone", clone);
 
                             // 11. Calculer si toutes les réserves sont levées
                             const isLeve = computeIsLeve(clone.declaration, clone.reserves);
@@ -1146,11 +741,6 @@
                                 delete clone.isLeve;
                             }
                             clone.status = allReservesFait ? 'ARCHIVED' : 'DRAFT';
-
-                            // console.log("=== CREATION NOUVEAU PV ===");
-                            // console.log("Nouveau numéro:", clone.number);
-                            // console.log("Version:", clone.version);
-                            // console.log("Toutes levées?", clone.allReservesLifted);
 
                             // 12. Créer le nouveau document
                             const created = await pvReception.create(clone);
@@ -1183,79 +773,6 @@
                     }
                 });
             },
-
-            //
-            // submitPV(req,res){
-            //     acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
-            //         if(aclres){
-
-            //             let pv = await pvReception.findById(req.params.id);
-            //             if(!pv) return res.json({success:true,message:"PV introuvables"});
-
-            //             pv.status = 'SUBMITTED';
-
-            //             pv.save().then(async (tache)=>{
-            //                     res.json({
-            //                         success:true,
-            //                         message:tache
-            //                     });
-            //             }).catch((error)=>{
-            //                     return res.status(500).json({
-            //                         success:false,
-            //                         message:error.message
-            //                     })
-            //             })
-            //         }else{
-            //            return res.status(401).json({
-            //                 success: false,
-            //                 message: "401"
-            //             }); 
-            //         }
-            //     })
-            // },
-
-            // signaturePV(req,res){
-            //     acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
-            //         if(aclres){
-
-            //             let {role, signerName, signerRoler, signatureUrl } = req.body;
-            //             if (!['companyRep', 'client'].includes(role)) {
-            //                 return res.status(400).json({ message: "role invalide" });
-            //             }
-            //             let pv = await pvReception.findById(req.params.id);
-            //             if (!pv) return res.status(404).json({ message: "PV introuvable" });
-
-                    
-            //             pv.signatures[role] = {
-            //                 signerName,
-            //                 signerRole,
-            //                 signatureUrl,
-            //                 signedAt: new Date()
-            //             };
-
-            //             const hasCompany = !!pv.signatures.companyRep?.signedAt;
-            //             const hasClient = !!pv.signatures.client?.signedAt;
-            //             if (hasCompany && hasClient) pv.status = 'SIGNED';
-
-            //             pv.save().then(async (tache)=>{
-            //                     res.json({
-            //                         success:true,
-            //                         message:tache
-            //                     });
-            //             }).catch((error)=>{
-            //                     return res.status(500).json({
-            //                         success:false,
-            //                         message:error.message
-            //                     })
-            //             })
-            //         }else{
-            //            return res.status(401).json({
-            //                 success: false,
-            //                 message: "401"
-            //             }); 
-            //         }
-            //     })
-            // },
               
             sendPvByMail(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){

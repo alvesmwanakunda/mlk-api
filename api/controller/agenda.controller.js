@@ -93,7 +93,8 @@
                                                         type: "tache", 
                                                         userId: user._id.toString(),
                                                         resource: "projet",
-                                                        resourceId: projet._id.toString()
+                                                        resourceId: projet._id.toString(),
+                                                        agendaId: agenda._id.toString()
                                                     }
                                                 );
                                             });
@@ -109,6 +110,7 @@
                                                     {
                                                         type: "agenda",
                                                         userId: user._id.toString(),
+                                                        agendaId: agenda._id.toString(),
                                                     }
                                                 );
                                             });
@@ -213,7 +215,8 @@
                                                 type: "tache", 
                                                 userId: user._id.toString(),
                                                 resource: "projet",
-                                                resourceId: projet._id.toString()
+                                                resourceId: projet._id.toString(),
+                                                agendaId: agenda._id.toString()
                                             }
                                         );
                                     });
@@ -228,6 +231,7 @@
                                             {
                                                 type: "agenda",
                                                 userId: user._id.toString(),
+                                                agendaId: agenda._id.toString(),
                                             }
                                         );
                                     });

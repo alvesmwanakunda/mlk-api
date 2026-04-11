@@ -147,7 +147,8 @@
                             type: "tache",
                             userId: user._id.toString(),
                             resource: "projet",
-                            resourceId: (projet?._id || savedTache.projet).toString()
+                            resourceId: (projet?._id || savedTache.projet).toString(),
+                            tacheId: savedTache._id.toString()
                             }
                         );
                         }
@@ -301,7 +302,8 @@
                             type: "tache",
                             userId: user._id.toString(),
                             resource: "projet",
-                            resourceId: projet?._id?.toString() || String(updatedTache.projet)
+                            resourceId: projet?._id?.toString() || String(updatedTache.projet),
+                            tacheId: updatedTache._id.toString()
                             }
                         );
                         }
