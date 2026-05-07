@@ -8,6 +8,7 @@
 
     const SignatureSchema = new mongoose.Schema({
         signerName: { type: String },
+        signerEmail: {type: String, required: false},
         signerRole: { type: String }, // ex: "Entreprise", "Maître d'ouvrage"
         signedAt: { type: Date },
         signatureUrl: { type: String }, 
@@ -61,8 +62,6 @@
             objet: {type: String},
             planUrl: { type: String },
         },
-      
-
         projet: { type: mongoose.Schema.Types.ObjectId, ref: 'Projets', required: false },
         number: { type: String, unique: true, index: true },
         declaration: { 
@@ -104,6 +103,11 @@
         isLeve: { type: Boolean },
         parentPvId: { type: mongoose.Schema.Types.ObjectId, ref: 'PvReception', default: null },
         version: { type: Number, default: 1 },
+        
+        // Code de validation de la signature
+        signatureCode: { type: String, required: false },
+        signatureCodeExpireAt: { type: Date, required: false },
+        commentaire: { type: String, required: false },
     },{ timestamps: true });
     
     pvReceptionSchema.index({ projet: 1, createdAt: -1 });

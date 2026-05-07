@@ -16,7 +16,9 @@
 
     
   app.post('/pv/send-mail/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'pvReception' }]), Ctrl.sendPvByMail);
-
+  app.post('/pv/send-signature-request/:id([a-fA-F\\d]{24})', Ctrl.sendSignatureRequestToClient);
+  app.post('/pv/validate-signature/:id([a-fA-F\\d]{24})', Ctrl.validateClientSignature);
+  app.route('/pv/signature/:id([a-fA-F\\d]{24})').get(Ctrl.getPVForSignature)
 
   }
 })();

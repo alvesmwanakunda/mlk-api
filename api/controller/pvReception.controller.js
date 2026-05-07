@@ -4,7 +4,10 @@
     var pvReception = require("../models/pvReception.model").PVReceptionModel;
     var uploadService = require('../services/upload.service');
     var MailService = require('../services/mail.service');
+    var notificationService = require('../services/notification.service');
+    var User = require('../models/users.model').UserModel;
     var fs = require("fs");
+    var crypto = require("crypto");
 
 
 
@@ -85,6 +88,10 @@
     function isValidEmail(email) {
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return regex.test(email);
+    }
+
+    function generateSignatureCode() {
+        return crypto.randomInt(2000, 9999).toString();
     }
     
 
@@ -199,12 +206,16 @@
                             payload.personnesPresent = JSON.parse(payload.personnesPresent);
                         }
 
+                        payload.status = 'DRAFT';
+                        // Si client signe sur tel du representant, on met le status à SIGNED
+                        if (payload.signatures?.client?.signatureUrl) {
+                            payload.status = 'SIGNED';
+                        }
                         
                         await pvReception.create({
                             ...payload,
                             projet:req.params.id,
                             number: generatePvNumber(),
-                            status: 'DRAFT',
                             createdBy: req.decoded?.id
                         }).then(async (pv)=>{
                             res.json({
@@ -434,6 +445,11 @@
                             // 7. Parser les personnes présentes
                             if (payload.personnesPresent && typeof payload.personnesPresent === 'string') {
                                 payload.personnesPresent = JSON.parse(payload.personnesPresent);
+                            }
+
+                            // Si client signe sur tel du representant, on met le status à SIGNED
+                            if (payload.signatures?.client?.signatureUrl) {
+                                payload.status = 'SIGNED';
                             }
 
                             // 8. Mettre à jour le document
@@ -840,7 +856,7 @@
                                 
                                 return res.json({
                                     success: true,
-                                    message: "PV envoyé aux personnes présentes"
+                                    message: "PV envoyé aux destinataires"
                                 });
                             } catch (error) {
                                 return res.status(500).json({
@@ -863,6 +879,222 @@
                         });
                     }
                 });
+            },
+
+
+            // For signature 
+            getPVForSignature(req,res){
+                const code = req.query.code;
+
+                pvReception.findOne({_id:req.params.id}).populate('projet').then((pv)=>{
+                    if (code && pv.signatureCode && pv.signatureCode === code) {
+                        if (pv.signatureCodeExpireAt && new Date(pv.signatureCodeExpireAt).getTime() < Date.now()) {
+                            return res.status(404).json({
+                                success: false,
+                                message: "Le code de signature a expiré"
+                            });
+                        }
+                        return res.json({
+                            success: true,
+                            message:pv
+                        });
+                    }else{
+                        return res.status(404).json({
+                            success: false,
+                            message: "Le code de signature est invalide"
+                        });
+                    }
+                }).catch((error)=>{
+                    return res.status(500).json({
+                        success:false,
+                        message:error.message
+                    })
+                })
+                    
+            },
+
+            sendSignatureRequestToClient(req, res) {
+                acl.isAllowed(req.decoded.id, 'agenda', 'create', async function(err, aclres) {
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    const payload = req.body;
+                    console.log("Payload", payload);
+
+
+                    if(payload.destinataire && typeof payload.destinataire === 'string') {
+                        payload.destinataire = JSON.parse(payload.destinataire);    
+                    }
+                    
+                    if(!payload.destinataire){
+                        return res.status(400).json({
+                            success: false,
+                            message: "Destinataire non trouvé"
+                        });
+                    }
+
+                    try {
+                        const pv = await pvReception.findById(req.params.id);
+                        if (!pv) {
+                            return res.status(404).json({
+                                success: false,
+                                message: "PV introuvable"
+                            });
+                        }
+
+                        const email = payload.destinataire?.email;
+                        if (!email || !isValidEmail(email)) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Email du signataire invalide ou manquant"
+                            });
+                        }
+
+                        const code = generateSignatureCode();
+                        const expireAt = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
+
+                        pv.signatureCode = code;
+                        pv.status = "SUBMITTED";
+                        pv.signatureCodeExpireAt = expireAt;
+                        const client = {
+                            signerName: payload.destinataire?.prenom + " " + payload.destinataire?.nom,
+                            signerEmail: email,
+                            signerRole: "Maître d'ouvrage",
+                        }
+                        pv.signatures.client = client;
+                        await pv.save();
+
+                        const webBaseUrl = process.env.MLKA_APP_URL || "https://mlka.app";
+                        const signatureLink = `${webBaseUrl.replace(/\/$/, "")}/pv-signature/${pv._id}?code=${encodeURIComponent(code)}`;
+
+                        await MailService.mailPvSignatureRequest({
+                            nomComplet: `${payload.destinataire?.prenom || ""} ${payload.destinataire?.nom || ""}`.trim(),
+                            email,
+                            signatureLink,
+                            projet: pv?.travaux?.projet || ""
+                        });
+
+                        return res.json({
+                            success: true,
+                            message: "La demande de signature a été envoyée à l'adresse email " + email,
+                        });
+                    } catch (error) {
+                        return res.status(500).json({
+                            success: false,
+                            message: error.message
+                        });
+                    }
+                });
+            },
+
+            async validateClientSignature(req, res) {
+                try {
+                    const pvId = req.params.id;
+                    const {
+                        code,
+                        signerName,
+                        signatureUrl,
+                        refuseReception,
+                        refusalReason,
+                        comment,
+                    } = req.body || {};
+
+                    if (!code) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Le code de signature est obligatoire"
+                        });
+                    }
+
+                    if (!signatureUrl) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "La signature (signatureUrl) est obligatoire"
+                        });
+                    }
+
+                    if (refuseReception && !refusalReason) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Les motifs de refus sont obligatoires"
+                        });
+                    }
+
+                    const pv = await pvReception.findById(pvId);
+                    const createdBy = await User.findById(pv.createdBy);
+                    if (!pv) {
+                        return res.status(404).json({
+                            success: false,
+                            message: "PV introuvable"
+                        });
+                    }
+
+                    const expireAt = pv.signatureCodeExpireAt || pv.SignatureCodeExpireAt;
+                    if (!pv.signatureCode || pv.signatureCode !== String(code).trim()) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Code invalide"
+                        });
+                    }
+
+                    if (!expireAt || new Date(expireAt).getTime() < Date.now()) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Code expiré"
+                        });
+                    }
+
+                    pv.signatures = pv.signatures || {};
+                    pv.signatures.client = {
+                        signerName: (signerName || "").trim() || `${pv?.societeCliente?.maitreOuvrage?.prenom || ""} ${pv?.societeCliente?.maitreOuvrage?.nom || ""}`.trim(),
+                        signerRole: "Maître d'ouvrage",
+                        signatureUrl,
+                        signedAt: new Date(),
+                    };
+
+                    if (refuseReception) {
+                        pv.declaration = "REFUSED";
+                        pv.refusalReason = refusalReason;
+                    } else if (comment) {
+                        pv.commentaire = comment;
+                    }
+
+                    pv.status = "SIGNED";
+                    pv.signatureCode = undefined;
+                    pv.signatureCodeExpireAt = undefined;
+
+                    await pv.save();
+
+                    // Envoyer une notification au user qui a crée le pv 
+                    if (createdBy && createdBy.fcmToken) {
+                        await notificationService.sendNotification(
+                            createdBy.fcmToken,
+                            'Signature de PV de réception',
+                            `Le PV de réception '${pv.titre} - Version ${pv.version}' a été signé par ${pv.signatures.client.signerName}. Merci de vérifier et lui transmettre le document.`,
+                            {
+                                type: "pvReception",
+                                userId: createdBy._id.toString(),
+                                resource: "pvReception",
+                                resourceId: pv.projet.toString()
+                            }
+                        );
+                    }
+
+                    return res.json({
+                        success: true,
+                        message: "Signature du maître d'ouvrage enregistrée",
+                        data: pv
+                    });
+                } catch (error) {
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
             },
 
         }

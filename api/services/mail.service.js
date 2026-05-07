@@ -787,6 +787,56 @@ module.exports={
             reject(error);
             }
         });
+    },
+
+    mailPvSignatureRequest: ({ nomComplet, email, signatureLink, projet }) => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_SERVER,
+                    port: process.env.SMTP_PORT,
+                    secure: false,
+                    auth: {
+                        user: process.env.SMTP_USERNAME,
+                        pass: process.env.SMTP_PASSWORD
+                    }
+                });
+
+                let message = {
+                    from: `MLKA <${process.env.SMTP_FROM}>`,
+                    to: email,
+                    subject: 'Demande de signature du PV de réception MLKA',
+                    html: `
+                        <p>Bonjour ${nomComplet || ''},</p>
+                        <p>
+                            Nous vous invitons à consulter attentivement le procès-verbal de réception
+                            ${projet ? `<strong>${projet}</strong>` : ''}.
+                        </p>
+                        <p>
+                            Si le document vous convient, vous pouvez le valider et le signer en ligne.
+                            Si des points ne vous conviennent pas, vous pouvez refuser la réception
+                            et préciser les motifs depuis la même page.
+                        </p>
+                        <p>
+                            Accéder à la page de lecture et de signature :
+                            <a href="${signatureLink}" target="_blank">${signatureLink}</a>
+                        </p>
+                        <p><strong>Ce lien expire dans 1 heure.</strong></p>
+                        <p>Cordialement,<br/><strong>L'équipe MLKA</strong></p>
+                    `,
+                };
+
+                transporter.sendMail(message, (error, info) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve(info);
+                    transporter.close();
+                });
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 
 
