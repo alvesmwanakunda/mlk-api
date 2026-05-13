@@ -123,7 +123,6 @@
                     if (err) return res.status(500).json({ success: false, message: 'ACL error', error: err.message });
                     if (!aclres) return res.status(401).json({ success: false, message: "401" });
 
-<<<<<<< HEAD
                 try {
                     const body = Object.assign({}, req.body);
                     delete body.marker;
@@ -132,14 +131,6 @@
                     const titleFields =
                         await translationService.buildTacheTitleTranslationFields(req.body.titre || '');
                     Object.assign(tache, titleFields);
-=======
-                    try {
-                    const body = Object.assign({}, req.body);
-                    delete body.marker;
-                    delete body.pdfId;
-
-                    const tache = new Tache(body);
->>>>>>> b5b2744 (gestion de plan annotation)
 
                     // ✅ Normaliser assignes => toujours tableau
                     let assignes = req.body.assignes;
@@ -576,13 +567,9 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-<<<<<<< HEAD
                         Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').populate('user').then(async (tache)=>{
                             const requestedLanguage =
                                 await translationService.getRequestedLanguage(req);
-=======
-                        Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').populate('user').then((tache)=>{
->>>>>>> b5b2744 (gestion de plan annotation)
                             res.json({
                                 success: true,
                                 message: translationService.withDisplayTitle(
