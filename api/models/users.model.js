@@ -47,6 +47,11 @@
             default: false
         },
         role:String,
+        preferredLanguage: {
+            type: String,
+            enum: ['fr', 'en', 'tr', 'pl', 'wo'],
+            default: 'fr'
+        },
         
         code: {
             type: String,

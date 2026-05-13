@@ -1,6 +1,35 @@
 (function(){
     "use strict";
     var Agenda = require('../models/agendaProjet.model').AgendaProjetModel;
+    var translationService = require('../services/deeplTranslation.service');
+
+    function formatAgendaDate(date, time, web = false) {
+        if (!date) return null;
+        const day = date.toISOString().split('T')[0];
+        return web ? day : `${day}T${time || ''}`;
+    }
+
+    function serializeAgendaProjet(data, requestedLanguage, web = false) {
+        const agenda = translationService.withDisplayTitle(data, requestedLanguage);
+        return {
+            _id: agenda?._id,
+            title: agenda?.title,
+            originalTitle: agenda?.originalTitle,
+            titleSourceLanguage: agenda?.titleSourceLanguage,
+            titleTranslations: agenda?.titleTranslations || {},
+            titleTranslation: agenda?.titleTranslation,
+            displayTitle: agenda?.displayTitle,
+            start: formatAgendaDate(agenda?.start, agenda?.heure_start, web),
+            end: formatAgendaDate(agenda?.end, agenda?.heure_end, web),
+            heure_start: agenda?.heure_start,
+            heure_end: agenda?.heure_end,
+            color: agenda?.color,
+            isDay: agenda?.isDay,
+            user: agenda?.user,
+            projet: agenda?.projet,
+            timeZoneOffset: agenda?.timeZoneOffset
+        };
+    }
 
     module.exports = function(acl){
 
@@ -23,17 +52,27 @@
                             agenda.user = req.decoded.id;
                             agenda.projet = req.params.id;
                             agenda.isDay = req.body.isDay;
-                            agenda.title = req.body.title;
+                            Object.assign(
+                                agenda,
+                                await translationService.buildAgendaTitleTranslationFields(
+                                    req.body.title || ''
+                                )
+                            );
                             agenda.color = req.body.color;
                             agenda.heure_end=req.body.heure_end;
                             agenda.heure_start=req.body.heure_start;
                             agenda.start = req.body.start;
                             agenda.timeZoneOffset = req.body.timeZoneOffset;
 
-                            agenda.save().then((agenda)=>{
+                            agenda.save().then(async (agenda)=>{
+                                const requestedLanguage =
+                                    await translationService.getRequestedLanguage(req);
                                 res.json({
                                     success:true,
-                                    message:agenda
+                                    message: translationService.withDisplayTitle(
+                                        agenda,
+                                        requestedLanguage
+                                    )
                                 });
 
                             }).catch((error)=>{
@@ -64,7 +103,14 @@
                         }
                         agenda.user = req.decoded.id;
                         agenda.isDay = req.body.isDay;
-                        agenda.title = req.body.title;
+                        if (req.body.title !== undefined) {
+                            Object.assign(
+                                agenda,
+                                await translationService.buildAgendaTitleTranslationFields(
+                                    req.body.title || ''
+                                )
+                            );
+                        }
                         agenda.color = req.body.color;
                         agenda.heure_end=req.body.heure_end;
                         agenda.heure_start=req.body.heure_start;
@@ -72,10 +118,15 @@
                         agenda.timeZoneOffset = req.body.timeZoneOffset;
 
 
-                        Agenda.findOneAndUpdate({_id:req.params.id},agenda,{new:true}).then((agenda)=>{
+                        Agenda.findOneAndUpdate({_id:req.params.id},agenda,{new:true}).then(async (agenda)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success:true,
-                                message:agenda
+                                message: translationService.withDisplayTitle(
+                                    agenda,
+                                    requestedLanguage
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -124,21 +175,12 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Agenda.find({projet:req.params.id}).then((agenda)=>{
-
-                            let agendas = agenda.map((data)=>({
-                                _id:data?._id,
-                                title:data?.title,
-                                start: data?.start.toISOString().split('T')[0]+"T"+data?.heure_start,
-                                end: data?.end.toISOString().split('T')[0]+"T"+data?.heure_end,
-                                heure_start: data?.heure_start,
-                                heure_end:data?.heure_end,
-                                color:data?.color,
-                                isDay:data?.isDay,
-                                user:data?.user,
-                                projet:data?.projet,
-                                timeZoneOffset:data?.timeZoneOffset
-                            }))
+                        Agenda.find({projet:req.params.id}).then(async (agenda)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
+                            let agendas = agenda.map((data)=>
+                                serializeAgendaProjet(data, requestedLanguage)
+                            )
                             res.json({
                                 success: true,
                                 message:agendas
@@ -163,10 +205,15 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Agenda.findOne({_id:req.params.id}).then((agenda)=>{
+                        Agenda.findOne({_id:req.params.id}).then(async (agenda)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:agenda
+                                message: translationService.withDisplayTitle(
+                                    agenda,
+                                    requestedLanguage
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -187,19 +234,10 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Agenda.findOne({_id:req.params.id}).then((data)=>{
-                            let agend = {
-                                _id:data?._id,
-                                title:data?.title,
-                                start: data?.start.toISOString().split('T')[0],
-                                end: data?.end.toISOString().split('T')[0],
-                                heure_start: data?.heure_start,
-                                heure_end:data?.heure_end,
-                                color:data?.color,
-                                isDay:data?.isDay,
-                                user:data?.user,
-                                timeZoneOffset:data?.timeZoneOffset
-                            }
+                        Agenda.findOne({_id:req.params.id}).then(async (data)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
+                            let agend = serializeAgendaProjet(data, requestedLanguage, true);
                             res.json({
                                 success: true,
                                 message:agend

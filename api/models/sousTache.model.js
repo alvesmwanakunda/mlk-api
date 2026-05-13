@@ -37,6 +37,20 @@
             type:String,
             required: false
         },
+        originalDescription: { type: String },
+        descriptionSourceLanguage: { type: String },
+        descriptionTranslations: {
+            type: Map,
+            of: String,
+            default: {}
+        },
+        descriptionTranslation: {
+            provider: String,
+            status: String,
+            translatedAt: Date,
+            baseLanguage: String,
+            error: String
+        },
     });
       module.exports = {
         sousTacheSchema: sousTacheSchema,

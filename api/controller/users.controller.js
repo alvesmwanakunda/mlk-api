@@ -493,6 +493,45 @@
                     }
                 })
             },
+            updatePreferredLanguage(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+                    if(aclres){
+                        const rawLanguage = req.body.preferredLanguage || req.body.language;
+                        const preferredLanguage = rawLanguage
+                            ? rawLanguage.toString().toLowerCase().replace('_', '-').split('-')[0]
+                            : null;
+                        const allowedLanguages = ['fr', 'en', 'tr', 'pl', 'wo'];
+
+                        if(!preferredLanguage || !allowedLanguages.includes(preferredLanguage)){
+                            return res.status(400).json({
+                                success:false,
+                                message:"Langue non supportée"
+                            });
+                        }
+
+                        User.findOneAndUpdate(
+                            {_id:req.decoded.id},
+                            {preferredLanguage: preferredLanguage},
+                            {new:true}
+                        ).then((user)=>{
+                            res.json({
+                                success:true,
+                                message:user
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
             updateIdPhoneOrFcmToken(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){

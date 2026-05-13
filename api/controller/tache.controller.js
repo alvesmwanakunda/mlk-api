@@ -10,6 +10,7 @@
     var MailService = require('../services/mail.service');
     var HistoriqueService = require('../services/historique.service');
     var uploadService = require('../services/upload.service');
+    var translationService = require('../services/deeplTranslation.service');
     const mongoose = require('mongoose');
     var Historique = require('../models/historiqueTache.model').HistoriqueTacheModel;
 
@@ -92,6 +93,9 @@
 
                     try {
                     const tache = new Tache(req.body);
+                    const titleFields =
+                        await translationService.buildTacheTitleTranslationFields(req.body.titre || '');
+                    Object.assign(tache, titleFields);
 
                     // ✅ Normaliser assignes => toujours tableau
                     let assignes = req.body.assignes;
@@ -154,7 +158,15 @@
                         }
                     }
 
-                    return res.json({ success: true, data: savedTache });
+                    const requestedLanguage =
+                        await translationService.getRequestedLanguage(req);
+                    return res.json({
+                        success: true,
+                        data: translationService.withDisplayTitle(
+                            savedTache,
+                            requestedLanguage
+                        )
+                    });
                     } catch (e) {
                     return res.status(500).json({ success: false, message: "Erreur addTache", error: e.message });
                     }
@@ -195,7 +207,6 @@
                     // 2) Champs simples à $set
                     // -----------------------------
                     const setData = {
-                        titre: req.body.titre,
                         description: req.body.description,
                         statut: req.body.statut,
                         date_debut: req.body.date_debut,
@@ -203,6 +214,13 @@
                         temps: req.body.temps,
                     };
                     Object.keys(setData).forEach(k => setData[k] === undefined && delete setData[k]);
+
+                    if (req.body.titre !== undefined) {
+                        Object.assign(
+                            setData,
+                            await translationService.buildTacheTitleTranslationFields(req.body.titre || '')
+                        );
+                    }
 
                     if (assignes !== undefined) {
                         setData.assignes = assignes;
@@ -309,7 +327,15 @@
                         }
                     }
 
-                    return res.json({ success: true, message: updatedTache });
+                    const requestedLanguage =
+                        await translationService.getRequestedLanguage(req);
+                    return res.json({
+                        success: true,
+                        message: translationService.withDisplayTitle(
+                            updatedTache,
+                            requestedLanguage
+                        )
+                    });
 
                     } catch (error) {
                     return res.status(500).json({ success: false, message: error.message });
@@ -474,10 +500,15 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').then((tache)=>{
+                        Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').then(async (tache)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:tache
+                                message: translationService.withDisplayTitle(
+                                    tache,
+                                    requestedLanguage
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -499,10 +530,17 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Tache.find({projet:req.params.id}).sort({date_creation: -1}).populate('assignes').then((tache)=>{
+                        Tache.find({projet:req.params.id}).sort({date_creation: -1}).populate('assignes').then(async (tache)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:tache
+                                message: tache.map((item) =>
+                                    translationService.withDisplayTitle(
+                                        item,
+                                        requestedLanguage
+                                    )
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -592,8 +630,13 @@
                     const savedTimesheets = [];
 
                     for (const timeData of times) {
+                        const descriptionFields =
+                            await translationService.buildSousTacheDescriptionTranslationFields(
+                                timeData.description || ''
+                            );
                         const time = new Timesheet({
                             ...timeData,
+                            ...descriptionFields,
                             tache: tacheId,
                             employee:employees,
                             user: req.decoded.id,
@@ -609,10 +652,17 @@
                                 console.error('Erreur email:', emailError);
                             });
                     }
-                    
+
+                    const requestedLanguage =
+                        await translationService.getRequestedLanguage(req);
                     return res.json({
                         success: true,
-                        message: savedTimesheets
+                        message: savedTimesheets.map((item) =>
+                            translationService.withDisplayDescription(
+                                item,
+                                requestedLanguage
+                            )
+                        )
                     });
 
                     } catch (error) {
@@ -729,14 +779,25 @@
                         );
                     }
 
+                    const setData = {
+                        date: req.body.date,
+                        date_fin: req.body.date_fin,
+                        statut: req.body.statut,
+                        employee: employees
+                    };
+                    Object.keys(setData).forEach(k => setData[k] === undefined && delete setData[k]);
+
+                    if (req.body.description !== undefined) {
+                        Object.assign(
+                            setData,
+                            await translationService.buildSousTacheDescriptionTranslationFields(
+                                req.body.description || ''
+                            )
+                        );
+                    }
+
                     const updateQuery = {
-                        $set: {
-                            date: req.body.date,
-                            date_fin: req.body.date_fin,
-                            description: req.body.description,
-                            statut: req.body.statut,
-                            employee: employees
-                        }
+                        $set: setData
                     };
 
                     if (newImages.length) {
@@ -752,9 +813,14 @@
                         await HistoriqueService.createSous(task._id, req.decoded.id);
                     }
 
+                    const requestedLanguage =
+                        await translationService.getRequestedLanguage(req);
                     return res.json({
                         success: true,
-                        message: time
+                        message: translationService.withDisplayDescription(
+                            time,
+                            requestedLanguage
+                        )
                     });
 
                 } catch (error) {
@@ -797,10 +863,15 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Timesheet.findOne({_id:req.params.id}).then((time)=>{
+                        Timesheet.findOne({_id:req.params.id}).then(async (time)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:time
+                                message: translationService.withDisplayDescription(
+                                    time,
+                                    requestedLanguage
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -822,10 +893,17 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Timesheet.find({tache:req.params.id}).then((time)=>{
+                        Timesheet.find({tache:req.params.id}).then(async (time)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:time
+                                message: time.map((item) =>
+                                    translationService.withDisplayDescription(
+                                        item,
+                                        requestedLanguage
+                                    )
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -871,17 +949,27 @@
                     }
 
                     // Ajouter l'ID de la tâche à chaque élément
-                    const timesToInsert = times.map(t => ({
+                    const timesToInsert = await Promise.all(times.map(async (t) => ({
                         ...t,
+                        ...(await translationService.buildSousTacheDescriptionTranslationFields(
+                            t.description || ''
+                        )),
                         tache: tacheId,
                         user: req.decoded.id
-                    }));
+                    })));
 
                     const result = await SubTask.insertMany(timesToInsert);
+                    const requestedLanguage =
+                        await translationService.getRequestedLanguage(req);
 
                     return res.json({
                         success: true,
-                        message: result
+                        message: result.map((item) =>
+                            translationService.withDisplayDescription(
+                                item,
+                                requestedLanguage
+                            )
+                        )
                     });
 
                     } catch (error) {
@@ -896,10 +984,24 @@
             updateSubTask(req,res){
                 acl.isAllowed(req.decoded.id,'agenda', 'create', async function(err,aclres){
                     if(aclres){
-                        SubTask.findOneAndUpdate({_id:req.params.id},req.body,{new:true}).then((time)=>{
+                        const setData = { ...req.body };
+                        if (req.body.description !== undefined) {
+                            Object.assign(
+                                setData,
+                                await translationService.buildSousTacheDescriptionTranslationFields(
+                                    req.body.description || ''
+                                )
+                            );
+                        }
+                        SubTask.findOneAndUpdate({_id:req.params.id},{ $set: setData },{new:true}).then(async (time)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success:true,
-                                message:time
+                                message: translationService.withDisplayDescription(
+                                    time,
+                                    requestedLanguage
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -947,10 +1049,15 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        SubTask.findOne({_id:req.params.id}).then((time)=>{
+                        SubTask.findOne({_id:req.params.id}).then(async (time)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:time
+                                message: translationService.withDisplayDescription(
+                                    time,
+                                    requestedLanguage
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -972,10 +1079,17 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        SubTask.find({tache:req.params.id}).then((time)=>{
+                        SubTask.find({tache:req.params.id}).then(async (time)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:time
+                                message: time.map((item) =>
+                                    translationService.withDisplayDescription(
+                                        item,
+                                        requestedLanguage
+                                    )
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({

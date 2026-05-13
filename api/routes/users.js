@@ -30,6 +30,9 @@
         app.route('/update/profil')
            .put(Ctrl.updateProfil);
 
+        app.route('/user/preferred-language')
+           .put(Ctrl.updatePreferredLanguage);
+
        app.route('/update/profil/password')
            .put(Ctrl.updatePassword);
 

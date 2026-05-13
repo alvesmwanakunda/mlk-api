@@ -3,6 +3,7 @@
      "use strict";
      var NoteModule = require('../models/noteModule.model').NoteModuleModel
      var uploadService = require('../services/upload.service');
+     var translationService = require('../services/deeplTranslation.service');
      const bucket = require("../../firebase-config").bucket;
      var ObjectId = require('mongoose').Types.ObjectId;
      var ProjetModule = require('../models/projetModule.model').ProjetModulesModel
@@ -40,12 +41,15 @@
                         type: req.body.type || 'mixed',
                         });*/
 
+                        const translationFields =
+                            await translationService.buildNoteTranslationFields(req.body.text || '');
+
                         const noteData = {
                             createdBy: new ObjectId(req.decoded.id),
                             dateLastUpdate: new Date(),
                             module: new ObjectId(req.params.id),
-                            text: req.body.text || '',
                             type: req.body.type || 'mixed',
+                            ...translationFields,
                         };
 
                         if (projet) {
@@ -104,9 +108,14 @@
 
                         // Sauvegarde en base
                         await note.save();
+                        const requestedLanguage =
+                            await translationService.getRequestedLanguage(req);
                         return res.status(201).json({
                         success: true,
-                        message: note,
+                        message: translationService.withDisplayText(
+                            note,
+                            requestedLanguage
+                        ),
                         });
                     } catch (error) {
                         console.error('Erreur création note:', error);
@@ -129,10 +138,13 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        NoteModule.find({module:req.params.id}).populate('createdBy', 'nom prenom email').sort({ dateLastUpdate: -1 }).then((notes)=>{
+                        NoteModule.find({module:req.params.id}).populate('createdBy', 'nom prenom email').sort({ dateLastUpdate: -1 }).then(async (notes)=>{
+                            const requestedLanguage = await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:notes
+                                message: notes.map((note) =>
+                                    translationService.withDisplayText(note, requestedLanguage)
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -154,10 +166,13 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        NoteModule.find({project:req.params.id}).populate('createdBy', 'nom prenom email').sort({ dateLastUpdate: -1 }).then((notes)=>{
+                        NoteModule.find({project:req.params.id}).populate('createdBy', 'nom prenom email').sort({ dateLastUpdate: -1 }).then(async (notes)=>{
+                            const requestedLanguage = await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:notes
+                                message: notes.map((note) =>
+                                    translationService.withDisplayText(note, requestedLanguage)
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -179,10 +194,14 @@
                 acl.isAllowed(req.decoded.id,'box', 'create', async function(err,aclres){
 
                     if(aclres){
-                        NoteModule.findById(req.params.id).populate('createdBy', 'nom prenom email').then((notes)=>{
+                        NoteModule.findById(req.params.id).populate('createdBy', 'nom prenom email').then(async (notes)=>{
+                            const requestedLanguage = await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:notes
+                                message: translationService.withDisplayText(
+                                    notes,
+                                    requestedLanguage
+                                )
                             });
                         }).catch((error)=>{
                             return res.status(500).json({
@@ -243,7 +262,15 @@
                     const note = await NoteModule.findById(req.params.id);
                     if (!note) return res.status(404).json({ success: false, message: 'Note introuvable' });
 
-                    note.text = req.body.text ?? note.text;
+                    if (Object.prototype.hasOwnProperty.call(req.body, 'text')) {
+                        const translationFields =
+                            await translationService.buildNoteTranslationFields(req.body.text || '');
+                        note.text = translationFields.text;
+                        note.originalText = translationFields.originalText;
+                        note.sourceLanguage = translationFields.sourceLanguage;
+                        note.translations = translationFields.translations;
+                        note.translation = translationFields.translation;
+                    }
                     note.type = req.body.type ?? note.type;
                     note.dateLastUpdate = new Date();
 
@@ -276,7 +303,15 @@
                     }
 
                     await note.save();
-                    res.json({ success: true, message: note });
+                    const requestedLanguage =
+                        await translationService.getRequestedLanguage(req);
+                    res.json({
+                        success: true,
+                        message: translationService.withDisplayText(
+                            note,
+                            requestedLanguage
+                        )
+                    });
 
                 } catch (error) {
                     console.error(error);

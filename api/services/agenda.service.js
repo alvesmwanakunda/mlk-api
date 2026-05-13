@@ -1,5 +1,6 @@
 var Agenda = require('../models/agenda.model').AgendaModel;
 var Tache = require('../models/taches.model').TacheModel;
+var translationService = require('./deeplTranslation.service');
 
 module.exports={
 
@@ -24,7 +25,10 @@ module.exports={
               agenda.end=conge.fin;
               agenda.user = conge.user;
               agenda.isDay = true;
-              agenda.title = "Vacance";
+              Object.assign(
+                agenda,
+                await translationService.buildAgendaTitleTranslationFields("Vacance")
+              );
               agenda.color = "#7f0638ff";
               agenda.heure_end=heureEnd;
               agenda.heure_start=heureStart;
@@ -51,6 +55,12 @@ module.exports={
         return new Promise(async(resolve,reject)=>{
 
               var task = new Tache(tache);
+              if (tache?.titre !== undefined) {
+                Object.assign(
+                  task,
+                  await translationService.buildTacheTitleTranslationFields(tache.titre || '')
+                );
+              }
 
               /*agenda.end=conge.fin;
               agenda.user = conge.user;
@@ -92,7 +102,15 @@ module.exports={
               agenda.start = conge.debut;
               agenda.assigne = conge.user*/
 
-              Tache.findOneAndUpdate({_id:idtache},tache,{new:true}).then((tache)=>{
+              const updateData = { ...tache };
+              if (tache?.titre !== undefined) {
+                Object.assign(
+                  updateData,
+                  await translationService.buildTacheTitleTranslationFields(tache.titre || '')
+                );
+              }
+
+              Tache.findOneAndUpdate({_id:idtache},{ $set: updateData },{new:true}).then((tache)=>{
                                           
                 resolve({
                     success:true,

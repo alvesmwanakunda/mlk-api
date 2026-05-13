@@ -15,6 +15,20 @@
         },
         type: { type: String, enum: ['text','audio','image','mixed'], default: 'mixed' },
         text: { type: String },
+        originalText: { type: String },
+        sourceLanguage: { type: String },
+        translations: {
+            type: Map,
+            of: String,
+            default: {}
+        },
+        translation: {
+            provider: String,
+            status: String,
+            translatedAt: Date,
+            baseLanguage: String,
+            error: String
+        },
         audio: {
             url: String,        
             mime: String,

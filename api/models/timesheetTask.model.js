@@ -22,6 +22,20 @@
             required:false
         },
         description: { type: String },
+        originalDescription: { type: String },
+        descriptionSourceLanguage: { type: String },
+        descriptionTranslations: {
+            type: Map,
+            of: String,
+            default: {}
+        },
+        descriptionTranslation: {
+            provider: String,
+            status: String,
+            translatedAt: Date,
+            baseLanguage: String,
+            error: String
+        },
         hours:{
             type:String,
             required: false,

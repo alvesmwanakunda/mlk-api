@@ -9,6 +9,26 @@
             type:String,
             required: false
         },
+        originalTitle: {
+            type: String,
+            required: false
+        },
+        titleSourceLanguage: {
+            type: String,
+            required: false
+        },
+        titleTranslations: {
+            type: Map,
+            of: String,
+            default: {}
+        },
+        titleTranslation: {
+            provider: String,
+            status: String,
+            translatedAt: Date,
+            baseLanguage: String,
+            error: String
+        },
         start:{
             type:Date,
             required: false
