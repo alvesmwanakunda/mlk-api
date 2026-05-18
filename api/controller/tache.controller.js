@@ -1292,6 +1292,54 @@
                         });
                     }
                 });
+            },
+
+            deleteTaskMarker(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'create', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ success: false, message: 'ACL error' });
+                    }
+
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    try {
+                        const taskId = req.params.id;
+
+                        const tache = await Tache.findByIdAndUpdate(
+                            taskId,
+                            {
+                                $unset: {
+                                    marker: 1
+                                }
+                            },
+                            { new: true, runValidators: true }
+                        );
+
+                        if (!tache) {
+                            return res.status(404).json({
+                                success: false,
+                                message: "Tâche introuvable"
+                            });
+                        }
+
+                        return res.json({
+                            success: true,
+                            data: tache
+                        });
+
+                    } catch (error) {
+                        console.error(error);
+                        return res.status(500).json({
+                            success: false,
+                            message: 'Erreur lors de la suppression du marker'
+                        });
+                    }
+                });
             }
 
   
