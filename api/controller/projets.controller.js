@@ -2,6 +2,7 @@
 
     "use strict";
     var Projet = require('../models/projets.model').ProjetModel;
+    var PlanProjet = require('../models/planProjet.model').PlanProjetModel;
     var Dossier = require('../models/dossiers.model').DossierModel;
     var Entreprise = require('../models/entreprises.model').EntrepriseModel;
     var Contact = require('../models/contacts.model').ContactModel;
@@ -71,6 +72,64 @@
 
         // Si ce n'est pas une URL Firebase, retourner l'URL complète
         return fullUrl;
+    };
+
+    function extractPlanProjetFileName(fullUrl) {
+        if (!fullUrl) return null;
+        try {
+            let decoded = fullUrl;
+            while (decoded.includes('%')) {
+                const temp = decodeURIComponent(decoded);
+                if (temp === decoded) break;
+                decoded = temp;
+            }
+
+            const match = decoded.match(/planprojet\/[^?&]+/);
+
+            if (match) {
+                return match[0];
+            }
+
+            return null;
+        } catch (error) {
+            console.error("Erreur extraction du plan projet:", error);
+            return null;
+        }
+    };
+
+    function extractPlanProjetFileNameDelete(fullUrl) {
+        if (!fullUrl) return null;
+
+        try {
+            let decoded = fullUrl;
+            while (decoded.includes('%')) {
+                const temp = decodeURIComponent(decoded);
+                if (temp === decoded) break;
+                decoded = temp;
+            }
+
+            if (decoded.includes('planprojet/')) {
+                const startIndex = decoded.indexOf('planprojet/');
+                const endIndex = decoded.indexOf('?', startIndex);
+                const path = endIndex !== -1 ? decoded.substring(startIndex, endIndex) : decoded.substring(startIndex);
+                const parts = path.split('/');
+
+                if (parts.length > 1) {
+                    return parts[parts.length - 1];
+                }
+
+                return path;
+            }
+
+            if (!decoded.includes('/') && !decoded.includes('?')) {
+                return decoded;
+            }
+
+            return null;
+        } catch (error) {
+            console.error("Erreur extraction pour suppression du plan projet:", error);
+            return null;
+        }
     };
 
 
@@ -197,10 +256,26 @@
                         projet.code_projet = "KAP-"+code;
                         projet.code_client=client;
 
-                        if(req.file){
-                         projet.photo = await uploadService.uploadProjetsToFirebaseStorage(req.file.filename);
+                        const photoFile = req.file || (req.files && req.files.uploadfile && req.files.uploadfile[0]);
+                        const planFile = req.files && req.files.uploadplan && req.files.uploadplan[0];
+
+                        if(photoFile){
+                         projet.photo = await uploadService.uploadProjetsToFirebaseStorage(photoFile.filename);
                         }
                         projet.save().then(async (projet)=>{
+                            if(planFile){
+                                let originalNameParts = planFile.originalname.split('.');
+                                let extension = originalNameParts[originalNameParts.length - 1];
+                                let chemin = await uploadService.uploadPlanProjetToFirebaseStorage(planFile.filename);
+                                let planProjet = new PlanProjet({
+                                    nom: planFile.filename,
+                                    chemin: chemin,
+                                    extension: extension,
+                                    date: new Date(),
+                                    projet: projet._id
+                                });
+                                await planProjet.save();
+                            }
                             /*const pvReception = new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"PV de réception"});
                             const etatDeLieu =  new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"Etat de lieu"});
                             await pvReception.save();
@@ -348,6 +423,17 @@
                     if(aclres){
 
                         let projet = await Projet.findOne({_id:req.params.id});
+
+                        if(!projet){
+                            return res.status(404).json({
+                                success:false,
+                                message:"Projet introuvable"
+                            });
+                        }
+
+                        const photoFile = req.file || (req.files && req.files.uploadfile && req.files.uploadfile[0]);
+                        const planFile = req.files && req.files.uploadplan && req.files.uploadplan[0];
+
                         //console.log("Body", req.body);
                         projet.projet=req.body.projet;
                         projet.entreprise=req.body.entreprise;
@@ -376,7 +462,7 @@
                         
                         projet.societeResponsableCode = req.body.societeResponsableCode || 'MLKA';
 
-                        if (req.file) {
+                        if (photoFile) {
                             //console.log("Nouveau fichier reçu");
                             
                             // Supprimer l'ancienne photo si elle existe
@@ -397,7 +483,7 @@
                             
                             // Uploader la nouvelle photo
                             try {
-                                projet.photo = await uploadService.uploadProjetsToFirebaseStorage(req.file.filename);
+                                projet.photo = await uploadService.uploadProjetsToFirebaseStorage(photoFile.filename);
                                 //console.log("Nouvelle photo URL:", projet.photo);
                             } catch (error) {
                                 console.error("Erreur upload nouvelle photo:", error);
@@ -411,6 +497,26 @@
                                 //console.log("Nouvelle photo URL:", projet.photo);
                             } catch (error) {
                                 console.error("Erreur upload nouvelle photo:", error);
+                            }
+                        }
+
+                        if(planFile){
+                            const planProjet = await PlanProjet.findOne({projet:req.params.id});
+
+                            if(!planProjet){
+                                let originalNameParts = planFile.originalname.split('.');
+                                let extension = originalNameParts[originalNameParts.length - 1];
+                                let chemin = await uploadService.uploadPlanProjetToFirebaseStorage(planFile.filename);
+                                let newPlanProjet = new PlanProjet({
+                                    nom: planFile.filename,
+                                    chemin: chemin,
+                                    extension: extension,
+                                    date: new Date(),
+                                    projet: req.params.id
+                                });
+                                await newPlanProjet.save();
+                            }else{
+                                fs.promises.unlink(`./public/${planFile.filename}`).catch(() => {});
                             }
                         }
 
@@ -482,6 +588,158 @@
                     }
                 })
 
+            },
+
+            getPlanProjetbyIdProjet(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'retreive', async function(err,aclres){
+                    if(aclres){
+                        try {
+                            let planProjet = await PlanProjet.findOne({projet:req.params.id});
+
+                            // if(!planProjet){
+                            //     return res.status(200).json({
+                            //         success:false,
+                            //         message:"Plan projet introuvable"
+                            //     });
+                            // }
+
+                            return res.json({
+                                success:true,
+                                message:planProjet
+                            });
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
+            updatePlanProjet(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
+                    if(aclres){
+                        try {
+                            let planProjet = await PlanProjet.findOne({_id:req.params.id});
+
+                            if(!planProjet){
+                                return res.status(404).json({
+                                    success:false,
+                                    message:"Plan projet introuvable"
+                                });
+                            }
+
+                            const planFile = req.file || (req.files && req.files.uploadplan && req.files.uploadplan[0]);
+
+                            if(planProjet.chemin){
+                                planProjet.chemin = extractPlanProjetFileName(planProjet.chemin) || planProjet.chemin;
+                            }
+
+                            const oldFileName = extractPlanProjetFileNameDelete(planProjet.chemin) || planProjet.nom;
+
+                            if(req.body.nom){
+                                planProjet.nom = req.body.nom;
+                            }
+                            if(req.body.date){
+                                planProjet.date = req.body.date;
+                            }
+                            if(req.body.projet){
+                                planProjet.projet = req.body.projet;
+                            }
+                            if(req.body.extension){
+                                planProjet.extension = req.body.extension;
+                            }
+                            if(req.body.chemin){
+                                planProjet.chemin = extractPlanProjetFileName(req.body.chemin) || planProjet.chemin;
+                            }
+
+                            if(planFile){
+                                if(oldFileName){
+                                    await uploadService.deletePlanProjetFirebaseStorage(oldFileName);
+                                }
+
+                                let originalNameParts = planFile.originalname.split('.');
+                                planProjet.nom = planFile.filename;
+                                planProjet.extension = originalNameParts[originalNameParts.length - 1];
+                                planProjet.chemin = await uploadService.uploadPlanProjetToFirebaseStorage(planFile.filename);
+                                planProjet.date = new Date();
+                            }
+
+                            PlanProjet.findOneAndUpdate({_id:req.params.id},planProjet,{new:true}).then((planProjet)=>{
+                                res.json({
+                                    success:true,
+                                    message:planProjet
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        }); 
+                    }
+                })
+            },
+
+            deletePlanProjet(req,res){
+                acl.isAllowed(req.decoded.id,'projets', 'delete', async function(err,aclres){
+                    if(aclres){
+                        try {
+                            let planProjet = await PlanProjet.findOne({_id:req.params.id});
+
+                            if(!planProjet){
+                                return res.status(404).json({
+                                    success:false,
+                                    message:"Plan projet introuvable"
+                                });
+                            }
+
+                            const fileName = extractPlanProjetFileNameDelete(planProjet.chemin) || planProjet.nom;
+
+                            if(fileName){
+                                await uploadService.deletePlanProjetFirebaseStorage(fileName);
+                            }
+
+                            planProjet.deleteOne().then((data)=>{
+                                res.json({
+                                    success: true,
+                                    message:data
+                                });
+                            }).catch((error)=>{
+                                return res.status(500).json({
+                                    success:false,
+                                    message:error.message
+                                })
+                            })
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+                })
             },
 
             deletePhoto(req,res){

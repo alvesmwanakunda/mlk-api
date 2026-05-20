@@ -18,17 +18,27 @@
          app.route('/projet/entreprise/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getProjetByEntreprise)
 
-        app.post('/projet',upload.single("uploadfile"),Ctrl.addProjet)
+        app.post('/projet',upload.fields([
+            { name: "uploadfile", maxCount: 1 },
+            { name: "uploadplan", maxCount: 1 }
+        ]),Ctrl.addProjet)
          // AJouter un projet par odoo
         app.post('/projet/odoo',Ctrl.addProjetByOdoo)
         
-        app.put('/projet/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjet)
+        app.put('/projet/:id([a-fA-F\\d]{24})',upload.fields([
+            { name: "uploadfile", maxCount: 1 },
+            { name: "uploadplan", maxCount: 1 }
+        ]),Ctrl.updateProjet)
 
         app.post('/projet/entreprise/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.addProjetEntreprise)
         
         app.put('/projet/entreprise/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjetEntreprise)
 
          app.put('/projet/file/:id([a-fA-F\\d]{24})',upload.single("uploadfile"),Ctrl.updateProjetFile)
+
+         app.get('/projet/planprojet/:id([a-fA-F\\d]{24})',Ctrl.getPlanProjetbyIdProjet)
+         app.put('/projet/planprojet/:id([a-fA-F\\d]{24})',upload.single("uploadplan"),Ctrl.updatePlanProjet)
+         app.delete('/projet/planprojet/:id([a-fA-F\\d]{24})',Ctrl.deletePlanProjet)
 
          app.put('/projet/statut/:id([a-fA-F\\d]{24})', Ctrl.updateProjetStatut);
          app.put('/projet/statut/multiple', Ctrl.updateMultipleProjetStatut);

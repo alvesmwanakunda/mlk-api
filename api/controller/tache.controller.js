@@ -13,6 +13,7 @@
     var translationService = require('../services/deeplTranslation.service');
     const mongoose = require('mongoose');
     var Historique = require('../models/historiqueTache.model').HistoriqueTacheModel;
+    var markerCounterService = require('../services/marker-counter.service');
 
 
     function extractFilePath(fullUrl) {
@@ -78,6 +79,37 @@
         return fullUrl;
     };
 
+    function toOptionalNumber(value) {
+        if (value === undefined || value === null || value === '') return undefined;
+
+        const number = Number(value);
+        return Number.isNaN(number) ? undefined : number;
+    }
+
+    function normalizeMarker(body) {
+        let marker = body.marker;
+
+        if (typeof marker === 'string') {
+            try {
+                marker = JSON.parse(marker);
+            } catch {
+                marker = {};
+            }
+        }
+
+        if (!marker || typeof marker !== 'object' || Array.isArray(marker)) {
+            marker = {};
+        }
+
+        const normalizedMarker = {
+            page: toOptionalNumber(marker.page ?? body.markerPage ?? body.page ?? body['marker[page]']),
+            xPercent: toOptionalNumber(marker.xPercent ?? body.markerXPercent ?? body.xPercent ?? body['marker[xPercent]']),
+            yPercent: toOptionalNumber(marker.yPercent ?? body.markerYPercent ?? body.yPercent ?? body['marker[yPercent]'])
+        };
+
+        const hasMarker = Object.values(normalizedMarker).some(value => value !== undefined);
+        return hasMarker ? normalizedMarker : null;
+    }
 
 
 
@@ -91,7 +123,10 @@
                     if (err) return res.status(500).json({ success: false, message: 'ACL error', error: err.message });
                     if (!aclres) return res.status(401).json({ success: false, message: "401" });
 
-                    try {
+                try {
+                    const body = Object.assign({}, req.body);
+                    delete body.marker;
+                    delete body.pdfId;   
                     const tache = new Tache(req.body);
                     const titleFields =
                         await translationService.buildTacheTitleTranslationFields(req.body.titre || '');
@@ -120,6 +155,38 @@
 
                     tache.projet = req.params.id;
                     tache.user = req.decoded.id;
+
+                    const plan = req.body.plan || req.body.pdfId;
+                    const marker = normalizeMarker(req.body);
+
+                    if (plan) {
+                        tache.plan = plan;
+                    }
+
+                    if (marker) {
+                        if (!plan) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Le plan est requis pour créer un marker"
+                            });
+                        }
+
+                        if (marker.page === undefined || marker.xPercent === undefined || marker.yPercent === undefined) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Les champs marker.page, marker.xPercent et marker.yPercent sont requis"
+                            });
+                        }
+
+                        const { markerNumber, markerCode } = await markerCounterService.getNextMarkerNumber(plan);
+                        tache.marker = {
+                            page: marker.page,
+                            xPercent: marker.xPercent,
+                            yPercent: marker.yPercent,
+                            markerNumber,
+                            markerCode
+                        };
+                    }
 
                     // ✅ Uploader toutes les images, puis save 1 seule fois
                     const files = Array.isArray(req.files) ? req.files : [];
@@ -540,7 +607,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').then(async (tache)=>{
+                        Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').populate('user').then(async (tache)=>{
                             const requestedLanguage =
                                 await translationService.getRequestedLanguage(req);
                             res.json({
@@ -1180,6 +1247,148 @@
                     }
                 })
             },
+
+            // updateTaskMarkerPosition(req,res){
+            //     acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+            //         if(aclres){
+
+            //             try{
+
+            //                 let {taskId} = req.params.id;
+            //                 var {page, xPercent, yPercent} = req.body;
+
+            //                 let tache = await Tache.findByIdAndUpdate(
+            //                     taskId,
+            //                     {
+            //                         $set: {
+            //                         'marker.page': page,
+            //                         'marker.xPercent': xPercent,
+            //                         'marker.yPercent': yPercent
+            //                         }
+            //                     },
+            //                     { new: true }
+            //                     );
+
+            //                     return res.json(tache);
+
+            //             } catch (error) {
+            //                 console.error(error);
+            //                 return res.status(500).json({ message: 'Erreur lors du déplacement du marker' });
+            //             }
+            //         }else{
+            //             return res.status(401).json({
+            //                 success: false,
+            //                 message: "401"
+            //             }); 
+            //         }
+            //     })
+            // },
+            updateTaskMarkerPosition(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'create', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ success: false, message: 'ACL error' });
+                    }
+
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    try {
+                        const taskId = req.params.id;
+                        const { page, xPercent, yPercent } = req.body;
+
+                        if (page === undefined || xPercent === undefined || yPercent === undefined) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "page, xPercent et yPercent sont requis"
+                            });
+                        }
+
+                        const tache = await Tache.findByIdAndUpdate(
+                            taskId,
+                            {
+                                $set: {
+                                    'marker.page': Number(page),
+                                    'marker.xPercent': Number(xPercent),
+                                    'marker.yPercent': Number(yPercent)
+                                }
+                            },
+                            { new: true, runValidators: true }
+                        );
+
+                        if (!tache) {
+                            return res.status(404).json({
+                                success: false,
+                                message: "Tâche introuvable"
+                            });
+                        }
+
+                        return res.json({
+                            success: true,
+                            data: tache
+                        });
+
+                    } catch (error) {
+                        console.error(error);
+                        return res.status(500).json({
+                            success: false,
+                            message: 'Erreur lors du déplacement du marker'
+                        });
+                    }
+                });
+            },
+
+            deleteTaskMarker(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'create', async function(err, aclres) {
+                    if (err) {
+                        return res.status(500).json({ success: false, message: 'ACL error' });
+                    }
+
+                    if (!aclres) {
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+
+                    try {
+                        const taskId = req.params.id;
+
+                        const tache = await Tache.findByIdAndUpdate(
+                            taskId,
+                            {
+                                $unset: {
+                                    marker: 1
+                                }
+                            },
+                            { new: true, runValidators: true }
+                        );
+
+                        if (!tache) {
+                            return res.status(404).json({
+                                success: false,
+                                message: "Tâche introuvable"
+                            });
+                        }
+
+                        return res.json({
+                            success: true,
+                            data: tache
+                        });
+
+                    } catch (error) {
+                        console.error(error);
+                        return res.status(500).json({
+                            success: false,
+                            message: 'Erreur lors de la suppression du marker'
+                        });
+                    }
+                });
+            }
+
   
         }
      }

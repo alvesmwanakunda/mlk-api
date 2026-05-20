@@ -121,9 +121,34 @@
         //     height: Number
         // },
 
-        date_creation: { type: Date, default: Date.now }
+        date_creation: { type: Date, default: Date.now },
+        // Plan projet
+        marker: {
+            page: { type: Number, required: false },
+            xPercent: { type: Number, required: false },
+            yPercent: { type: Number, required: false },
+            markerNumber: { type: Number, required: false },
+            markerCode: { type: String, required: false }
+        },
+
+        plan: {
+            type: Schema.ObjectId,
+            ref: "PlanProjet",
+            required: false
+        }
+
 
     });
+    tacheSchema.index(
+        { plan: 1, 'marker.markerNumber': 1 },
+        {
+            unique: true,
+            partialFilterExpression: {
+                plan: { $exists: true },
+                'marker.markerNumber': { $exists: true }
+            }
+        }
+    );
     tacheSchema.post('find', async function (docs, next) { 
         try {
             for (const doc of docs) {

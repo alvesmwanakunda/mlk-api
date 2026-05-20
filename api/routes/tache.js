@@ -51,6 +51,12 @@
            .put(Ctrl.updateSubTask)
            .delete(Ctrl.deleteSubTask)
            .get(Ctrl.getSubTask)
+
+      // Update Markers
+       app.route('/marker/tache/:id([a-fA-F\\d]{24})')
+         .put(Ctrl.updateTaskMarkerPosition)
+         .delete(Ctrl.deleteTaskMarker)
+          
         
         
     }
