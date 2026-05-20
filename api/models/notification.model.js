@@ -18,6 +18,36 @@
       type: String,
       required: true,
     },
+    originalTitle: {
+      type: String,
+      required: false,
+    },
+    originalBody: {
+      type: String,
+      required: false,
+    },
+    sourceLanguage: {
+      type: String,
+      default: "fr",
+    },
+    titleTranslations: {
+      type: Map,
+      of: String,
+      default: {},
+    },
+    bodyTranslations: {
+      type: Map,
+      of: String,
+      default: {},
+    },
+    translation: {
+      provider: String,
+      status: String,
+      translatedAt: Date,
+      baseLanguage: String,
+      templateKey: String,
+      error: String,
+    },
     type: {
       type: String,
       required: false,
@@ -57,4 +87,3 @@
     NotificationModel: mongoose.model("Notifications", notificationSchema),
   };
 })();
-

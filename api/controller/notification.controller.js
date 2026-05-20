@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   var Notification = require('../models/notification.model').NotificationModel;
+  var translationService = require('../services/deeplTranslation.service');
   var mongoose = require('mongoose');
   var ObjectId = mongoose.Types.ObjectId;
 
@@ -35,9 +36,18 @@
               .lean()
               .exec();
 
+            const requestedLanguage =
+              await translationService.getRequestedLanguage(req);
+            const localizedNotifications = notifications.map((notification) =>
+              translationService.withDisplayNotification(
+                notification,
+                requestedLanguage
+              )
+            );
+
             res.json({
               success: true,
-              message: notifications,
+              message: localizedNotifications,
             });
           } catch (e) {
             return res.status(500).json({
@@ -103,11 +113,19 @@
               { _id: id, user: req.decoded.id },
               { $set: { readAt: new Date() } },
               { new: true }
-            ).exec();
+            )
+              .lean()
+              .exec();
+
+            const requestedLanguage =
+              await translationService.getRequestedLanguage(req);
 
             res.json({
               success: true,
-              message: notif,
+              message: translationService.withDisplayNotification(
+                notif,
+                requestedLanguage
+              ),
             });
           } catch (e) {
             return res.status(500).json({

@@ -97,6 +97,15 @@
                         await translationService.buildTacheTitleTranslationFields(req.body.titre || '');
                     Object.assign(tache, titleFields);
 
+                    if (req.body.description !== undefined && req.body.description !== '') {
+                        Object.assign(
+                            tache,
+                            await translationService.buildTacheDescriptionTranslationFields(
+                                req.body.description
+                            )
+                        );
+                    }
+
                     // ✅ Normaliser assignes => toujours tableau
                     let assignes = req.body.assignes;
                     if (!assignes) {
@@ -142,19 +151,21 @@
                     if (Array.isArray(savedTache.assignes) && savedTache.assignes.length) {
                         const users = await Promise.all(savedTache.assignes.map(id => User.findOne({ _id: id })));
                         for (const user of users.filter(Boolean)) {
-                        if (!user.fcmToken) continue;
-                        notificationService.sendNotification(
-                            user.fcmToken,
-                            'Nouvelle tâche assignée',
-                            `La tâche '${savedTache.titre}' vous a été assignée dans le projet '${projet?.projet ?? ''}'. Merci de vérifier votre tâche.`,
-                            {
-                            type: "tache",
-                            userId: user._id.toString(),
-                            resource: "projet",
-                            resourceId: (projet?._id || savedTache.projet).toString(),
-                            tacheId: savedTache._id.toString()
-                            }
-                        );
+                        notificationService.sendNotification({
+                            user,
+                            templateKey: 'TASK_ASSIGNED',
+                            context: {
+                                taskTitleSource: translationService.toTitleSource(savedTache),
+                                projectName: projet?.projet || '',
+                            },
+                            data: {
+                                type: 'tache',
+                                userId: user._id.toString(),
+                                resource: 'projet',
+                                resourceId: (projet?._id || savedTache.projet).toString(),
+                                tacheId: savedTache._id.toString(),
+                            },
+                        });
                         }
                     }
 
@@ -162,7 +173,7 @@
                         await translationService.getRequestedLanguage(req);
                     return res.json({
                         success: true,
-                        data: translationService.withDisplayTitle(
+                        data: translationService.withDisplayTache(
                             savedTache,
                             requestedLanguage
                         )
@@ -207,7 +218,6 @@
                     // 2) Champs simples à $set
                     // -----------------------------
                     const setData = {
-                        description: req.body.description,
                         statut: req.body.statut,
                         date_debut: req.body.date_debut,
                         date_fin: req.body.date_fin,
@@ -219,6 +229,15 @@
                         Object.assign(
                             setData,
                             await translationService.buildTacheTitleTranslationFields(req.body.titre || '')
+                        );
+                    }
+
+                    if (req.body.description !== undefined) {
+                        Object.assign(
+                            setData,
+                            await translationService.buildTacheDescriptionTranslationFields(
+                                req.body.description || ''
+                            )
                         );
                     }
 
@@ -294,36 +313,57 @@
                     }
 
                     // -----------------------------
-                    // 6) Mail si statut changé
+                    // 6) Mail + notifications si statut changé
+                    // (alignés : même déclencheur, assignés + créateur)
                     // -----------------------------
-                    if (task.statut !== updatedTache?.statut && Array.isArray(updatedTache.assignes) && updatedTache.assignes.length) {
+                    const statusChanged = task.statut !== updatedTache?.statut;
+
+                    if (statusChanged) {
                         MailService.mailUpdateTache(updatedTache._id, req.decoded.id);
                         HistoriqueService.create(updatedTache._id, req.decoded.id);
-                    }
 
-                    // -----------------------------
-                    // 7) Notifications à tous les assignés
-                    // -----------------------------
-                    if (Array.isArray(updatedTache.assignes) && updatedTache.assignes.length) {
                         const projet = await Projet.findOne({ _id: updatedTache.projet });
                         const userUpdate = await User.findOne({ _id: req.decoded.id });
+                        const modifierName = [userUpdate?.nom, userUpdate?.prenom]
+                            .filter(Boolean)
+                            .join(' ')
+                            .trim();
 
-                        const users = await Promise.all(updatedTache.assignes.map(id => User.findOne({ _id: id })));
-                        for (const user of users.filter(Boolean)) {
-                        if (!user.fcmToken) continue;
+                        const recipientIds = new Set();
+                        (updatedTache.assignes || []).forEach((assigneId) => {
+                            if (assigneId) recipientIds.add(String(assigneId));
+                        });
+                        if (updatedTache.user) {
+                            recipientIds.add(String(updatedTache.user));
+                        }
 
-                        notificationService.sendNotification(
-                            user.fcmToken,
-                            'Tâche assignée',
-                            `La tâche '${updatedTache.titre}' a été modifiée par '${userUpdate?.nom || ''}' '${userUpdate?.prenom || ''}' dans le projet '${projet?.projet || ''}'. Merci de vérifier votre tâche.`,
-                            {
-                            type: "tache",
-                            userId: user._id.toString(),
-                            resource: "projet",
-                            resourceId: projet?._id?.toString() || String(updatedTache.projet),
-                            tacheId: updatedTache._id.toString()
-                            }
+                        const recipients = await Promise.all(
+                            [...recipientIds].map((id) => User.findOne({ _id: id }))
                         );
+
+                        for (const recipient of recipients.filter(Boolean)) {
+                            if (String(recipient._id) === String(req.decoded.id)) {
+                                continue;
+                            }
+
+                            notificationService.sendNotification({
+                                user: recipient,
+                                templateKey: 'TASK_STATUS_UPDATED',
+                                context: {
+                                    taskTitleSource: translationService.toTitleSource(updatedTache),
+                                    projectName: projet?.projet || '',
+                                    modifierName,
+                                    taskStatus: updatedTache.statut || '',
+                                },
+                                data: {
+                                    type: 'tache',
+                                    userId: recipient._id.toString(),
+                                    resource: 'projet',
+                                    resourceId:
+                                        projet?._id?.toString() || String(updatedTache.projet),
+                                    tacheId: updatedTache._id.toString(),
+                                },
+                            });
                         }
                     }
 
@@ -331,7 +371,7 @@
                         await translationService.getRequestedLanguage(req);
                     return res.json({
                         success: true,
-                        message: translationService.withDisplayTitle(
+                        message: translationService.withDisplayTache(
                             updatedTache,
                             requestedLanguage
                         )
@@ -505,7 +545,7 @@
                                 await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message: translationService.withDisplayTitle(
+                                message: translationService.withDisplayTache(
                                     tache,
                                     requestedLanguage
                                 )
@@ -536,7 +576,7 @@
                             res.json({
                                 success: true,
                                 message: tache.map((item) =>
-                                    translationService.withDisplayTitle(
+                                    translationService.withDisplayTache(
                                         item,
                                         requestedLanguage
                                     )
@@ -1113,10 +1153,17 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Historique.find({tache:req.params.id}).sort({date_creation: -1}).then((time)=>{
+                        Historique.find({tache:req.params.id}).sort({date_creation: -1}).then(async (time)=>{
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
                             res.json({
                                 success: true,
-                                message:time
+                                message: time.map((item) =>
+                                    translationService.withDisplayDescription(
+                                        item,
+                                        requestedLanguage
+                                    )
+                                ),
                             });
                         }).catch((error)=>{
                             return res.status(500).json({

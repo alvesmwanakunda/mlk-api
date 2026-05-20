@@ -4,7 +4,6 @@
     var AgendaProjet = require("../models/agendaProjet.model").AgendaProjetModel;
     var ObjectId = require('mongoose').Types.ObjectId;
     var mailService = require('../services/mail.service');
-    var User = require("../models/users.model").UserModel;
     var notificationService = require('../services/notification.service');
     var agendaService = require('../services/agenda.service');
     var Tache = require('../models/taches.model').TacheModel;
@@ -112,46 +111,19 @@
                                     agendaService.addTask(task);
                                 }
 
-                                //send notification to assigne
-                                if(agenda?.assigne){
+                                if (agenda?.assigne?.length) {
                                     mailService.mailPlanning(agenda?._id);
-                                    if (agenda?.projet) {
-
-                                        let projet = await Projet.findOne({_id:agenda.projet});
-                                        agenda.assigne.forEach( async userId=>{
-
-                                            User.findOne({_id:userId}).then((user)=>{
-                                                notificationService.sendNotification(
-                                                    user.fcmToken, 
-                                                    'Nouvelle tâche assignée', 
-                                                    'La tâche \''+agenda.title+'\' vous a été assignée dans le projet \''+projet.projet+'\'. Merci de vérifier votre tâche.',
-                                                    {
-                                                        type: "tache", 
-                                                        userId: user._id.toString(),
-                                                        resource: "projet",
-                                                        resourceId: projet._id.toString(),
-                                                        agendaId: agenda._id.toString()
-                                                    }
-                                                );
-                                            });
-                                        }); 
-                                        
-                                    }else{
-                                        agenda.assigne.forEach(userId=>{
-                                            User.findOne({_id:userId}).then((user)=>{
-                                                notificationService.sendNotification(
-                                                    user.fcmToken, 
-                                                    'Nouvelle tâche assignée', 
-                                                    'La tâche \''+agenda.title+'\' vous a été assignée. Merci de vérifier votre agenda.',
-                                                    {
-                                                        type: "agenda",
-                                                        userId: user._id.toString(),
-                                                        agendaId: agenda._id.toString(),
-                                                    }
-                                                );
-                                            });
-                                        });
-                                    }                                    
+                                    const projet = agenda.projet
+                                        ? await Projet.findOne({ _id: agenda.projet })
+                                        : null;
+                                    await notificationService.notifyAgendaAssignees({
+                                        assigneeIds: agenda.assigne,
+                                        agenda,
+                                        projet,
+                                        templateKey: projet
+                                            ? 'AGENDA_ASSIGNED_PROJECT'
+                                            : 'AGENDA_ASSIGNED',
+                                    });
                                 }
 
                                 const requestedLanguage =
@@ -249,40 +221,17 @@
                         }
 
                         Agenda.findOneAndUpdate({_id:req.params.id},agenda,{new:true}).then( async (agenda)=>{
-                            //send notification to assigne
-                            if(agenda?.projet){
-                                let projet = await Projet.findOne({_id:agenda.projet});
-                                agenda.assigne.forEach( async userId=>{
-
-                                    User.findOne({_id:userId}).then((user)=>{
-                                        notificationService.sendNotification(
-                                            user.fcmToken, 
-                                            'Tâche assignée', 
-                                            'La tâche \''+agenda.title+'\' a été modifiée dans le projet \''+projet.projet+'\'. Merci de vérifier votre tâche.',
-                                            {
-                                                type: "tache", 
-                                                userId: user._id.toString(),
-                                                resource: "projet",
-                                                resourceId: projet._id.toString(),
-                                                agendaId: agenda._id.toString()
-                                            }
-                                        );
-                                    });
-                                }); 
-
-                            }else{
-                                agenda.assigne.forEach(userId=>{
-                                    User.findOne({_id:userId}).then((user)=>{
-                                        notificationService.sendNotification(
-                                            user.fcmToken, 'Tâche assignée', 
-                                            'La tâche \''+agenda.title+'\' a été modifiée. Veuillez vérifier votre agenda.',
-                                            {
-                                                type: "agenda",
-                                                userId: user._id.toString(),
-                                                agendaId: agenda._id.toString(),
-                                            }
-                                        );
-                                    });
+                            if (agenda?.assigne?.length) {
+                                const projet = agenda.projet
+                                    ? await Projet.findOne({ _id: agenda.projet })
+                                    : null;
+                                await notificationService.notifyAgendaAssignees({
+                                    assigneeIds: agenda.assigne,
+                                    agenda,
+                                    projet,
+                                    templateKey: projet
+                                        ? 'AGENDA_UPDATED_PROJECT'
+                                        : 'AGENDA_UPDATED',
                                 });
                             }
                             const requestedLanguage =

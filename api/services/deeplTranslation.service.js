@@ -17,9 +17,10 @@
     en: "EN",
     tr: "TR",
     pl: "PL",
+    wo: "WO",
   };
 
-  const DEFAULT_NOTE_LANGUAGES = ["fr", "en", "tr", "pl"];
+  const DEFAULT_NOTE_LANGUAGES = ["fr", "en", "tr", "pl", "wo"];
 
   function getConfiguredNoteLanguages() {
     const configured = process.env.NOTE_TRANSLATION_LANGUAGES;
@@ -75,20 +76,30 @@
     return !!source && !!target && source === target;
   }
 
-  async function translateText(text, targetLanguage, sourceLanguage) {
+  async function translateTexts(texts, targetLanguage, sourceLanguage) {
+    const segments = Array.isArray(texts)
+      ? texts.map((segment) => (typeof segment === "string" ? segment : ""))
+      : [];
+
+    if (!segments.length) {
+      return {
+        texts: [],
+        skipped: true,
+      };
+    }
+
     const authKey = getAuthKey();
     const target = getDeepLTargetLanguage(targetLanguage);
 
     if (!authKey || !target) {
       return {
-        text,
-        detectedSourceLanguage: normalizeAppLanguage(sourceLanguage),
+        texts: segments,
         skipped: true,
       };
     }
 
     const payload = {
-      text: [text],
+      text: segments,
       target_lang: target,
     };
 
@@ -104,15 +115,29 @@
       timeout: Number(process.env.DEEPL_TIMEOUT_MS || 10000),
     });
 
-    const translation = response.data?.translations?.[0] || {};
+    const translations = response.data?.translations || [];
 
     return {
-      text: translation.text || text,
-      detectedSourceLanguage: normalizeDeepLLanguage(
-        translation.detected_source_language
+      texts: segments.map(
+        (segment, index) => translations[index]?.text || segment
       ),
-      billedCharacters: translation.billed_characters,
-      modelTypeUsed: translation.model_type_used,
+      skipped: false,
+      billedCharacters: translations.reduce(
+        (total, item) => total + (item?.billed_characters || 0),
+        0
+      ),
+    };
+  }
+
+  async function translateText(text, targetLanguage, sourceLanguage) {
+    const result = await translateTexts([text], targetLanguage, sourceLanguage);
+    const segment = typeof text === "string" ? text : "";
+
+    return {
+      text: result.texts?.[0] || segment,
+      detectedSourceLanguage: normalizeAppLanguage(sourceLanguage),
+      billedCharacters: result.billedCharacters,
+      skipped: result.skipped,
     };
   }
 
@@ -241,6 +266,26 @@
     };
   }
 
+  async function buildTacheDescriptionTranslationFields(description) {
+    return buildSousTacheDescriptionTranslationFields(description);
+  }
+
+  function toTitleSource(entity) {
+    if (!entity) return null;
+
+    const plain =
+      entity && typeof entity.toObject === "function"
+        ? entity.toObject({ virtuals: true })
+        : { ...entity };
+
+    return {
+      titleTranslations: plain.titleTranslations,
+      titre: plain.titre,
+      title: plain.title,
+      originalTitle: plain.originalTitle,
+    };
+  }
+
   function getTranslationsObject(note) {
     if (!note?.translations) return {};
     if (note.translations instanceof Map) {
@@ -321,22 +366,96 @@
     return plainTache;
   }
 
-  function withDisplayDescription(sousTache, requestedLanguage) {
-    if (!sousTache) return sousTache;
+  function getNotificationTitleTranslations(notification) {
+    if (!notification?.titleTranslations) return {};
+    if (notification.titleTranslations instanceof Map) {
+      return Object.fromEntries(notification.titleTranslations);
+    }
+    return notification.titleTranslations;
+  }
 
-    const plainSousTache =
-      sousTache && typeof sousTache.toObject === "function"
-        ? sousTache.toObject({ virtuals: true })
-        : { ...sousTache };
+  function getNotificationBodyTranslations(notification) {
+    if (!notification?.bodyTranslations) return {};
+    if (notification.bodyTranslations instanceof Map) {
+      return Object.fromEntries(notification.bodyTranslations);
+    }
+    return notification.bodyTranslations;
+  }
 
-    plainSousTache.descriptionTranslations = getTranslationsObject({
-      translations: plainSousTache.descriptionTranslations,
-    });
-    plainSousTache.displayDescription = getDisplayDescription(
-      plainSousTache,
+  function getDisplayNotificationTitle(notification, requestedLanguage) {
+    const language = normalizeAppLanguage(requestedLanguage) || "fr";
+    const translations = getNotificationTitleTranslations(notification);
+
+    return (
+      translations[language] ||
+      notification?.displayTitle ||
+      notification?.title ||
+      notification?.originalTitle ||
+      ""
+    );
+  }
+
+  function getDisplayNotificationBody(notification, requestedLanguage) {
+    const language = normalizeAppLanguage(requestedLanguage) || "fr";
+    const translations = getNotificationBodyTranslations(notification);
+
+    return (
+      translations[language] ||
+      notification?.displayBody ||
+      notification?.body ||
+      notification?.originalBody ||
+      ""
+    );
+  }
+
+  function withDisplayNotification(notification, requestedLanguage) {
+    if (!notification) return notification;
+
+    const plainNotification =
+      notification && typeof notification.toObject === "function"
+        ? notification.toObject({ virtuals: true })
+        : { ...notification };
+
+    plainNotification.titleTranslations =
+      getNotificationTitleTranslations(plainNotification);
+    plainNotification.bodyTranslations =
+      getNotificationBodyTranslations(plainNotification);
+    plainNotification.displayTitle = getDisplayNotificationTitle(
+      plainNotification,
       requestedLanguage
     );
-    return plainSousTache;
+    plainNotification.displayBody = getDisplayNotificationBody(
+      plainNotification,
+      requestedLanguage
+    );
+
+    return plainNotification;
+  }
+
+  function withDisplayDescription(entity, requestedLanguage) {
+    if (!entity) return entity;
+
+    const plainEntity =
+      entity && typeof entity.toObject === "function"
+        ? entity.toObject({ virtuals: true })
+        : { ...entity };
+
+    plainEntity.descriptionTranslations = getTranslationsObject({
+      translations: plainEntity.descriptionTranslations,
+    });
+    plainEntity.displayDescription = getDisplayDescription(
+      plainEntity,
+      requestedLanguage
+    );
+    return plainEntity;
+  }
+
+  function withDisplayTache(tache, requestedLanguage) {
+    if (!tache) return tache;
+    return withDisplayDescription(
+      withDisplayTitle(tache, requestedLanguage),
+      requestedLanguage
+    );
   }
 
   async function getRequestedLanguage(req) {
@@ -370,13 +489,21 @@
     buildTacheTitleTranslationFields,
     buildAgendaTitleTranslationFields,
     buildSousTacheDescriptionTranslationFields,
+    buildTacheDescriptionTranslationFields,
+    toTitleSource,
     getRequestedLanguage,
     withDisplayText,
     withDisplayTitle,
+    withDisplayTache,
     withDisplayDescription,
     getDisplayText,
     getDisplayTitle,
     getDisplayDescription,
+    withDisplayNotification,
+    getDisplayNotificationTitle,
+    getDisplayNotificationBody,
+    translateText,
+    translateTexts,
     normalizeAppLanguage,
   };
 })();

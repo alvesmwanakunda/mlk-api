@@ -80,6 +80,26 @@
             type:String,
             required: false
         },
+        originalDescription: {
+            type: String,
+            required: false
+        },
+        descriptionSourceLanguage: {
+            type: String,
+            required: false
+        },
+        descriptionTranslations: {
+            type: Map,
+            of: String,
+            default: {}
+        },
+        descriptionTranslation: {
+            provider: String,
+            status: String,
+            translatedAt: Date,
+            baseLanguage: String,
+            error: String
+        },
 
         statut: {
             type: String,

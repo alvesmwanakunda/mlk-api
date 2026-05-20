@@ -1,55 +1,99 @@
 const { admin } = require('../../firebase-config');
 const Notification = require('../models/notification.model').NotificationModel;
+const User = require('../models/users.model').UserModel;
+const notificationI18n = require('../i18n/notification.i18n');
+const translationService = require('./deeplTranslation.service');
+
+function mapTranslationsToObject(value) {
+  if (!value) return {};
+  if (value instanceof Map) {
+    return Object.fromEntries(value);
+  }
+  return value;
+}
+
+function getUserLanguage(user) {
+  return translationService.normalizeAppLanguage(user?.preferredLanguage) || 'fr';
+}
 
 module.exports = {
-
-  sendNotification: (fcmToken, title, body, data) => {
+  /**
+   * Envoie une notification traduite (FCM + historique en base).
+   * @param {Object} params
+   * @param {Object} params.user - Utilisateur destinataire (fcmToken, preferredLanguage, _id)
+   * @param {string} params.templateKey - Clé du gabarit (ex: TASK_ASSIGNED)
+   * @param {Object} params.context - Variables du gabarit (taskTitle, projectName, …)
+   * @param {Object} [params.data] - Métadonnées FCM / ressource
+   */
+  sendNotification: ({ user, templateKey, context = {}, data = {} }) => {
     return new Promise(async (resolve, reject) => {
       try {
         let notificationDoc = null;
-        let dataToSend = data;
+        const language = getUserLanguage(user);
+
+        const translationFields = notificationI18n.buildNotificationTranslationFields(
+          templateKey,
+          context
+        );
+        const localized = notificationI18n.getLocalizedNotificationContent(
+          translationFields,
+          language
+        );
+
+        const payload = {
+          title: translationFields.title,
+          body: translationFields.body,
+          originalTitle: translationFields.originalTitle,
+          originalBody: translationFields.originalBody,
+          sourceLanguage: translationFields.sourceLanguage,
+          titleTranslations: translationFields.titleTranslations,
+          bodyTranslations: translationFields.bodyTranslations,
+          translation: translationFields.translation,
+          type: data?.type,
+          resource: data?.resource,
+          resourceId: data?.resourceId,
+          tacheId: data?.tacheId,
+          agendaId: data?.agendaId,
+          data: data || undefined,
+        };
+
+        if (user?._id) {
+          payload.user = user._id;
+        } else if (data?.userId) {
+          payload.user = data.userId;
+        }
 
         try {
-          // Enregistrer l'historique côté base si possible (optionnel, non bloquant)
-          const payload = {
-            title: title,
-            body: body,
-            type: data && data.type ? data.type : undefined,
-            resource: data && data.resource ? data.resource : undefined,
-            resourceId: data && data.resourceId ? data.resourceId : undefined,
-            tacheId: data && data.tacheId ? data.tacheId : undefined,
-            agendaId: data && data.agendaId ? data.agendaId : undefined,
-            data: data || undefined,
-          };
-
-          // userId éventuellement passé dans data.userId
-          if (data && data.userId) {
-            payload.user = data.userId;
-          }
-
           notificationDoc = await Notification.create(payload);
         } catch (e) {
           console.error('Erreur création Notification en base:', e);
         }
 
-        // Injecter l'id Mongo dans le payload FCM pour pouvoir marquer lu côté mobile.
+        let dataToSend = { ...(data || {}) };
         if (notificationDoc && notificationDoc._id) {
-          try {
-            if (!dataToSend || typeof dataToSend !== 'object') {
-              dataToSend = {};
-            }
-            dataToSend.notificationId = notificationDoc._id.toString();
-          } catch (e) {}
+          dataToSend.notificationId = notificationDoc._id.toString();
         }
 
+        dataToSend.title = localized.title;
+        dataToSend.body = localized.body;
+        dataToSend.displayTitle = localized.title;
+        dataToSend.displayBody = localized.body;
+        dataToSend.language = language;
+
+        const fcmToken = user?.fcmToken;
         if (fcmToken) {
           const message = {
             token: fcmToken,
             notification: {
-              title: title,
-              body: body,
+              title: localized.title,
+              body: localized.body,
             },
-            data: dataToSend,
+            data: Object.fromEntries(
+              Object.entries(dataToSend).map(([key, value]) => [
+                key,
+                value == null ? '' : String(value),
+              ])
+            ),
           };
           await admin.messaging().send(message);
           console.log('Notification envoyée avec succès');
@@ -62,4 +106,54 @@ module.exports = {
       }
     });
   },
-}
+
+  /**
+   * Notifie les assignés d'un agenda (création ou mise à jour).
+   */
+  notifyAgendaAssignees: async ({
+    assigneeIds,
+    agenda,
+    projet,
+    templateKey,
+    skipUserId,
+  }) => {
+    const ids = Array.isArray(assigneeIds) ? assigneeIds : [];
+    const context = projet
+      ? {
+          agendaTitleSource: translationService.toTitleSource(agenda),
+          projectName: projet?.projet || '',
+        }
+      : {
+          agendaTitleSource: translationService.toTitleSource(agenda),
+        };
+
+    for (const assigneeId of ids) {
+      if (!assigneeId) continue;
+      if (skipUserId && String(assigneeId) === String(skipUserId)) continue;
+
+      const user = await User.findOne({ _id: assigneeId });
+      if (!user) continue;
+
+      const data = {
+        type: projet ? 'tache' : 'agenda',
+        userId: user._id.toString(),
+        agendaId: agenda?._id?.toString(),
+      };
+
+      if (projet?._id) {
+        data.resource = 'projet';
+        data.resourceId = projet._id.toString();
+      }
+
+      await module.exports.sendNotification({
+        user,
+        templateKey,
+        context,
+        data,
+      });
+    }
+  },
+
+  mapTranslationsToObject,
+  getUserLanguage,
+};

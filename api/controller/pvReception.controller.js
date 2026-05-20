@@ -1071,17 +1071,21 @@
 
                     // Envoyer une notification au user qui a crée le pv 
                     if (createdBy && createdBy.fcmToken) {
-                        await notificationService.sendNotification(
-                            createdBy.fcmToken,
-                            'Signature de PV de réception',
-                            `Le PV de réception '${pv.titre} - Version ${pv.version}' a été signé par ${pv.signatures.client.signerName}. Merci de vérifier et lui transmettre le document.`,
-                            {
-                                type: "pvReception",
+                        await notificationService.sendNotification({
+                            user: createdBy,
+                            templateKey: 'PV_RECEPTION_SIGNED',
+                            context: {
+                                pvTitle: pv.titre || '',
+                                pvVersion: pv.version || '',
+                                signerName: pv.signatures?.client?.signerName || '',
+                            },
+                            data: {
+                                type: 'pvReception',
                                 userId: createdBy._id.toString(),
-                                resource: "pvReception",
-                                resourceId: pv.projet.toString()
-                            }
-                        );
+                                resource: 'pvReception',
+                                resourceId: pv.projet.toString(),
+                            },
+                        });
                     }
 
                     return res.json({
