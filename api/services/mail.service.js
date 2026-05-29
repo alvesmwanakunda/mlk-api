@@ -444,8 +444,9 @@ async function resolveLocalizedPlanningMailStrings(language, user, agenda) {
 }
 
 async function buildPlanningMail(user, agenda) {
+    const planning = toMailTache(agenda);
     const language = translationService.normalizeAppLanguage(user?.preferredLanguage) || 'fr';
-    const frenchParts = buildFrenchPlanningMailParts(user, agenda);
+    const frenchParts = buildFrenchPlanningMailParts(user, planning);
 
     if (language === 'fr') {
         return {
@@ -457,7 +458,7 @@ async function buildPlanningMail(user, agenda) {
     const localizedStrings = await resolveLocalizedPlanningMailStrings(
         language,
         user,
-        agenda
+        planning
     );
 
     if (!localizedStrings) {
@@ -571,9 +572,17 @@ async function resolveLocalizedTaskMailStrings(language, assignee, tache) {
     }
 }
 
+function toMailTache(tache) {
+    if (!tache) return tache;
+    return typeof tache.toObject === 'function'
+        ? tache.toObject({ virtuals: true })
+        : tache;
+}
+
 async function buildTaskMail(assignee, tache) {
+    const task = toMailTache(tache);
     const language = translationService.normalizeAppLanguage(assignee?.preferredLanguage) || 'fr';
-    const frenchParts = buildFrenchTaskMailParts(assignee, tache);
+    const frenchParts = buildFrenchTaskMailParts(assignee, task);
 
     if (language === 'fr') {
         return {
@@ -585,7 +594,7 @@ async function buildTaskMail(assignee, tache) {
     const localizedStrings = await resolveLocalizedTaskMailStrings(
         language,
         assignee,
-        tache
+        task
     );
 
     if (!localizedStrings) {
@@ -691,8 +700,12 @@ async function resolveLocalizedSubTaskMailStrings(language, assignee, timeTask) 
 }
 
 async function buildSubTaskMail(assignee, timeTask) {
+    const entry = toMailTache(timeTask);
+    if (entry?.tache) {
+        entry.tache = toMailTache(entry.tache);
+    }
     const language = translationService.normalizeAppLanguage(assignee?.preferredLanguage) || 'fr';
-    const frenchParts = buildFrenchSubTaskMailParts(assignee, timeTask);
+    const frenchParts = buildFrenchSubTaskMailParts(assignee, entry);
 
     if (language === 'fr') {
         return {
@@ -704,7 +717,7 @@ async function buildSubTaskMail(assignee, timeTask) {
     const localizedStrings = await resolveLocalizedSubTaskMailStrings(
         language,
         assignee,
-        timeTask
+        entry
     );
 
     if (!localizedStrings) {
@@ -816,7 +829,12 @@ async function translateUpdateTaskMailViaDeepL(language, recipient, tache, modif
 
 async function resolveLocalizedUpdateTaskMailStrings(language, recipient, tache, modifierUser) {
     if (mailI18n.hasCompleteUpdateTaskMailStrings(language)) {
-        return mailI18n.getUpdateTaskMailStrings(language, recipient, tache, modifierUser);
+        return mailI18n.getUpdateTaskMailStrings(
+            language,
+            recipient,
+            tache,
+            modifierUser
+        );
     }
 
     try {
@@ -828,8 +846,9 @@ async function resolveLocalizedUpdateTaskMailStrings(language, recipient, tache,
 }
 
 async function buildUpdateTaskMail(recipient, tache, modifierUser) {
+    const task = toMailTache(tache);
     const language = translationService.normalizeAppLanguage(recipient?.preferredLanguage) || 'fr';
-    const frenchParts = buildFrenchUpdateTaskMailParts(recipient, tache, modifierUser);
+    const frenchParts = buildFrenchUpdateTaskMailParts(recipient, task, modifierUser);
 
     if (language === 'fr') {
         return {
@@ -841,7 +860,7 @@ async function buildUpdateTaskMail(recipient, tache, modifierUser) {
     const localizedStrings = await resolveLocalizedUpdateTaskMailStrings(
         language,
         recipient,
-        tache,
+        task,
         modifierUser
     );
 

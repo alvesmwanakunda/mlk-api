@@ -307,35 +307,82 @@
     );
   }
 
+  function getTitleTranslationsObject(entity) {
+    const raw = entity?.titleTranslations;
+    if (!raw) return {};
+    if (raw instanceof Map) {
+      return Object.fromEntries(raw);
+    }
+    if (typeof raw === "object") {
+      return { ...raw };
+    }
+    return {};
+  }
+
+  function pickNonEmptyTranslation(translations, language) {
+    const value = translations?.[language];
+    if (value == null) return "";
+    const text = String(value).trim();
+    return text;
+  }
+
   function getDisplayTitle(tache, requestedLanguage) {
     const language = normalizeAppLanguage(requestedLanguage) || "fr";
-    const translations = getTranslationsObject({
-      translations: tache?.titleTranslations,
-    });
+    const translations = getTitleTranslationsObject(tache);
 
-    return (
-      translations[language] ||
-      tache?.displayTitle ||
-      tache?.title ||
-      tache?.titre ||
-      tache?.originalTitle ||
-      ""
-    );
+    const localized = pickNonEmptyTranslation(translations, language);
+    if (localized) return localized;
+
+    // Champ canonique FR (buildTacheTitleTranslationFields / buildAgendaTitleTranslationFields)
+    if (language === "fr") {
+      const canonicalFr = String(tache?.titre || tache?.title || "").trim();
+      if (canonicalFr) return canonicalFr;
+
+      const storedFr = pickNonEmptyTranslation(translations, "fr");
+      if (storedFr) return storedFr;
+    }
+
+    const frenchFallback = pickNonEmptyTranslation(translations, "fr");
+    if (frenchFallback) return frenchFallback;
+
+    return String(
+      tache?.originalTitle || tache?.titre || tache?.title || ""
+    ).trim();
+  }
+
+  function getDescriptionTranslationsObject(entity) {
+    const raw = entity?.descriptionTranslations;
+    if (!raw) return {};
+    if (raw instanceof Map) {
+      return Object.fromEntries(raw);
+    }
+    if (typeof raw === "object") {
+      return { ...raw };
+    }
+    return {};
   }
 
   function getDisplayDescription(sousTache, requestedLanguage) {
     const language = normalizeAppLanguage(requestedLanguage) || "fr";
-    const translations = getTranslationsObject({
-      translations: sousTache?.descriptionTranslations,
-    });
+    const translations = getDescriptionTranslationsObject(sousTache);
 
-    return (
-      translations[language] ||
-      sousTache?.displayDescription ||
-      sousTache?.description ||
-      sousTache?.originalDescription ||
-      ""
-    );
+    const localized = pickNonEmptyTranslation(translations, language);
+    if (localized) return localized;
+
+    if (language === "fr") {
+      const canonicalFr = String(sousTache?.description || "").trim();
+      if (canonicalFr) return canonicalFr;
+
+      const storedFr = pickNonEmptyTranslation(translations, "fr");
+      if (storedFr) return storedFr;
+    }
+
+    const frenchFallback = pickNonEmptyTranslation(translations, "fr");
+    if (frenchFallback) return frenchFallback;
+
+    return String(
+      sousTache?.originalDescription || sousTache?.description || ""
+    ).trim();
   }
 
   function withDisplayText(note, requestedLanguage) {
@@ -359,9 +406,7 @@
         ? tache.toObject({ virtuals: true })
         : { ...tache };
 
-    plainTache.titleTranslations = getTranslationsObject({
-      translations: plainTache.titleTranslations,
-    });
+    plainTache.titleTranslations = getTitleTranslationsObject(plainTache);
     plainTache.displayTitle = getDisplayTitle(plainTache, requestedLanguage);
     return plainTache;
   }
@@ -497,6 +542,7 @@
     withDisplayTache,
     withDisplayDescription,
     getDisplayText,
+    getTitleTranslationsObject,
     getDisplayTitle,
     getDisplayDescription,
     withDisplayNotification,

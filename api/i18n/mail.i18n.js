@@ -588,7 +588,7 @@
 
     const displayName = userCongeDisplayName(user);
     const duration = formatPlanningDuration(agenda, language);
-    const title = agenda?.title || "";
+    const title = translationService.getDisplayTitle(agenda, language);
 
     return {
       subject: strings.subject,
