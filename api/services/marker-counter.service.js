@@ -10,7 +10,7 @@ getNextMarkerNumber: async (plan)=> {
   );
 
   const markerNumber = counter.lastNumber;
-  const markerCode = `MK-${String(markerNumber).padStart(3, '0')}`;
+  const markerCode = `M-${String(markerNumber).padStart(3, '0')}`;
 
   return { markerNumber, markerCode };
 }
