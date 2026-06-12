@@ -11,9 +11,15 @@
     var HistoriqueService = require('../services/historique.service');
     var uploadService = require('../services/upload.service');
     var translationService = require('../services/deeplTranslation.service');
+    var axios = require('axios');
+    var fs = require('fs/promises');
     const mongoose = require('mongoose');
     var Historique = require('../models/historiqueTache.model').HistoriqueTacheModel;
     var markerCounterService = require('../services/marker-counter.service');
+
+    const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1';
+    const OPENAI_TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-transcribe';
+    const OPENAI_TASK_EXTRACTION_MODEL = process.env.OPENAI_TASK_EXTRACTION_MODEL || 'gpt-5.4-mini';
 
 
     function extractFilePath(fullUrl) {
@@ -111,12 +117,481 @@
         return hasMarker ? normalizedMarker : null;
     }
 
+    function isTruthy(value) {
+        return value === true || value === 'true' || value === '1' || value === 1;
+    }
+
+    function cleanString(value) {
+        if (value === undefined || value === null) return '';
+        return String(value).trim();
+    }
+
+    function toNullableString(value) {
+        const text = cleanString(value);
+        return text ? text : null;
+    }
+
+    function normalizeSearchText(value) {
+        return cleanString(value)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9@.]+/g, ' ')
+            .trim();
+    }
+
+    function compactUserName(user) {
+        return [user?.prenom, user?.nom].filter(Boolean).join(' ').trim();
+    }
+
+    function getOpenAiHeaders() {
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY manquante dans les variables d’environnement');
+        }
+
+        return {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+        };
+    }
+
+    function getOpenAiErrorMessage(error) {
+        return error?.response?.data?.error?.message ||
+            error?.response?.data?.message ||
+            error.message;
+    }
+
+    function getOpenAiOutputText(responseData) {
+        if (typeof responseData?.output_text === 'string') {
+            return responseData.output_text;
+        }
+
+        if (!Array.isArray(responseData?.output)) return '';
+
+        for (const outputItem of responseData.output) {
+            if (!Array.isArray(outputItem.content)) continue;
+
+            for (const contentItem of outputItem.content) {
+                if (typeof contentItem.text === 'string') return contentItem.text;
+                if (typeof contentItem.refusal === 'string') return contentItem.refusal;
+            }
+        }
+
+        return '';
+    }
+
+    function normalizeDateForTask(value) {
+        const text = cleanString(value);
+        if (!text) return undefined;
+
+        const date = new Date(text);
+        if (Number.isNaN(date.getTime())) return undefined;
+
+        return text.length === 10 ? text : date.toISOString();
+    }
+
+    function buildAvailableUserContext(users) {
+        return users.map((user) => ({
+            id: user._id.toString(),
+            nom: user.nom || '',
+            prenom: user.prenom || '',
+            email: user.email || ''
+        }));
+    }
+
+    async function getAssignableUsers() {
+        return User.find({
+            role: { $in: ['agent', 'admin'] },
+            desactive: { $ne: true },
+            valid: { $ne: false }
+        })
+        .select('_id nom prenom email role')
+        .lean();
+    }
+
+    function findBestUserMatch(assigne, users) {
+        const label = cleanString(assigne?.label || assigne?.texte || assigne);
+        const email = normalizeSearchText(assigne?.email || '');
+        const rawId = cleanString(assigne?.id || assigne?._id || '');
+
+        if (rawId && mongoose.Types.ObjectId.isValid(rawId)) {
+            const directUser = users.find((user) => String(user._id) === rawId);
+            if (directUser) {
+                return { user: directUser, score: 100, ambiguous: false };
+            }
+        }
+
+        if (email) {
+            const directEmailUser = users.find((user) =>
+                normalizeSearchText(user.email) === email
+            );
+            if (directEmailUser) {
+                return { user: directEmailUser, score: 100, ambiguous: false };
+            }
+        }
+
+        const normalizedLabel = normalizeSearchText(label);
+        if (!normalizedLabel) {
+            return { user: null, score: 0, ambiguous: false };
+        }
+
+        const labelTokens = normalizedLabel.split(' ').filter(Boolean);
+        const scoredUsers = users.map((user) => {
+            const prenom = normalizeSearchText(user.prenom);
+            const nom = normalizeSearchText(user.nom);
+            const emailText = normalizeSearchText(user.email);
+            const fullName = normalizeSearchText(compactUserName(user));
+            const reversedName = normalizeSearchText([user.nom, user.prenom].filter(Boolean).join(' '));
+            const fullTokens = fullName.split(' ').filter(Boolean);
+            let score = 0;
+
+            if (normalizedLabel === emailText) score = 100;
+            else if (normalizedLabel === fullName || normalizedLabel === reversedName) score = 95;
+            else if (labelTokens.length >= 2 && labelTokens.every((token) => fullTokens.includes(token))) score = 82;
+            else if (fullTokens.length >= 2 && fullTokens.every((token) => labelTokens.includes(token))) score = 78;
+            else if (labelTokens.length === 1 && (labelTokens[0] === prenom || labelTokens[0] === nom)) score = 65;
+            else if (labelTokens.length === 1 && fullTokens.some((token) => token.startsWith(labelTokens[0]))) score = 55;
+
+            return { user, score };
+        })
+        .sort((a, b) => b.score - a.score);
+
+        const best = scoredUsers[0];
+        const second = scoredUsers[1];
+
+        if (!best || best.score < 60) {
+            return { user: null, score: best?.score || 0, ambiguous: false };
+        }
+
+        return {
+            user: best.user,
+            score: best.score,
+            ambiguous: !!second && second.score === best.score && best.score < 100
+        };
+    }
+
+    function resolveAssignes(extractedAssignes, users) {
+        const assignesInput = Array.isArray(extractedAssignes) ? extractedAssignes : [];
+        const resolvedAssignes = [];
+        const unresolvedAssignes = [];
+        const assignes = [];
+        const usedIds = new Set();
+
+        for (const assigne of assignesInput) {
+            const label = cleanString(assigne?.label || assigne?.texte || assigne);
+            const match = findBestUserMatch(assigne, users);
+
+            if (match.user && !match.ambiguous) {
+                const id = match.user._id.toString();
+                if (!usedIds.has(id)) {
+                    usedIds.add(id);
+                    assignes.push(id);
+                    resolvedAssignes.push({
+                        input: label,
+                        id,
+                        nom: match.user.nom || '',
+                        prenom: match.user.prenom || '',
+                        email: match.user.email || '',
+                        score: match.score
+                    });
+                }
+            } else if (label) {
+                unresolvedAssignes.push({
+                    input: label,
+                    reason: match.ambiguous ? 'ambiguous' : 'not_found'
+                });
+            }
+        }
+
+        return { assignes, resolvedAssignes, unresolvedAssignes };
+    }
+
+    async function transcribeAudioFile(file) {
+        const buffer = await fs.readFile(file.path);
+        const formData = new FormData();
+
+        formData.append(
+            'file',
+            new Blob([buffer], { type: file.mimetype || 'application/octet-stream' }),
+            file.originalname || file.filename || 'audio.webm'
+        );
+        formData.append('model', OPENAI_TRANSCRIPTION_MODEL);
+        formData.append('response_format', 'text');
+        formData.append(
+            'prompt',
+            'Audio en français pour créer une tâche projet. Conserver les noms propres, les dates, le titre et la description.'
+        );
+
+        const response = await axios.post(
+            `${OPENAI_API_BASE_URL}/audio/transcriptions`,
+            formData,
+            {
+                headers: getOpenAiHeaders(),
+                timeout: 120000,
+                maxBodyLength: Infinity
+            }
+        );
+
+        if (typeof response.data === 'string') return response.data.trim();
+        return cleanString(response.data?.text);
+    }
+
+    async function extractTaskFields(transcript, users) {
+        const today = new Date().toISOString().slice(0, 10);
+        const response = await axios.post(
+            `${OPENAI_API_BASE_URL}/responses`,
+            {
+                model: OPENAI_TASK_EXTRACTION_MODEL,
+                input: [
+                    {
+                        role: 'system',
+                        content: [
+                            'Tu extrais les informations pour créer une tâche projet.',
+                            'Réponds uniquement avec un JSON conforme au schéma.',
+                            'N’invente pas les champs absents.',
+                            'Si une seule date est donnée, utilise-la pour date_debut et date_fin.',
+                            'Normalise les dates au format ISO: YYYY-MM-DD si aucune heure n’est donnée.'
+                        ].join(' ')
+                    },
+                    {
+                        role: 'user',
+                        content: JSON.stringify({
+                            date_actuelle: today,
+                            timezone: 'Africa/Dakar',
+                            utilisateurs_assignables: buildAvailableUserContext(users),
+                            transcript
+                        })
+                    }
+                ],
+                text: {
+                    format: {
+                        type: 'json_schema',
+                        name: 'tache_audio_extraction',
+                        strict: true,
+                        schema: {
+                            type: 'object',
+                            additionalProperties: false,
+                            required: [
+                                'titre',
+                                'assignes',
+                                'date_debut',
+                                'date_fin',
+                                'description',
+                                'missing_fields',
+                                'confidence'
+                            ],
+                            properties: {
+                                titre: { type: ['string', 'null'] },
+                                assignes: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        additionalProperties: false,
+                                        required: ['label', 'email'],
+                                        properties: {
+                                            label: { type: 'string' },
+                                            email: { type: ['string', 'null'] }
+                                        }
+                                    }
+                                },
+                                date_debut: { type: ['string', 'null'] },
+                                date_fin: { type: ['string', 'null'] },
+                                description: { type: ['string', 'null'] },
+                                missing_fields: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'string',
+                                        enum: ['titre', 'assignes', 'date_debut', 'date_fin', 'description']
+                                    }
+                                },
+                                confidence: {
+                                    type: 'number',
+                                    minimum: 0,
+                                    maximum: 1
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                headers: Object.assign(
+                    { 'Content-Type': 'application/json' },
+                    getOpenAiHeaders()
+                ),
+                timeout: 120000
+            }
+        );
+
+        const outputText = getOpenAiOutputText(response.data);
+        if (!outputText) {
+            throw new Error('Réponse OpenAI vide lors de l’extraction');
+        }
+
+        return JSON.parse(outputText);
+    }
+
+    function buildTaskDraft(extracted, assignes) {
+        return {
+            titre: toNullableString(extracted.titre),
+            assignes,
+            date_debut: normalizeDateForTask(extracted.date_debut),
+            date_fin: normalizeDateForTask(extracted.date_fin),
+            description: toNullableString(extracted.description)
+        };
+    }
+
+    function computeMissingFields(extracted, draft) {
+        const missingFields = new Set(
+            Array.isArray(extracted.missing_fields) ? extracted.missing_fields : []
+        );
+
+        if (!draft.titre) missingFields.add('titre');
+        if (!draft.date_debut) missingFields.add('date_debut');
+        if (!draft.date_fin) missingFields.add('date_fin');
+        if (!draft.description) missingFields.add('description');
+
+        return Array.from(missingFields);
+    }
+
+    async function createTaskFromVoice(req, draft) {
+        const tache = new Tache({
+            titre: draft.titre,
+            assignes: draft.assignes,
+            date_debut: draft.date_debut,
+            date_fin: draft.date_fin,
+            description: draft.description,
+            projet: req.params.id,
+            user: req.decoded.id
+        });
+
+        Object.assign(
+            tache,
+            await translationService.buildTacheTitleTranslationFields(draft.titre || '')
+        );
+
+        if (draft.description) {
+            Object.assign(
+                tache,
+                await translationService.buildTacheDescriptionTranslationFields(draft.description)
+            );
+        }
+
+        const savedTache = await tache.save();
+        MailService.mailTache(savedTache._id);
+
+        const projet = await Projet.findOne({ _id: savedTache.projet });
+        if (Array.isArray(savedTache.assignes) && savedTache.assignes.length) {
+            const users = await Promise.all(savedTache.assignes.map(id => User.findOne({ _id: id })));
+            for (const user of users.filter(Boolean)) {
+                notificationService.sendNotification({
+                    user,
+                    templateKey: 'TASK_ASSIGNED',
+                    context: {
+                        taskTitleSource: translationService.toTitleSource(savedTache),
+                        projectName: projet?.projet || '',
+                    },
+                    data: {
+                        type: 'tache',
+                        userId: user._id.toString(),
+                        resource: 'projet',
+                        resourceId: (projet?._id || savedTache.projet).toString(),
+                        tacheId: savedTache._id.toString(),
+                    },
+                });
+            }
+        }
+
+        return savedTache;
+    }
+
 
 
 
 
     module.exports = function(acl){
         return {
+
+            createTacheFromVoice(req, res) {
+                acl.isAllowed(req.decoded.id, 'projets', 'create', async (err, aclres) => {
+                    if (err) return res.status(500).json({ success: false, message: 'ACL error', error: err.message });
+                    if (!aclres) return res.status(401).json({ success: false, message: "401" });
+
+                    try {
+                        let transcript = cleanString(req.body.transcript);
+
+                        if (!transcript && req.file) {
+                            transcript = await transcribeAudioFile(req.file);
+                        }
+
+                        if (!transcript) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Envoyez un fichier audio dans le champ 'audio' ou un transcript"
+                            });
+                        }
+
+                        const assignableUsers = await getAssignableUsers();
+                        const extracted = await extractTaskFields(transcript, assignableUsers);
+                        const resolved = resolveAssignes(extracted.assignes, assignableUsers);
+                        const draft = buildTaskDraft(extracted, resolved.assignes);
+                        const missingFields = computeMissingFields(extracted, draft);
+                        const shouldCreate = isTruthy(req.body.create || req.body.confirmCreation);
+
+                        if (shouldCreate) {
+                            if (missingFields.length || resolved.unresolvedAssignes.length) {
+                                return res.status(422).json({
+                                    success: false,
+                                    message: "La tâche nécessite une confirmation ou une correction avant création",
+                                    transcript,
+                                    data: draft,
+                                    extracted,
+                                    resolvedAssignes: resolved.resolvedAssignes,
+                                    unresolvedAssignes: resolved.unresolvedAssignes,
+                                    missingFields
+                                });
+                            }
+
+                            const savedTache = await createTaskFromVoice(req, draft);
+                            const requestedLanguage = await translationService.getRequestedLanguage(req);
+
+                            return res.json({
+                                success: true,
+                                created: true,
+                                transcript,
+                                data: translationService.withDisplayTache(
+                                    savedTache,
+                                    requestedLanguage
+                                ),
+                                extracted,
+                                resolvedAssignes: resolved.resolvedAssignes,
+                                unresolvedAssignes: resolved.unresolvedAssignes,
+                                missingFields
+                            });
+                        }
+
+                        return res.json({
+                            success: true,
+                            created: false,
+                            transcript,
+                            data: draft,
+                            extracted,
+                            resolvedAssignes: resolved.resolvedAssignes,
+                            unresolvedAssignes: resolved.unresolvedAssignes,
+                            missingFields
+                        });
+                    } catch (error) {
+                        return res.status(500).json({
+                            success: false,
+                            message: "Erreur createTacheFromVoice",
+                            error: getOpenAiErrorMessage(error)
+                        });
+                    } finally {
+                        if (req.file?.path) {
+                            await fs.unlink(req.file.path).catch(() => {});
+                        }
+                    }
+                });
+            },
 
             addTache(req, res, next) {
                 acl.isAllowed(req.decoded.id, 'projets', 'create', async (err, aclres) => {
