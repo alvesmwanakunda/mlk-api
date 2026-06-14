@@ -3,12 +3,41 @@
     module.exports = function(app,acl){
         var Ctrl = require('../controller/tache.controller')(acl);
         var upload = require("../../middlewares/upload")
+        var multer = require("multer");
+        var path = require("path");
+
+        var voiceStorage = multer.diskStorage({
+            destination: function(req, file, cb) {
+                cb(null, './public/');
+            },
+            filename: function(req, file, cb) {
+                var extension = path.extname(file.originalname || '').toLowerCase() || '.webm';
+                cb(null, 'task-audio-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + extension);
+            }
+        });
+
+        var voiceUpload = multer({
+            storage: voiceStorage,
+            limits: { fileSize: 25 * 1024 * 1024 },
+            fileFilter: function(req, file, cb) {
+                if (
+                    !file.mimetype ||
+                    file.mimetype.startsWith('audio/') ||
+                    file.mimetype === 'video/webm'
+                ) {
+                    return cb(null, true);
+                }
+
+                return cb(new Error("Le fichier doit être un audio"));
+            }
+        });
 
 
         app.route('/taches/projet/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllTacheByProjet)
 
        app.post('/taches/:id([a-fA-F\\d]{24})', upload.array("image",5), Ctrl.addTache);
+       app.post('/taches/voice/:id([a-fA-F\\d]{24})', voiceUpload.single("audio"), Ctrl.createTacheFromVoice);
        app.put('/taches/:id([a-fA-F\\d]{24})', upload.fields([{ name: 'image', maxCount: 20 }]), Ctrl.updateTache);
        app.put('/taches/:id([a-fA-F\\d]{24})/images', upload.fields([{ name: 'image', maxCount: 20 }]), Ctrl.updateTacheImages);
        app.delete('/taches/:id([a-fA-F\\d]{24})/images', Ctrl.deleteTacheImages);
