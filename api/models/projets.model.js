@@ -151,6 +151,18 @@
         default: 'MLKA',
         required:false
     },
+    sharepointPlansFolderId: {
+        type: String,
+        required: false
+    },
+    sharepointPlansFolderPath: {
+        type: String,
+        required: false
+    },
+    sharepointPlansFolderName: {
+        type: String,
+        required: false
+    },
 
     });
 
