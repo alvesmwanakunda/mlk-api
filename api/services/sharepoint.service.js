@@ -917,6 +917,54 @@ async function deleteProjectPlanFile(fichierId) {
   await file.deleteOne();
 }
 
+async function downloadDriveItemContent(itemId) {
+  if (!isStoredSharePointItemValid(itemId)) {
+    throw new Error("Identifiant SharePoint invalide pour ce fichier");
+  }
+
+  assertSharePointConfigured();
+  const driveId = process.env.SHAREPOINT_DRIVE_ID;
+  const token = await getAccessToken();
+  const requestPath = `/drives/${driveId}/items/${itemId}/content`;
+
+  logSharePoint("download", "Téléchargement contenu fichier", {
+    itemId,
+    graphPath: requestPath,
+  });
+
+  try {
+    const response = await axios({
+      method: "GET",
+      url: `${GRAPH_BASE}${requestPath}`,
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: "arraybuffer",
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+
+    return {
+      data: Buffer.from(response.data),
+      contentType: response.headers["content-type"] || "application/pdf",
+    };
+  } catch (error) {
+    logSharePointError("download", "Erreur téléchargement contenu", error, {
+      itemId,
+      graphPath: requestPath,
+    });
+
+    const graphError = error.response?.data?.error;
+    const message = formatGraphErrorMessage(
+      graphError?.message ||
+        error.message ||
+        "Erreur lors du téléchargement du fichier SharePoint"
+    );
+    const wrapped = new Error(message);
+    wrapped.statusCode = error.response?.status;
+    wrapped.graphError = graphError;
+    throw wrapped;
+  }
+}
+
 module.exports = {
   isConfigured,
   MAX_PLAN_FILE_SIZE,
@@ -929,4 +977,6 @@ module.exports = {
   renameProjectPlanFolder,
   deleteProjectPlanDossier,
   deleteProjectPlanFile,
+  downloadDriveItemContent,
+  isStoredSharePointItemValid,
 };

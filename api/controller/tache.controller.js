@@ -16,6 +16,7 @@
     const mongoose = require('mongoose');
     var Historique = require('../models/historiqueTache.model').HistoriqueTacheModel;
     var markerCounterService = require('../services/marker-counter.service');
+    var planTaskService = require('../services/planTask.service');
 
     const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1';
     const OPENAI_TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-transcribe';
@@ -635,7 +636,15 @@
                     const marker = normalizeMarker(req.body);
 
                     if (plan) {
-                        tache.plan = plan;
+                        try {
+                            const validatedPlan = await planTaskService.validatePlanForTask(plan);
+                            tache.plan = validatedPlan.id;
+                        } catch (error) {
+                            return res.status(error.statusCode || 400).json({
+                                success: false,
+                                message: error.message
+                            });
+                        }
                     }
 
                     if (marker) {
@@ -653,7 +662,7 @@
                             });
                         }
 
-                        const { markerNumber, markerCode } = await markerCounterService.getNextMarkerNumber(plan);
+                        const { markerNumber, markerCode } = await markerCounterService.getNextMarkerNumber(tache.plan);
                         tache.marker = {
                             page: marker.page,
                             xPercent: marker.xPercent,

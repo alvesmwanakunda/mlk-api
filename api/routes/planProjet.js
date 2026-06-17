@@ -22,14 +22,34 @@
       Ctrl.deleteDossier
     );
 
+    app.get(
+      "/plan/projet/fichier/:fichierId([a-fA-F\\d]{24})/content",
+      Ctrl.streamFichierContent
+    );
+
     app.delete(
       "/plan/projet/fichier/:fichierId([a-fA-F\\d]{24})",
       Ctrl.deleteFichier
     );
 
+    app.patch(
+      "/plan/projet/fichier/:fichierId([a-fA-F\\d]{24})/classification",
+      Ctrl.classifyFichier
+    );
+
+    app.patch(
+      "/plan/projet/fichier/:fichierId([a-fA-F\\d]{24})/validation",
+      Ctrl.validateFichier
+    );
+
     app.post(
       "/plan/projet/dossier/:projetId([a-fA-F\\d]{24})",
       Ctrl.createDossier
+    );
+
+    app.get(
+      "/plan/projet/:projetId([a-fA-F\\d]{24})/actifs",
+      Ctrl.listActivePlans
     );
 
     app.get("/plan/projet/:projetId([a-fA-F\\d]{24})", Ctrl.list);

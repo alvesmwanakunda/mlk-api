@@ -52,6 +52,32 @@
       ref: "Projets",
       required: true,
     },
+    isPlan: {
+      type: Boolean,
+      default: false,
+    },
+    isActif: {
+      type: Boolean,
+      default: false,
+    },
+    classificationPending: {
+      type: Boolean,
+      default: true,
+    },
+    validationStatus: {
+      type: String,
+      enum: ["none", "pending", "approved", "rejected"],
+      default: "none",
+    },
+    validatedBy: {
+      type: Schema.ObjectId,
+      ref: "Users",
+      required: false,
+    },
+    validatedAt: {
+      type: Date,
+      required: false,
+    },
   });
 
   module.exports = {

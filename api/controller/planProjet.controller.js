@@ -6,6 +6,8 @@
   var PlanDossier =
     require("../models/planProjetDossier.model").PlanProjetDossierModel;
   var Projet = require("../models/projets.model").ProjetModel;
+  var User = require("../models/users.model").UserModel;
+  var planTaskService = require("../services/planTask.service");
   var sharepointService = require("../services/sharepoint.service");
   var planUploadJobService = require("../services/planUploadJob.service");
   var fs = require("fs");
@@ -13,6 +15,16 @@
 
   async function loadProjet(projetId) {
     return Projet.findById(projetId);
+  }
+
+  async function assertAdmin(userId) {
+    const user = await User.findById(userId).select("role");
+    if (!user || user.role !== "admin") {
+      const error = new Error("Action réservée aux administrateurs");
+      error.statusCode = 403;
+      throw error;
+    }
+    return user;
   }
 
   function cleanupMulterFile(file) {
@@ -94,6 +106,10 @@
         creator: creatorId,
         date: new Date(),
         dateLastUpdate: new Date(),
+        isPlan: false,
+        isActif: false,
+        classificationPending: true,
+        validationStatus: "none",
       });
 
       const saved = await planFile.save();
@@ -133,6 +149,95 @@
 
   module.exports = function (acl) {
     return {
+      listActivePlans: function (req, res) {
+        acl.isAllowed(
+          req.decoded.id,
+          "box",
+          "create",
+          async function (err, aclres) {
+            if (!aclres) {
+              return res.status(401).json({ success: false, message: "401" });
+            }
+
+            try {
+              const projet = await loadProjet(req.params.projetId);
+              if (!projet) {
+                return res.status(404).json({
+                  success: false,
+                  message: "Projet introuvable",
+                });
+              }
+
+              const plans = await planTaskService.listActivePlansForProject(
+                projet._id,
+                { pdfOnly: true }
+              );
+
+              return res.json({
+                success: true,
+                message: plans,
+              });
+            } catch (error) {
+              console.error(error);
+              return res.status(500).json({
+                success: false,
+                message: error.message,
+              });
+            }
+          }
+        );
+      },
+
+      streamFichierContent: function (req, res) {
+        acl.isAllowed(
+          req.decoded.id,
+          "box",
+          "create",
+          async function (err, aclres) {
+            if (!aclres) {
+              return res.status(401).json({ success: false, message: "401" });
+            }
+
+            try {
+              const fichier = await PlanFichier.findById(req.params.fichierId);
+              if (!fichier) {
+                return res.status(404).json({
+                  success: false,
+                  message: "Fichier introuvable",
+                });
+              }
+
+              if (!sharepointService.isStoredSharePointItemValid(fichier.sharepointItemId)) {
+                return res.status(400).json({
+                  success: false,
+                  message: "Ce fichier n'est pas disponible sur SharePoint",
+                });
+              }
+
+              const { data, contentType } =
+                await sharepointService.downloadDriveItemContent(
+                  fichier.sharepointItemId
+                );
+
+              res.setHeader("Content-Type", contentType);
+              res.setHeader(
+                "Content-Disposition",
+                `inline; filename="${encodeURIComponent(fichier.nom || "plan.pdf")}"`
+              );
+              res.setHeader("Cache-Control", "private, max-age=300");
+              return res.send(data);
+            } catch (error) {
+              console.error(error);
+              const statusCode = error.statusCode || 500;
+              return res.status(statusCode).json({
+                success: false,
+                message: error.message,
+              });
+            }
+          }
+        );
+      },
+
       list: function (req, res) {
         acl.isAllowed(
           req.decoded.id,
@@ -160,7 +265,9 @@
               const fichiers = await PlanFichier.find({
                 profondeur: 0,
                 projet: projet._id,
-              }).populate("creator");
+              })
+                .populate("creator")
+                .populate("validatedBy", "nom prenom");
 
               return res.json({
                 success: true,
@@ -212,6 +319,7 @@
                 dossierParent: dossier._id,
               })
                 .populate("creator")
+                .populate("validatedBy", "nom prenom")
                 .populate("dossierParent");
 
               return res.json({
@@ -528,6 +636,155 @@
             } catch (error) {
               console.error(error);
               return res.status(500).json({
+                success: false,
+                message: error.message,
+              });
+            }
+          }
+        );
+      },
+
+      classifyFichier: function (req, res) {
+        acl.isAllowed(
+          req.decoded.id,
+          "box",
+          "create",
+          async function (err, aclres) {
+            if (!aclres) {
+              return res.status(401).json({ success: false, message: "401" });
+            }
+
+            try {
+              if (typeof req.body.isPlan !== "boolean") {
+                return res.status(400).json({
+                  success: false,
+                  message: "Le champ isPlan (boolean) est requis",
+                });
+              }
+
+              const fichier = await PlanFichier.findById(req.params.fichierId);
+              if (!fichier) {
+                return res.status(404).json({
+                  success: false,
+                  message: "Fichier introuvable",
+                });
+              }
+
+              if (fichier.creator.toString() !== req.decoded.id.toString()) {
+                return res.status(403).json({
+                  success: false,
+                  message:
+                    "Seul l'utilisateur ayant uploadé ce fichier peut le classifier",
+                });
+              }
+
+              if (!fichier.classificationPending) {
+                return res.status(400).json({
+                  success: false,
+                  message: "Ce fichier a déjà été classifié",
+                });
+              }
+
+              fichier.isPlan = req.body.isPlan;
+              fichier.classificationPending = false;
+              fichier.dateLastUpdate = new Date();
+
+              if (req.body.isPlan) {
+                fichier.validationStatus = "pending";
+                fichier.isActif = false;
+                fichier.validatedBy = null;
+                fichier.validatedAt = null;
+              } else {
+                fichier.validationStatus = "none";
+                fichier.isActif = false;
+                fichier.validatedBy = null;
+                fichier.validatedAt = null;
+              }
+
+              const saved = await fichier.save();
+              await saved.populate("creator validatedBy", "nom prenom");
+
+              return res.json({
+                success: true,
+                message: saved,
+              });
+            } catch (error) {
+              console.error(error);
+              return res.status(500).json({
+                success: false,
+                message: error.message,
+              });
+            }
+          }
+        );
+      },
+
+      validateFichier: function (req, res) {
+        acl.isAllowed(
+          req.decoded.id,
+          "box",
+          "update",
+          async function (err, aclres) {
+            if (!aclres) {
+              return res.status(401).json({ success: false, message: "401" });
+            }
+
+            try {
+              await assertAdmin(req.decoded.id);
+
+              const action = req.body.action;
+              if (!["approve", "reject"].includes(action)) {
+                return res.status(400).json({
+                  success: false,
+                  message: "Action invalide (approve ou reject attendu)",
+                });
+              }
+
+              const fichier = await PlanFichier.findById(req.params.fichierId);
+              if (!fichier) {
+                return res.status(404).json({
+                  success: false,
+                  message: "Fichier introuvable",
+                });
+              }
+
+              if (!fichier.isPlan) {
+                return res.status(400).json({
+                  success: false,
+                  message: "Ce fichier n'est pas déclaré comme plan",
+                });
+              }
+
+              if (fichier.validationStatus !== "pending") {
+                return res.status(400).json({
+                  success: false,
+                  message: "Ce plan n'est pas en attente de validation",
+                });
+              }
+
+              fichier.validatedBy = req.decoded.id;
+              fichier.validatedAt = new Date();
+              fichier.dateLastUpdate = new Date();
+
+              if (action === "approve") {
+                fichier.validationStatus = "approved";
+                fichier.isActif = true;
+              } else {
+                fichier.validationStatus = "rejected";
+                fichier.isActif = false;
+              }
+
+              const saved = await fichier.save();
+              await saved.populate("creator validatedBy", "nom prenom");
+
+              return res.json({
+                success: true,
+                message: saved,
+              });
+            } catch (error) {
+              console.error(error);
+              const statusCode = error.statusCode || 500;
+              return res.status(statusCode).json({
                 success: false,
                 message: error.message,
               });
