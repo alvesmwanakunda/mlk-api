@@ -56,3 +56,5 @@ serviceAccountKey.json
 mlka-speech-to-text-service.json
 
 /public.DS_Store
+
+/public
