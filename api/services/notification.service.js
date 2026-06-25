@@ -16,6 +16,12 @@ function getUserLanguage(user) {
   return translationService.normalizeAppLanguage(user?.preferredLanguage) || 'fr';
 }
 
+function isUnregisteredFcmTokenError(error) {
+  return error?.code === 'messaging/registration-token-not-registered'
+    || error?.errorInfo?.code === 'messaging/registration-token-not-registered'
+    || error?.message === 'NotRegistered';
+}
+
 module.exports = {
   /**
    * Envoie une notification traduite (FCM + historique en base).
@@ -95,8 +101,19 @@ module.exports = {
               ])
             ),
           };
-          await admin.messaging().send(message);
-          console.log('Notification envoyée avec succès');
+          try {
+            await admin.messaging().send(message);
+            console.log('Notification envoyée avec succès');
+          } catch (error) {
+            if (isUnregisteredFcmTokenError(error)) {
+              console.warn('Token FCM expiré ou non enregistré, suppression du token utilisateur:', user?._id);
+              if (user?._id) {
+                await User.findByIdAndUpdate(user._id, { $unset: { fcmToken: 1 } });
+              }
+            } else {
+              throw error;
+            }
+          }
         }
 
         resolve(notificationDoc);
@@ -156,4 +173,5 @@ module.exports = {
 
   mapTranslationsToObject,
   getUserLanguage,
+  isUnregisteredFcmTokenError,
 };

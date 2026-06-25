@@ -1091,7 +1091,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').populate('user').then(async (tache)=>{
+                        Tache.findOne({_id:req.params.id}).populate('assignes').populate('projet').populate('user', 'prenom nom email role valid desactive').then(async (tache)=>{
                             const requestedLanguage =
                                 await translationService.getRequestedLanguage(req);
                             res.json({
@@ -1121,7 +1121,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Tache.find({projet:req.params.id}).sort({date_creation: -1}).populate('assignes').then(async (tache)=>{
+                        Tache.find({projet:req.params.id}).sort({updatedAt: -1}).populate('assignes').populate('user', 'prenom nom email role valid desactive').then(async (tache)=>{
                             const requestedLanguage =
                                 await translationService.getRequestedLanguage(req);
                             res.json({
@@ -1484,7 +1484,7 @@
                 acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
 
                     if(aclres){
-                        Timesheet.find({tache:req.params.id}).then(async (time)=>{
+                        Timesheet.find({tache:req.params.id}, {sort: {updatedAt: -1}}).then(async (time)=>{
                             const requestedLanguage =
                                 await translationService.getRequestedLanguage(req);
                             res.json({

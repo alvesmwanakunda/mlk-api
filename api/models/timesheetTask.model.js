@@ -59,7 +59,7 @@
             enum: ['A Faire', 'En Cours', 'Terminer'],
             default: 'A Faire'
         },
-     });
+     },{ timestamps: true });
     timesheetSchema.post('find', async function (docs, next) { 
         try {
             for (const doc of docs) {

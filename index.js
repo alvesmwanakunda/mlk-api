@@ -181,6 +181,7 @@ function initApp(){
 
   
 }*/
+
 const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
@@ -197,6 +198,7 @@ const cors = require('cors');
 const { WebSocketServer } = require('ws');
 const speech = require('@google-cloud/speech');
 const http = require('http');
+
 
 // Chargement variables d’environnement
 if (process.env.NODE_ENV !== "production") {
@@ -287,6 +289,8 @@ function initApp() {
   const server = http.createServer(app);
   server.listen(port, () => {
     console.log(`🚀 HTTP Server running on port ${port}`);
+    const { startTimesheetReminderCrons } = require('./api/services/timesheetReminderCron.service.js');
+    startTimesheetReminderCrons();
   });
 
   // 🧠 WebSocket lié au serveur HTTP (compat AlwaysData)

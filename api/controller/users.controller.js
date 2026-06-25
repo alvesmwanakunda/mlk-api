@@ -879,7 +879,7 @@
             getAdminAndAgent(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
-                        User.find({role: {$in : ["agent", "admin"]} }).then((contact)=>{
+                        User.find({role: {$in : ["agent", "admin"]}, valid:true, desactive:false }).then((contact)=>{
                             res.json({
                                 success:true,
                                 message:contact
@@ -925,7 +925,7 @@
             allTransporteur(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
-                        User.find({role:"transporteur"}).then((contact)=>{
+                        User.find({role:"transporteur", valid:true}).then((contact)=>{
                             res.json({
                                 success:true,
                                 message:contact

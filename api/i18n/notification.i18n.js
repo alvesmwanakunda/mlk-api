@@ -161,6 +161,50 @@
         body: 'PV réception « {{pvTitle}} - Version {{pvVersion}} » {{signerName}} mo ko bind. Xoolal te yónnee document bi.',
       },
     },
+    TIMESHEET_CLOCK_IN_REMINDER: {
+      fr: {
+        title: "Rappel de pointage",
+        body: "N'oubliez pas de pointer votre arrivée.",
+      },
+      en: {
+        title: "Clock-in reminder",
+        body: "Don't forget to clock in.",
+      },
+      tr: {
+        title: "Giriş hatırlatması",
+        body: "Giriş kaydınızı yapmayı unutmayın.",
+      },
+      pl: {
+        title: "Przypomnienie o rozpoczęciu pracy",
+        body: "Nie zapomnij zarejestrować rozpoczęcia pracy.",
+      },
+      wo: {
+        title: "Fattali pointage",
+        body: "Bul fàtte def sa pointage bu ñëw.",
+      },
+    },
+    TIMESHEET_CLOCK_OUT_REMINDER: {
+      fr: {
+        title: "Rappel de dépointage",
+        body: "N'oubliez pas de dépointer avant de partir.",
+      },
+      en: {
+        title: "Clock-out reminder",
+        body: "Don't forget to clock out before leaving.",
+      },
+      tr: {
+        title: "Çıkış hatırlatması",
+        body: "Ayrılmadan önce çıkış kaydınızı yapmayı unutmayın.",
+      },
+      pl: {
+        title: "Przypomnienie o zakończeniu pracy",
+        body: "Nie zapomnij zarejestrować zakończenia pracy przed wyjściem.",
+      },
+      wo: {
+        title: "Fattali dépointage",
+        body: "Bul fàtte def sa dépointage bala ngay dem.",
+      },
+    },
   };
 
   function formatTemplate(template, context) {

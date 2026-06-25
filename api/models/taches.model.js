@@ -138,7 +138,8 @@
         }
 
 
-    });
+    },{ timestamps: true });
+    
     tacheSchema.index(
         { plan: 1, 'marker.markerNumber': 1 },
         {
