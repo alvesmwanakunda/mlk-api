@@ -748,6 +748,21 @@
                     const taskId = req.params.id;
                     const task = await Tache.findOne({ _id: taskId });
                     if (!task) return res.status(404).json({ success: false, message: 'Tache introuvable' });
+                    const plan = req.body.plan || req.body.pdfId;
+                    const marker = normalizeMarker(req.body);
+                    let markerPlanId = task.plan;
+
+                    if (plan) {
+                        try {
+                            const validatedPlan = await planTaskService.validatePlanForTask(plan);
+                            markerPlanId = validatedPlan.id;
+                        } catch (error) {
+                            return res.status(error.statusCode || 400).json({
+                                success: false,
+                                message: error.message
+                            });
+                        }
+                    }
 
                     // -----------------------------
                     // 1) Normaliser assignes (FormData => JSON string)
@@ -776,6 +791,10 @@
                     };
                     Object.keys(setData).forEach(k => setData[k] === undefined && delete setData[k]);
 
+                    if (plan) {
+                        setData.plan = markerPlanId;
+                    }
+
                     if (req.body.titre !== undefined) {
                         Object.assign(
                             setData,
@@ -794,6 +813,45 @@
 
                     if (assignes !== undefined) {
                         setData.assignes = assignes;
+                    }
+
+                    if (marker) {
+                        if (!markerPlanId) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Le plan est requis pour créer un marker"
+                            });
+                        }
+
+                        if (marker.page === undefined || marker.xPercent === undefined || marker.yPercent === undefined) {
+                            return res.status(400).json({
+                                success: false,
+                                message: "Les champs marker.page, marker.xPercent et marker.yPercent sont requis"
+                            });
+                        }
+
+                        const hasExistingMarkerNumber =
+                            task.marker?.markerNumber !== undefined &&
+                            task.marker?.markerNumber !== null &&
+                            task.marker?.markerCode;
+                        const hasSamePlan =
+                            task.plan && String(task.plan) === String(markerPlanId);
+                        let markerNumber = task.marker?.markerNumber;
+                        let markerCode = task.marker?.markerCode;
+
+                        if (!hasExistingMarkerNumber || !hasSamePlan) {
+                            const nextMarker = await markerCounterService.getNextMarkerNumber(markerPlanId);
+                            markerNumber = nextMarker.markerNumber;
+                            markerCode = nextMarker.markerCode;
+                        }
+
+                        setData.marker = {
+                            page: marker.page,
+                            xPercent: marker.xPercent,
+                            yPercent: marker.yPercent,
+                            markerNumber,
+                            markerCode
+                        };
                     }
 
                     // -----------------------------

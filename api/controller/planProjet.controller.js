@@ -113,6 +113,12 @@
       });
 
       const saved = await planFile.save();
+      if (saved.chemin) {
+        await Projet.updateOne(
+          { _id: projet._id },
+          { $set: { plan: saved.chemin } }
+        );
+      }
 
       console.log(
         `[PlanUpload][Job] Succès job ${jobId}`,
