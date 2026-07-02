@@ -33,6 +33,9 @@
         });
 
 
+        app.route('/taches/statistiques')
+           .get(Ctrl.getStatistiquesTaches)
+
         app.route('/taches/projet/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllTacheByProjet)
 

@@ -150,6 +150,10 @@
             }
         }
     );
+    tacheSchema.index({ statut: 1 });
+    tacheSchema.index({ date_creation: -1 });
+    tacheSchema.index({ projet: 1, date_creation: -1 });
+
     tacheSchema.post('find', async function (docs, next) { 
         try {
             for (const doc of docs) {

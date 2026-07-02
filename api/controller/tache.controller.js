@@ -21,6 +21,7 @@
     const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1';
     const OPENAI_TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-transcribe';
     const OPENAI_TASK_EXTRACTION_MODEL = process.env.OPENAI_TASK_EXTRACTION_MODEL || 'gpt-5.4-mini';
+    const TASK_STATUSES = ['A Faire', 'En Cours', 'Terminer', 'Clôturer'];
 
 
     function extractFilePath(fullUrl) {
@@ -116,6 +117,97 @@
 
         const hasMarker = Object.values(normalizedMarker).some(value => value !== undefined);
         return hasMarker ? normalizedMarker : null;
+    }
+
+    function getCurrentMonthRange(referenceDate) {
+        const now = referenceDate || new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        end.setHours(0, 0, 0, 0);
+
+        const month = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`;
+        return { month, start, end };
+    }
+
+    function createStatusCounter() {
+        return TASK_STATUSES.reduce((counter, statut) => {
+            counter[statut] = 0;
+            return counter;
+        }, {});
+    }
+
+    function countByStatus(taches) {
+        const counter = createStatusCounter();
+
+        taches.forEach((tache) => {
+            const statut = tache?.statut || 'Non défini';
+            counter[statut] = (counter[statut] || 0) + 1;
+        });
+
+        return counter;
+    }
+
+    function statusCounterToList(counter) {
+        return Object.keys(counter).map((statut) => ({
+            statut,
+            total: counter[statut]
+        }));
+    }
+
+    function isDateInRange(value, start, end) {
+        if (!value) return false;
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return false;
+
+        return date >= start && date < end;
+    }
+
+    function buildTaskStatistics(taches) {
+        const monthRange = getCurrentMonthRange();
+        const createdThisMonth = taches.filter((tache) =>
+            isDateInRange(tache.date_creation, monthRange.start, monthRange.end)
+        );
+        const startedThisMonth = taches.filter((tache) =>
+            isDateInRange(tache.date_debut, monthRange.start, monthRange.end)
+        );
+        const dueThisMonth = taches.filter((tache) =>
+            isDateInRange(tache.date_fin, monthRange.start, monthRange.end)
+        );
+        const statusCounter = countByStatus(taches);
+        const createdStatusCounter = countByStatus(createdThisMonth);
+        const startedStatusCounter = countByStatus(startedThisMonth);
+        const dueStatusCounter = countByStatus(dueThisMonth);
+
+        return {
+            totalTaches: taches.length,
+            nombreParStatut: statusCounter,
+            listeParStatut: statusCounterToList(statusCounter),
+            moisCourant: {
+                periode: {
+                    mois: monthRange.month,
+                    debut: monthRange.start,
+                    finExclusive: monthRange.end
+                },
+                creations: {
+                    total: createdThisMonth.length,
+                    nombreParStatut: createdStatusCounter,
+                    listeParStatut: statusCounterToList(createdStatusCounter)
+                },
+                debuts: {
+                    total: startedThisMonth.length,
+                    nombreParStatut: startedStatusCounter,
+                    listeParStatut: statusCounterToList(startedStatusCounter)
+                },
+                echeances: {
+                    total: dueThisMonth.length,
+                    nombreParStatut: dueStatusCounter,
+                    listeParStatut: statusCounterToList(dueStatusCounter)
+                }
+            }
+        };
     }
 
     function isTruthy(value) {
@@ -1197,6 +1289,55 @@
                                 message:error.message
                             })
                         })
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+                })
+            },
+
+            getStatistiquesTaches(req,res){
+                acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
+
+                    if (err) {
+                        return res.status(500).json({
+                            success: false,
+                            message: err.message
+                        });
+                    }
+
+                    if(aclres){
+                        try {
+                            const taches = await Tache.find()
+                                .sort({date_creation: -1})
+                                .populate('assignes')
+                                .populate('projet')
+                                .populate('user');
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
+                            const listeTaches = taches.map((item) =>
+                                translationService.withDisplayTache(
+                                    item,
+                                    requestedLanguage
+                                )
+                            );
+
+                            return res.status(200).json({
+                                success: true,
+                                message: {
+                                    statistiques: buildTaskStatistics(taches),
+                                    taches: listeTaches
+                                }
+                            });
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
 
                     }else{
                         return res.status(401).json({
