@@ -5,6 +5,7 @@
     var Timesheet = require('../models/timesheetTask.model').TimesheetTaskModel;
     var SubTask = require('../models/sousTache.model').SousTacheModel;
     var notificationService = require('../services/notification.service');
+    var notificationsTaskService = require('../services/notificationstask.service');
     var User = require("../models/users.model").UserModel;
     var Projet = require("../models/projets.model").ProjetModel;
     var MailService = require('../services/mail.service');
@@ -570,6 +571,10 @@
         }
 
         const savedTache = await tache.save();
+        await notificationsTaskService.createNotificationsForTaskAssignees({
+            tache: savedTache,
+            eventName: 'new_notification_task'
+        });
         MailService.mailTache(savedTache._id);
 
         const projet = await Projet.findOne({ _id: savedTache.projet });
@@ -785,6 +790,10 @@
                     tache.image = uploadedImages; // ✅ tableau
 
                     const savedTache = await tache.save();
+                    await notificationsTaskService.createNotificationsForTaskAssignees({
+                        tache: savedTache,
+                        eventName: 'new_notification_task'
+                    });
 
                     // Mail une seule fois
                     MailService.mailTache(savedTache._id);
@@ -1012,6 +1021,12 @@
                             }
                         }
                     }
+
+                    await notificationsTaskService.createNotificationsForTaskAssignees({
+                        tache: updatedTache,
+                        eventName: 'update_notification_task',
+                        skipUserId: req.decoded.id
+                    });
 
                     // -----------------------------
                     // 6) Mail + notifications si statut changé
