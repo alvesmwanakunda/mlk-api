@@ -75,6 +75,10 @@
         required: false
     },
    });
+
+   // Accélère les recherches de statistiques et d'historique par utilisateur/période.
+   timeSheetSchema.index({ user: 1, createdAt: 1 });
+
    module.exports = {
     timeSheetSchema: timeSheetSchema,
     TimeSheetModel: mongoose.model('TimeSheet',timeSheetSchema)
