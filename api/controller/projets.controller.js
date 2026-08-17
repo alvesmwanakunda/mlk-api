@@ -986,7 +986,8 @@
 
             // Add Projet by user entreprise
             addProjetEntreprise(req,res,next){
-                acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
+
+                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
 
                         var code = codes.generate({
@@ -1009,66 +1010,43 @@
                         projet.code_client=client;
                         projet.entreprise=req.params.id;
 
+                        const photoFile = req.file || (req.files && req.files.uploadfile && req.files.uploadfile[0]);
+                        const planFile = req.files && req.files.uploadplan && req.files.uploadplan[0];
 
-                        if(req.file){
-                           try {
-                            let path="./public/"+req.file.filename;
+                        if(photoFile){
+                         projet.photo = await uploadService.uploadProjetsToFirebaseStorage(photoFile.filename);
+                        }
+                        projet.save().then(async (projet)=>{
+                            if(planFile){
+                                let originalNameParts = planFile.originalname.split('.');
+                                let extension = originalNameParts[originalNameParts.length - 1];
+                                let chemin = await uploadService.uploadPlanProjetToFirebaseStorage(planFile.filename);
+                                let planProjet = new PlanProjet({
+                                    nom: planFile.filename,
+                                    chemin: chemin,
+                                    extension: extension,
+                                    date: new Date(),
+                                    projet: projet._id
+                                });
+                                await planProjet.save();
+                            }
+                            /*const pvReception = new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"PV de réception"});
+                            const etatDeLieu =  new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"Etat de lieu"});
+                            await pvReception.save();
+                            await etatDeLieu.save();*/
+                            EntrepriseService.addDossierProjet(req.decoded.id,projet);
+                            EntrepriseService.addNombreProjet(projet);
+                            res.json({
+                                success:true,
+                                message:projet
+                            });
 
-                            fs.readFile(path,{encoding:'base64'},async(err,data)=>{
-                                if(err){
-                                    console.log("error file", err);
-                                }
-                                projet.photo = data;
-                                projet.save().then(async(projet)=>{
-
-                                        fs.unlink(path,(err)=>{
-                                            if(err){
-                                                console.error(err)
-                                                return
-                                            }
-                                        })
-                                        /*const pvReception = new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"PV de réception"});
-                                        const etatDeLieu =  new Dossier({date:new Date(), dateLastUpdate:new Date(),creator:req.decoded.id,project:projet._id,profondeur:0,nom:"Etat de lieu"});
-                                        await pvReception.save();
-                                        await etatDeLieu.save();*/
-                                        EntrepriseService.addNombreProjet(projet);
-                                        EntrepriseService.addDossierProjet(req.decoded.id,projet);
-                                        res.json({
-                                            success:true,
-                                            message:projet
-                                        });
-
-                                    }).catch((error)=>{
-                                        return res.status(500).json({
-                                            success:false,
-                                            message:error.message
-                                        })
-                                    })
-                            })
-                           } catch (error) {
+                        }).catch((error)=>{
                             return res.status(500).json({
                                 success:false,
-                                message:error
+                                message:error.message
                             })
-                           }
-                        }else{
-                            projet.save().then((projet)=>{
-                                EntrepriseService.addDossierProjet(req.decoded.id,projet);
-                                EntrepriseService.addNombreProjet(projet);
-                                res.json({
-                                    success:true,
-                                    message:projet
-                                });
-
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                            })
-                        }
-
-
+                        })
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -1078,16 +1056,29 @@
                 })
             },
             updateProjetEntreprise(req,res){
-                acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
+
+                 acl.isAllowed(req.decoded.id,'projets', 'update', async function(err,aclres){
                     if(aclres){
 
                         let projet = await Projet.findOne({_id:req.params.id});
+
+                        if(!projet){
+                            return res.status(404).json({
+                                success:false,
+                                message:"Projet introuvable"
+                            });
+                        }
+
+                        const photoFile = req.file || (req.files && req.files.uploadfile && req.files.uploadfile[0]);
+                        const planFile = req.files && req.files.uploadplan && req.files.uploadplan[0];
+
+                        //console.log("Body", req.body);
                         projet.projet=req.body.projet;
                         projet.service=req.body.service;
                         projet.etat=req.body.etat;
                         projet.nom=req.body.nom;
-                        projet.prenom=req.body.nom;
-                        projet.genre=req.body.nom;
+                        projet.prenom=req.body.prenom;
+                        projet.genre=req.body.genre;
                         projet.pays=req.body.pays;
                         projet.ville=req.body.ville;
                         projet.rue=req.body.rue;
@@ -1098,69 +1089,85 @@
                         projet.budget=req.body.budget;
                         projet.devise=req.body.devise;
                         projet.date_limite=req.body.date_limite;
+                        projet.date_fin_contrat=req.body.date_fin_contrat;
                         projet.plan=req.body.plan;
                         projet.contact=req.body.contact;
                         projet.latitude=req.body.latitude;
                         projet.longitude=req.body.longitude;
                         projet.coordonnees = req.body.coordonnees;
                         projet.addressSearch = req.body.addressSearch;
-
+                        
                         projet.societeResponsableCode = req.body.societeResponsableCode || 'MLKA';
 
-
-                        if(req.file){
-
-                            try {
- 
-                                let path="./public/"+req.file.filename;
-                                fs.readFile(path,{encoding:'base64'}, async(err,data)=>{
-                                    if(err){
-                                        console.log("Error File", err);
-                                    }
-                                    projet.photo=data; 
-                                    Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
-    
-                                        fs.unlink(path,(err)=>{
-                                            if(err){
-                                                console.error(err)
-                                                return
-                                            }
-                                        })      
-                                        res.json({
-                                            success:true,
-                                            message:projet
-                                        });
-                                    }).catch((error)=>{
-                                        return res.status(500).json({
-                                            success:false,
-                                            message:error.message
-                                        })
-                                    })
+                        if (photoFile) {
+                            //console.log("Nouveau fichier reçu");
+                            
+                            // Supprimer l'ancienne photo si elle existe
+                            if (projet.photo) {
+                                try {
+                                    // Extraire le chemin pour suppression
+                                     //console.log("Photo:", projet.photo);
+                                    const filePath = extractFileNameDelete(projet.photo);
+                                    //console.log("Chemin à supprimer:", filePath);
                                     
-                                })
-                                
-                            } catch (error) {
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
+                                    if (filePath) {
+                                        await uploadService.deleteProjetsFirebaseStorage(filePath);
+                                    }
+                                } catch (error) {
+                                    console.error("Erreur suppression ancienne photo:", error);
+                                }
                             }
-
+                            
+                            // Uploader la nouvelle photo
+                            try {
+                                projet.photo = await uploadService.uploadProjetsToFirebaseStorage(photoFile.filename);
+                                //console.log("Nouvelle photo URL:", projet.photo);
+                            } catch (error) {
+                                console.error("Erreur upload nouvelle photo:", error);
+                            }
                         }else{
-
-                            Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
-                                res.json({
-                                    success:true,
-                                    message:projet
-                                });
-                            }).catch((error)=>{
-                                return res.status(500).json({
-                                    success:false,
-                                    message:error.message
-                                })
-                            })
-
+                            //console.log("Photo u", projet.photo);
+                            try {
+                                const filePath = extractFileName(projet.photo);
+                                //console.log("Chemin à supprimer:", filePath);
+                                projet.photo = filePath;
+                                //console.log("Nouvelle photo URL:", projet.photo);
+                            } catch (error) {
+                                console.error("Erreur upload nouvelle photo:", error);
+                            }
                         }
+
+                        if(planFile){
+                            const planProjet = await PlanProjet.findOne({projet:req.params.id});
+
+                            if(!planProjet){
+                                let originalNameParts = planFile.originalname.split('.');
+                                let extension = originalNameParts[originalNameParts.length - 1];
+                                let chemin = await uploadService.uploadPlanProjetToFirebaseStorage(planFile.filename);
+                                let newPlanProjet = new PlanProjet({
+                                    nom: planFile.filename,
+                                    chemin: chemin,
+                                    extension: extension,
+                                    date: new Date(),
+                                    projet: req.params.id
+                                });
+                                await newPlanProjet.save();
+                            }else{
+                                fs.promises.unlink(`./public/${planFile.filename}`).catch(() => {});
+                            }
+                        }
+
+                        Projet.findOneAndUpdate({_id:req.params.id},projet,{new:true}).then((projet)=>{
+                            res.json({
+                                success:true,
+                                message:projet
+                            });
+                        }).catch((error)=>{
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        })
                     }else{
                         return res.status(401).json({
                             success: false,
@@ -1168,7 +1175,6 @@
                         }); 
                     }
                 })
-
             },
 
             // Adresse

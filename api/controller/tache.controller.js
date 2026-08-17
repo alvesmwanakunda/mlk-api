@@ -1363,6 +1363,60 @@
                 })
             },
 
+            getStatistiquesTachesEntreprise(req,res){
+                acl.isAllowed(req.decoded.id,'agenda', 'retreive', async function(err,aclres){
+
+                    if (err) {
+                        return res.status(500).json({
+                            success: false,
+                            message: err.message
+                        });
+                    }
+
+                    if(aclres){
+                        try {
+                            const projetsIds = await Projet.distinct('_id', {
+                                entreprise: req.params.id
+                            });
+                            const taches = await Tache.find({
+                                projet: { $in: projetsIds }
+                            })
+                                .sort({date_creation: -1})
+                                .populate('assignes')
+                                .populate('projet')
+                                .populate('user');
+                            const requestedLanguage =
+                                await translationService.getRequestedLanguage(req);
+                            const listeTaches = taches.map((item) =>
+                                translationService.withDisplayTache(
+                                    item,
+                                    requestedLanguage
+                                )
+                            );
+
+                            return res.status(200).json({
+                                success: true,
+                                message: {
+                                    statistiques: buildTaskStatistics(taches),
+                                    taches: listeTaches
+                                }
+                            });
+                        } catch (error) {
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            })
+                        }
+
+                    }else{
+                        return res.status(401).json({
+                            success: false,
+                            message: "401"
+                        });
+                    }
+                })
+            },
+
             // Time sheet
 
             addTime(req, res, next) {
