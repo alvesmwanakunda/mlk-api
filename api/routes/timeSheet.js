@@ -25,6 +25,9 @@
         app.route('/timesheet/user/:id([a-fA-F\\d]{24})')
            .get(Ctrl.getAllTimeSheetByUser)
 
+        app.route('/timesheet/user/:id([a-fA-F\\d]{24})/statistics')
+           .get(Ctrl.getUserStatistics)
+
         app.route('/timesheet/user/:id([a-fA-F\\d]{24})/:month/:year')
            .get(Ctrl.getAllTimeSheetUserByDate)
 

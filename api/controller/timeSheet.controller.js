@@ -4,6 +4,7 @@
    var TimeSheet = require('../models/timesheet.model').TimeSheetModel;
    var User = require('../models/users.model').UserModel;
    var ObjectId = require('mongoose').Types.ObjectId;
+   var TimesheetStatistics = require('../services/timesheetStatistics.service');
    const monthNames = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
@@ -448,6 +449,108 @@
                 }
             })
         },
+
+        getUserStatistics(req, res) {
+            acl.isAllowed(req.decoded.id, 'agenda', 'retreive', async function(err, aclres) {
+                if (err) {
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Erreur lors de la vérification des permissions'
+                    });
+                }
+
+                if (!aclres) {
+                    return res.status(401).json({
+                        success: false,
+                        message: '401'
+                    });
+                }
+
+                try {
+                    const now = new Date();
+                    const month = req.query.month === undefined
+                        ? now.getUTCMonth() + 1
+                        : Number(req.query.month);
+                    const year = req.query.year === undefined
+                        ? now.getUTCFullYear()
+                        : Number(req.query.year);
+
+                    if (!Number.isInteger(month) || month < 1 || month > 12) {
+                        return res.status(400).json({
+                            success: false,
+                            message: 'Le mois doit être un entier compris entre 1 et 12'
+                        });
+                    }
+
+                    if (!Number.isInteger(year) || year < 1970 || year > 9999) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "L'année doit être un entier compris entre 1970 et 9999"
+                        });
+                    }
+
+                    const monthRange = TimesheetStatistics.getMonthRange(year, month);
+                    const currentWeekRange = TimesheetStatistics.getWeekRange(now);
+                    const selectedFields = '_id createdAt presence heure minute heureDebut heureFin motifs';
+
+                    const [user, monthTimesheets, currentWeekTimesheets] = await Promise.all([
+                        User.findById(req.params.id).select('_id nom prenom email').lean(),
+                        TimeSheet.find({
+                            user: new ObjectId(req.params.id),
+                            createdAt: {
+                                $gte: monthRange.start,
+                                $lt: monthRange.end
+                            }
+                        }).select(selectedFields).sort({ createdAt: 1 }).lean(),
+                        TimeSheet.find({
+                            user: new ObjectId(req.params.id),
+                            createdAt: {
+                                $gte: currentWeekRange.start,
+                                $lt: currentWeekRange.end
+                            }
+                        }).select(selectedFields).sort({ createdAt: 1 }).lean()
+                    ]);
+
+                    if (!user) {
+                        return res.status(404).json({
+                            success: false,
+                            message: 'Utilisateur introuvable'
+                        });
+                    }
+
+                    const statistics = TimesheetStatistics.buildStatistics({
+                        year,
+                        month,
+                        monthTimesheets,
+                        currentWeekTimesheets,
+                        now
+                    });
+                    const lastDayOfMonth = new Date(monthRange.end.getTime() - 86400000);
+
+                    return res.status(200).json({
+                        success: true,
+                        message: 'Statistiques de présence récupérées avec succès',
+                        data: {
+                            utilisateur: user,
+                            filtre: {
+                                mois: month,
+                                annee: year,
+                                debut: monthRange.start.toISOString().slice(0, 10),
+                                fin: lastDayOfMonth.toISOString().slice(0, 10)
+                            },
+                            ...statistics
+                        }
+                    });
+                } catch (error) {
+                    console.error('Erreur statistiques timesheet:', error);
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            });
+        },
+
         // download excel
 
         downloadExecelTimeSheet(req,res){
