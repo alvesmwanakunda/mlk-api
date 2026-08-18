@@ -161,6 +161,28 @@
         body: 'PV réception « {{pvTitle}} - Version {{pvVersion}} » {{signerName}} mo ko bind. Xoolal te yónnee document bi.',
       },
     },
+    CONGE_REQUEST_CREATED: {
+      fr: {
+        title: "Nouvelle demande de congé",
+        body: "{{requesterName}} a soumis une demande de congé {{congeType}} du {{startDate}} au {{endDate}}.",
+      },
+      en: {
+        title: "New leave request",
+        body: "{{requesterName}} submitted a {{congeType}} leave request from {{startDate}} to {{endDate}}.",
+      },
+      tr: {
+        title: "Yeni izin talebi",
+        body: "{{requesterName}}, {{startDate}} ile {{endDate}} tarihleri arasında {{congeType}} izin talebi gönderdi.",
+      },
+      pl: {
+        title: "Nowy wniosek urlopowy",
+        body: "{{requesterName}} złożył(a) wniosek urlopowy {{congeType}} od {{startDate}} do {{endDate}}.",
+      },
+      wo: {
+        title: "Demande congé bu bees",
+        body: "{{requesterName}} def na demande congé {{congeType}} dale ci {{startDate}} ba {{endDate}}.",
+      },
+    },
     TIMESHEET_CLOCK_IN_REMINDER: {
       fr: {
         title: "Rappel de pointage",

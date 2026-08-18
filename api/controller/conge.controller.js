@@ -9,7 +9,12 @@ const mailService = require("../services/mail.service");
     var EmailService = require("../services/mail.service");
     var uploadService = require('../services/upload.service');
     var AgendaService = require('../services/agenda.service');
+    var notificationService = require('../services/notification.service');
+    const CONGE_NOTIFICATION_RECIPIENT_EMAILS = ['m.minthe@mlka.fr', 's.mbaye@mlka.fr'];
 
+    function formatCongeNotificationDate(value) {
+        return value ? new Date(value).toLocaleDateString('fr-FR') : '';
+    }
 
     module.exports = function(acl){
         return {
@@ -26,8 +31,35 @@ const mailService = require("../services/mail.service");
                             conge.nom_fichier = Buffer.from(req.file.filename, 'latin1').toString('utf8');
                             conge.fichier = await uploadService.uploadCongesToFirebaseStorage(req.file.filename);
                         }
-                        conge.save().then((conge)=>{
+                        conge.save().then(async(conge)=>{
                                 EmailService.mailconge(user);
+                                try {
+                                    const notificationRecipients = await User.find({
+                                        email: { $in: CONGE_NOTIFICATION_RECIPIENT_EMAILS }
+                                    });
+                                    await Promise.allSettled(
+                                        notificationRecipients.map((recipient) =>
+                                            notificationService.sendNotification({
+                                                user: recipient,
+                                                templateKey: 'CONGE_REQUEST_CREATED',
+                                                context: {
+                                                    requesterName: [user?.prenom, user?.nom].filter(Boolean).join(' '),
+                                                    congeType: conge.types || '',
+                                                    startDate: formatCongeNotificationDate(conge.debut),
+                                                    endDate: formatCongeNotificationDate(conge.fin),
+                                                },
+                                                data: {
+                                                    type: 'conge',
+                                                    resource: 'conge',
+                                                    resourceId: conge._id.toString(),
+                                                    userId: recipient._id.toString(),
+                                                },
+                                            })
+                                        )
+                                    );
+                                } catch (error) {
+                                    console.log("Erreur notification congé", error);
+                                }
                                 res.json({
                                     success:true,
                                     message:conge
