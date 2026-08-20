@@ -183,6 +183,94 @@
         body: "{{requesterName}} def na demande congé {{congeType}} dale ci {{startDate}} ba {{endDate}}.",
       },
     },
+    CONGE_REQUEST_UPDATED: {
+      fr: {
+        title: "Demande de congé modifiée",
+        body: "{{requesterName}} a modifié sa demande de congé {{congeType}} du {{startDate}} au {{endDate}}.",
+      },
+      en: {
+        title: "Leave request updated",
+        body: "{{requesterName}} updated a {{congeType}} leave request from {{startDate}} to {{endDate}}.",
+      },
+      tr: {
+        title: "İzin talebi güncellendi",
+        body: "{{requesterName}}, {{startDate}} ile {{endDate}} tarihleri arasındaki {{congeType}} izin talebini güncelledi.",
+      },
+      pl: {
+        title: "Wniosek urlopowy zaktualizowany",
+        body: "{{requesterName}} zaktualizował(a) wniosek urlopowy {{congeType}} od {{startDate}} do {{endDate}}.",
+      },
+      wo: {
+        title: "Demande congé soppi na",
+        body: "{{requesterName}} soppi na sa demande congé {{congeType}} dale ci {{startDate}} ba {{endDate}}.",
+      },
+    },
+    CONGE_REQUEST_CANCELLED: {
+      fr: {
+        title: "Demande de congé annulée",
+        body: "{{requesterName}} a annulé sa demande de congé {{congeType}} du {{startDate}} au {{endDate}}.",
+      },
+      en: {
+        title: "Leave request cancelled",
+        body: "{{requesterName}} cancelled a {{congeType}} leave request from {{startDate}} to {{endDate}}.",
+      },
+      tr: {
+        title: "İzin talebi iptal edildi",
+        body: "{{requesterName}}, {{startDate}} ile {{endDate}} tarihleri arasındaki {{congeType}} izin talebini iptal etti.",
+      },
+      pl: {
+        title: "Wniosek urlopowy anulowany",
+        body: "{{requesterName}} anulował(a) wniosek urlopowy {{congeType}} od {{startDate}} do {{endDate}}.",
+      },
+      wo: {
+        title: "Demande congé ñu ko neenal",
+        body: "{{requesterName}} neenal na sa demande congé {{congeType}} dale ci {{startDate}} ba {{endDate}}.",
+      },
+    },
+    CONGE_REQUEST_APPROVED: {
+      fr: {
+        title: "Congé validé",
+        body: "Votre demande de congé {{congeType}} du {{startDate}} au {{endDate}} a été validée.",
+      },
+      en: {
+        title: "Leave approved",
+        body: "Your {{congeType}} leave request from {{startDate}} to {{endDate}} has been approved.",
+      },
+      tr: {
+        title: "İzin onaylandı",
+        body: "{{startDate}} - {{endDate}} tarihleri arasındaki {{congeType}} izin talebiniz onaylandı.",
+      },
+      pl: {
+        title: "Urlop zatwierdzony",
+        body: "Twój wniosek urlopowy {{congeType}} od {{startDate}} do {{endDate}} został zatwierdzony.",
+      },
+      wo: {
+        title: "Congé ñu ko nangu",
+        body: "Sa demande congé {{congeType}} dale ci {{startDate}} ba {{endDate}}, ñu nangu ko.",
+      },
+    },
+    CONGE_REQUEST_REFUSED: {
+      fr: {
+        title: "Congé refusé",
+        body: "Votre demande de congé {{congeType}} du {{startDate}} au {{endDate}} a été refusée.",
+      },
+      en: {
+        title: "Leave refused",
+        body: "Your {{congeType}} leave request from {{startDate}} to {{endDate}} has been refused.",
+      },
+      tr: {
+        title: "İzin reddedildi",
+        body: "{{startDate}} - {{endDate}} tarihleri arasındaki {{congeType}} izin talebiniz reddedildi.",
+      },
+      pl: {
+        title: "Urlop odrzucony",
+        body: "Twój wniosek urlopowy {{congeType}} od {{startDate}} do {{endDate}} został odrzucony.",
+      },
+      wo: {
+        title: "Congé ñu ko bañ",
+        body: "Sa demande congé {{congeType}} dale ci {{startDate}} ba {{endDate}}, ñu bañ ko.",
+      },
+    },
     TIMESHEET_CLOCK_IN_REMINDER: {
       fr: {
         title: "Rappel de pointage",

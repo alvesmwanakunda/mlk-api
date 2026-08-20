@@ -687,6 +687,18 @@
                     let nbrMin =0;
 
                     if(user){
+                        const submittedIdPhone = req.body.idPhone != null
+                            ? String(req.body.idPhone).trim()
+                            : '';
+                        const registeredIdPhone = user.idPhone != null
+                            ? String(user.idPhone).trim()
+                            : '';
+                        if(!submittedIdPhone || !registeredIdPhone || submittedIdPhone !== registeredIdPhone){
+                            return res.status(403).json({
+                                success: false,
+                                message: "Appareil non autorisé pour le pointage. Demandez à l'administrateur de réinitialiser l'identifiant téléphone."
+                            });
+                        }
 
                         let existingTime = await TimeSheet.findOne({user:user._id, createdAt:req.body.createdAt});
 
@@ -700,37 +712,38 @@
                             const endTotalMinutes = endHours * 60 + endMinutes;
                             // Calculer la différence totale en minutes
                             let workedMinutes = endTotalMinutes - startTotalMinutes;
-                            // Soustraire 1 heure (60 minutes) pour la pause
-                            if(workedMinutes <0){
+                            if(workedMinutes < 0){
                                 console.log("Erreur: dateDebut est supérieure à dateFin");
+                                workedMinutes = 0;
                             }
 
+                            // Soustraire 1 heure de pause uniquement si le dépointage est après 13:00
                             if(heure > hPause){
                                 workedMinutes -= 60;
-                                const hoursWorked = Math.floor(workedMinutes / 60);
-                                nbrHeure = hoursWorked;
-                                const minutesWorked = workedMinutes % 60;
-                                nbrMin = minutesWorked;
-                            }else{
-                                if(workedMinutes < 60){
-                                    nbrHeure=0
-                                }else{
-                                    const hoursWorked = Math.floor(workedMinutes / 60);
-                                    nbrHeure = hoursWorked;
-                                    const minutesWorked = workedMinutes % 60;
-                                    nbrMin = minutesWorked;
-                                }
                             }
-                            let body={
-                                heureFin:heure,
-                                pause:hPause,
-                                heure:nbrHeure,
-                                minute:nbrMin,
+
+                            if(workedMinutes < 0){
+                                workedMinutes = 0;
+                            }
+
+                            nbrHeure = Math.floor(workedMinutes / 60);
+                            nbrMin = workedMinutes % 60;
+                            const update = {
+                                $set: {
+                                    heureFin: heure,
+                                    heure: nbrHeure,
+                                    minute: nbrMin,
+                                }
                             };
                             if (req.body.projet){
-                                body.projet = req.body.projet;
+                                update.$set.projet = req.body.projet;
                             }
-                            TimeSheet.findOneAndUpdate({_id:existingTime._id},body,{new:true}).then((conge)=>{
+                            if (heure > hPause) {
+                                update.$set.pause = hPause;
+                            } else {
+                                update.$unset = { pause: 1 };
+                            }
+                            TimeSheet.findOneAndUpdate({_id:existingTime._id},update,{new:true}).then((conge)=>{
                                 res.json({
                                     success:true,
                                     message:conge
@@ -759,6 +772,11 @@
                                 message:timeSheet
                             });
                         }
+                    }else{
+                        return res.status(404).json({
+                            success: false,
+                            message: "Utilisateur introuvable."
+                        });
                     }
                 }else{
                     return res.status(401).json({
@@ -767,6 +785,50 @@
                     }); 
                 }
             })
+        },
+
+        getTodayTimeSheetByPhone(req, res) {
+            acl.isAllowed(req.decoded.id, 'agenda', 'create', async function (err, aclres) {
+                if (!aclres) {
+                    return res.status(401).json({
+                        success: false,
+                        message: "401"
+                    });
+                }
+
+                try {
+                    const user = await User.findOne({ _id: req.params.id });
+                    if (!user) {
+                        return res.status(404).json({
+                            success: false,
+                            message: "Utilisateur introuvable."
+                        });
+                    }
+
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+
+                    const timesheet = await TimeSheet.findOne({
+                        user: new ObjectId(req.params.id),
+                        createdAt: {
+                            $gte: today,
+                            $lt: tomorrow
+                        }
+                    }).populate('projet');
+
+                    return res.status(200).json({
+                        success: true,
+                        message: timesheet
+                    });
+                } catch (error) {
+                    return res.status(500).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+            });
         },
 
         getAllTimeToDay(req,res){

@@ -65,7 +65,9 @@
         },
         idPhone:{
             type:String,
-            required:false
+            required:false,
+            unique: true,
+            sparse: true
          },
          type_contrat:{
             type:String,

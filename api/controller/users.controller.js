@@ -210,129 +210,6 @@
                     }); 
                 })
             },
-            // signupUser:function(req,res){
-
-            //     let gender='';
-
-            //     var query = {email:req.body.email}
-            //     var entreprise = new Entreprise();
-            //     entreprise.societe = req.body.societe;
-            //     entreprise.nom= req.body.nom;
-            //     entreprise.prenom= req.body.prenom;
-            //     entreprise.email = req.body.email;
-            //     entreprise.genre= req.body.genre;
-            //     entreprise.siret= req.body.siret;
-            //     entreprise.postal= req.body.postal;
-            //     entreprise.rue= req.body.rue;
-            //     entreprise.numero= req.body.numero;
-            //     entreprise.adresse= req.body.adresse;
-            //     entreprise.indicatif = req.body.indicatif;
-            //     entreprise.telephone = req.body.telephone;
-            //     entreprise.pays = req.body.pays;
-
-            //     /*var password = codes.generate({
-            //         length: 9,
-            //         count: 1,
-            //         charset: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            //     });
-            //     password = password[0];*/
-
-            //     var password = req.body.password;
-
-            //     var user = new User();
-            //     user.email = req.body.email;
-            //     user.nom = req.body.nom;
-            //     user.prenom = req.body.prenom;
-            //     user.role = "user";
-            //     user.valid = true;
-            //     user.password = req.body.password;
-
-            //     if(req.body.genre=='Mr'){
-            //         gender=1;
-            //         user.genre = "Mr"
-            //     }else{
-            //         gender=2;
-            //         user.genre = "Mlle"
-            //     }
-
-            //     let payload={
-            //         lastname: req.body.nom,
-            //         firstname: req.body.prenom,
-            //         email : req.body.email,
-            //         active:"1",
-            //         company:req.body.societe,
-            //         siret: req.body.siret,
-            //         passwd: password,
-            //         id_gender:gender,
-            //         id_default_group:3,
-            //         phone:req.body.indicatif+""+req.body.telephone
-            //     };
-            //     let adresse={
-            //         id_country:8,
-            //         alias:req.body.prenom+""+req.body.nom,
-            //         lastname: req.body.nom,
-            //         firstname: req.body.prenom,
-            //         adress1:req.body.rue+" "+req.body.numero,
-            //         postcode:req.body.postal,
-            //         phone:req.body.indicatif+""+req.body.telephone,
-            //         city:req.body.rue,
-            //         company:req.body.societe,
-            //     }
-
-            //     let payloadOdoo={
-            //         'name': req.body.societe,
-            //         'company_type':"company",//req.body.company, // Type de l'entreprise
-            //         'is_company': true, // Indique qu'il s'agit d'une entreprise
-            //         'street': req.body.rue+" "+req.body.numero,
-            //         'city': req.body.rue,
-            //         'zip': req.body.postal,
-            //         'country_id': false, // ID du pays (peut être défini si nécessaire)
-            //         'phone': req.body.indicatif+""+req.body.telephone,
-            //         'email': req.body.email,
-            //     }
-
-            //     User.findOne(query).then((result)=>{
-            //         if(result){
-            //             return res.json({
-            //                 success:false,
-            //                 message: "already exists"
-            //             })
-            //         }else{
-            //              entreprise.save().then((entreprise)=>{
-            //               //console.log("Entreprise", entreprise);  
-            //               user.entreprise=new ObjectId(entreprise._id);
-            //               user.password = crypto.createHash('md5').update(password).digest("hex");
-            //               user.save().then((result)=>{
-            //                         mailService.signup(result, password);
-            //                         prestashopService.addClient(payload,adresse);
-            //                         prestashopService.addClientLocation(payload,adresse);
-            //                         odooService.addCompany(payloadOdoo,entreprise);
-            //                         res.json({
-            //                             success:true,
-            //                             message:result,
-            //                             signature:password
-            //                         });
-            //                     }).catch((error)=>{
-            //                         return res.status(500).json({
-            //                             success:false,
-            //                             message: error.message
-            //                         });
-            //               })
-            //              }).catch((error)=>{
-            //                 return res.status(500).json({
-            //                     success:false,
-            //                     message: error.message
-            //                 })
-            //              })
-            //         } 
-            //     }).catch((error)=>{
-                    
-            //         return res.status(500).json({
-            //             success:false,
-            //             message: error.message
-            //         });
-            //     })
-            // },
 
             signupUserParticulier:function(req,res){
 
@@ -535,9 +412,7 @@
             updateIdPhoneOrFcmToken(req,res){
                 acl.isAllowed(req.decoded.id,'projets', 'create', async function(err,aclres){
                     if(aclres){
-
-                        let user = User.findOne({_id:req.decoded.id});
-                        if(user){ 
+                        try {
                             if(req.body.fcmToken){
                                 let users = await User.find({fcmToken:req.body.fcmToken});
                                 users.forEach( user => {
@@ -545,17 +420,46 @@
                                     user.save();
                                 });
                             }
-                            User.findOneAndUpdate({_id:req.decoded.id},req.body,{new:true}).then(async (user)=>{
-                                res.json({
-                                    success:true,
-                                    message:user
+                            if(req.body.idPhone){
+                                const idPhone = String(req.body.idPhone).trim();
+                                if(!idPhone){
+                                    return res.status(400).json({
+                                        success:false,
+                                        message: "Identifiant appareil invalide."
+                                    });
+                                }
+                                const taken = await User.findOne({
+                                    idPhone: idPhone,
+                                    _id: { $ne: req.decoded.id }
                                 });
-                            }).catch((error)=>{
-                                return res.status(500).json({
+                                if(taken){
+                                    return res.status(409).json({
+                                        success:false,
+                                        message: "Cet identifiant d'appareil est déjà associé à un autre compte."
+                                    });
+                                }
+                                req.body.idPhone = idPhone;
+                            }
+                            const user = await User.findOneAndUpdate(
+                                {_id:req.decoded.id},
+                                req.body,
+                                {new:true}
+                            );
+                            return res.json({
+                                success:true,
+                                message:user
+                            });
+                        } catch (error) {
+                            if(error && error.code === 11000){
+                                return res.status(409).json({
                                     success:false,
-                                    message:error.message
-                                })
-                            })
+                                    message: "Cet identifiant d'appareil est déjà associé à un autre compte."
+                                });
+                            }
+                            return res.status(500).json({
+                                success:false,
+                                message:error.message
+                            });
                         }
                     }else{
                         return res.status(401).json({

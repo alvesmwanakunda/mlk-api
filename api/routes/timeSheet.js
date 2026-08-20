@@ -37,6 +37,9 @@
         app.route('/timesheet/donwload/excel/:month/:year')
            .get(Ctrl.downloadExecelTimeSheet)
 
+        app.route('/timesheet/phone/:id([a-fA-F\\d]{24})/today')
+        .get(Ctrl.getTodayTimeSheetByPhone)
+
         app.route('/timesheet/phone/:id([a-fA-F\\d]{24})')
         .post(Ctrl.addTimeSheetMobile)
 
